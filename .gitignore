@@ -1,0 +1,16 @@
+node_modules/
+dist/
+client/node_modules/
+client/dist/
+client/build/
+.env
+*.db
+*.db-journal
+whatsapp-sessions/
+.DS_Store
+*.log
+.vscode/
+.idea/
+
+
+
