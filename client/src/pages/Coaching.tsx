@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { Plus, Target, CheckCircle, Clock, XCircle, TrendingUp, Calendar, BarChart3, Download, Search, Filter, AlertCircle, ChevronLeft, ChevronRight, Trash2, FileDown } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { toPersianNumber } from '../utils/numberHelper';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { 
   toJalali, 
   toJalaliFull, 
@@ -594,7 +595,7 @@ const SessionsList = ({ sessions, customers, onEdit, onDelete, searchTerm, statu
                 )}
                 {session.rating && (
                   <span className="px-2 py-1 bg-white rounded text-xs">
-                    ⭐ {session.rating}/5
+                    ⭐ {toPersianNumber(session.rating)}/۵
                   </span>
                 )}
               </div>
@@ -690,7 +691,7 @@ const GoalsList = ({ goals, customers, onEdit, onDelete }: any) => {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
               <YAxis />
-              <Tooltip />
+              <ChartTooltip />
               <Legend />
               <Bar dataKey="پیشرفت (%)" fill="#6366F1" />
             </BarChart>
@@ -1865,7 +1866,7 @@ const DashboardView = ({ stats, upcomingSessions, goalsProgress, overdueExercise
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-indigo-700 font-medium">کل جلسات</p>
-              <p className="text-3xl font-bold text-indigo-900 mt-2">{stats?.totalSessions || 0}</p>
+              <p className="text-3xl font-bold text-indigo-900 mt-2">{toPersianNumber(stats?.totalSessions || 0)}</p>
             </div>
             <TrendingUp className="text-indigo-500" size={40} />
           </div>
@@ -2198,7 +2199,7 @@ const CalendarView = ({ sessions, customers, onSessionClick, onCreateSession }: 
                 })}
                 {daySessions.length > 3 && (
                   <div className="text-xs text-neutral-500 text-center">
-                    +{daySessions.length - 3} بیشتر
+                    +{toPersianNumber(daySessions.length - 3)} بیشتر
                   </div>
                 )}
               </div>

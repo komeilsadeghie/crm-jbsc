@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import api from '../services/api';
 import { Plus, MessageSquare, AlertCircle, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { toJalali } from '../utils/dateHelper';
+import { toPersianNumber } from '../utils/numberHelper';
 import { translateTicketStatus, translatePriority } from '../utils/translations';
 
 const Tickets = () => {
@@ -109,7 +110,7 @@ const Tickets = () => {
             <div className="flex justify-between items-start mb-2">
               <div className="flex items-center gap-2">
                 {getStatusIcon(ticket.status)}
-                <span className="font-medium">{ticket.ticket_number}</span>
+                <span className="font-medium">{toPersianNumber(ticket.ticket_number)}</span>
               </div>
               <span className={getPriorityColor(ticket.priority)}>
                 {translatePriority(ticket.priority)}

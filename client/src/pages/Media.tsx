@@ -1,15 +1,27 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import api from '../services/api';
-import { Plus, Calendar, FileText, Image, Video, CheckCircle, XCircle, Clock, Upload, FileSpreadsheet, AlertCircle } from 'lucide-react';
+import { Plus, Calendar, FileText, Image, Video, CheckCircle, XCircle, Clock, Upload, FileSpreadsheet, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, Search, Filter } from 'lucide-react';
 import { toJalali, toJalaliFull } from '../utils/dateHelper';
 import JalaliDatePicker from '../components/JalaliDatePicker';
 import { useNavigate } from 'react-router-dom';
+import { useDebounce } from '../hooks/useDebounce';
+import { useToast } from '../contexts/ToastContext';
+import EmptyState from '../components/EmptyState';
+import Tooltip from '../components/Tooltip';
+import Pagination from '../components/Pagination';
 
 const Media = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'briefs' | 'items' | 'calendar' | 'assets' | 'import'>('briefs');
+  const [sortConfig, setSortConfig] = useState<{ field: string; direction: 'asc' | 'desc' } | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [filterType, setFilterType] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState<'brief' | 'item' | 'asset'>('brief');
   const [editingItem, setEditingItem] = useState<any>(null);
@@ -38,6 +50,101 @@ const Media = () => {
     return Array.isArray(data) ? data : [];
   });
 
+  // Sort function
+  const handleSort = (field: string) => {
+    setSortConfig((current) => {
+      if (current?.field === field) {
+        return current.direction === 'asc' 
+          ? { field, direction: 'desc' }
+          : null;
+      }
+      return { field, direction: 'asc' };
+    });
+  };
+
+  // Filter data
+  const getFilteredData = (data: any[], tab: string) => {
+    return data.filter((item: any) => {
+      // Search filter
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        const matchesSearch = 
+          (item.title && item.title.toLowerCase().includes(searchLower)) ||
+          (item.name && item.name.toLowerCase().includes(searchLower)) ||
+          (item.description && item.description.toLowerCase().includes(searchLower));
+        if (!matchesSearch) return false;
+      }
+
+      // Type filter (for items)
+      if (tab === 'items' && filterType && item.type !== filterType) return false;
+
+      // Status filter (for assets)
+      if (tab === 'assets' && filterStatus && item.approval_status !== filterStatus) return false;
+
+      // Date filters
+      const dateField = item.created_at || item.date || item.created_date;
+      if (filterDateFrom && dateField) {
+        const itemDate = new Date(dateField).toISOString().split('T')[0];
+        if (itemDate < filterDateFrom) return false;
+      }
+      if (filterDateTo && dateField) {
+        const itemDate = new Date(dateField).toISOString().split('T')[0];
+        if (itemDate > filterDateTo) return false;
+      }
+
+      return true;
+    });
+  };
+
+  // Sort data based on sortConfig
+  const getSortedData = (data: any[]) => {
+    if (!sortConfig) return data;
+    
+    return [...data].sort((a, b) => {
+      let aValue = a[sortConfig.field];
+      let bValue = b[sortConfig.field];
+      
+      // Handle null/undefined
+      if (aValue == null) aValue = '';
+      if (bValue == null) bValue = '';
+      
+      // Handle numbers
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+      
+      // Handle dates
+      if (sortConfig.field.includes('date') || sortConfig.field.includes('_at')) {
+        const aDate = new Date(aValue).getTime();
+        const bDate = new Date(bValue).getTime();
+        if (isNaN(aDate) || isNaN(bDate)) {
+          const aStr = String(aValue).toLowerCase();
+          const bStr = String(bValue).toLowerCase();
+          return sortConfig.direction === 'asc' 
+            ? aStr.localeCompare(bStr, 'fa')
+            : bStr.localeCompare(aStr, 'fa');
+        }
+        return sortConfig.direction === 'asc' ? aDate - bDate : bDate - aDate;
+      }
+      
+      // Handle strings
+      const aStr = String(aValue).toLowerCase();
+      const bStr = String(bValue).toLowerCase();
+      
+      if (sortConfig.direction === 'asc') {
+        return aStr.localeCompare(bStr, 'fa');
+      } else {
+        return bStr.localeCompare(aStr, 'fa');
+      }
+    });
+  };
+
+  // Combined filter and sort
+  const getFilteredAndSortedData = (data: any[], tab: string) => {
+    const filtered = getFilteredData(data, tab);
+    return getSortedData(filtered);
+  };
+
   const tabs = [
     { id: 'briefs', label: 'بریف‌های محتوا', icon: FileText },
     { id: 'items', label: 'آیتم‌های محتوا', icon: Image },
@@ -48,24 +155,25 @@ const Media = () => {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex justify-between items-center glass-card">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">مدیریت محتوا و مدیا</h1>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-3 sm:p-4 md:p-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 glass-card">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">مدیریت محتوا و مدیا</h1>
         <button
           onClick={() => {
             setEditingItem(null);
             setShowModal(true);
           }}
-          className="btn btn-primary flex items-center gap-2"
+          className="btn btn-primary flex items-center gap-2 text-sm sm:text-base whitespace-nowrap w-full sm:w-auto justify-center"
         >
-          <Plus size={20} />
-          افزودن {tabs.find(t => t.id === activeTab)?.label}
+          <Plus size={18} className="sm:w-5 sm:h-5" />
+          <span className="hidden sm:inline">افزودن {tabs.find(t => t.id === activeTab)?.label}</span>
+          <span className="sm:hidden">افزودن</span>
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b">
+      <div className="flex gap-1 sm:gap-2 border-b overflow-x-auto">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (
@@ -73,42 +181,143 @@ const Media = () => {
               key={tab.id}
               onClick={() => {
                 setActiveTab(tab.id as any);
+                setSortConfig(null); // Reset sort when changing tabs
                 setModalType(tab.id === 'briefs' ? 'brief' : tab.id === 'assets' ? 'asset' : 'item');
               }}
-              className={`flex items-center gap-2 px-6 py-3 border-b-2 transition-colors ${
+              className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-4 md:px-6 py-2 sm:py-3 border-b-2 transition-colors whitespace-nowrap text-sm sm:text-base ${
                 activeTab === tab.id
                   ? 'border-primary-600 text-primary-600'
                   : 'border-transparent text-gray-600 hover:text-gray-800'
               }`}
             >
-              <Icon size={20} />
-              {tab.label}
+              <Icon size={18} className="sm:w-5 sm:h-5 flex-shrink-0" />
+              <span className="hidden sm:inline">{tab.label}</span>
             </button>
           );
         })}
       </div>
 
+      {/* Filters */}
+      {(activeTab === 'briefs' || activeTab === 'items' || activeTab === 'assets') && (
+        <div className="glass-card">
+          <div className="space-y-4">
+            {/* Basic Filters */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="relative">
+                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} className="sm:w-5 sm:h-5" />
+                <input
+                  type="text"
+                  placeholder="جستجو..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="input pr-9 sm:pr-10 text-sm sm:text-base"
+                />
+              </div>
+              {activeTab === 'items' && (
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  className="input text-sm sm:text-base"
+                >
+                  <option value="">همه انواع</option>
+                  <option value="video">ویدیو</option>
+                  <option value="image">تصویر</option>
+                  <option value="text">متن</option>
+                </select>
+              )}
+              {activeTab === 'assets' && (
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="input text-sm sm:text-base"
+                >
+                  <option value="">همه وضعیت‌ها</option>
+                  <option value="approved">تایید شده</option>
+                  <option value="rejected">رد شده</option>
+                  <option value="pending">در انتظار</option>
+                  <option value="revision_requested">نیاز به بازبینی</option>
+                </select>
+              )}
+              <div className="flex gap-2 sm:col-span-2 lg:col-span-1">
+                <button
+                  onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                  className="btn btn-secondary flex items-center gap-2 flex-1 text-sm sm:text-base"
+                >
+                  <Filter size={16} className="sm:w-[18px] sm:h-[18px]" />
+                  <span className="hidden sm:inline">فیلتر پیشرفته</span>
+                  <span className="sm:hidden">فیلتر</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setFilterType('');
+                    setFilterStatus('');
+                    setFilterDateFrom('');
+                    setFilterDateTo('');
+                  }}
+                  className="btn btn-secondary text-sm sm:text-base"
+                  title="پاک کردن همه فیلترها"
+                >
+                  <span className="hidden sm:inline">پاک کردن</span>
+                  <span className="sm:hidden">پاک</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Advanced Filters */}
+            {showAdvancedFilters && (
+              <div className="border-t pt-3 sm:pt-4 mt-3 sm:mt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div>
+                    <label className="label">تاریخ از</label>
+                    <input
+                      type="date"
+                      value={filterDateFrom}
+                      onChange={(e) => setFilterDateFrom(e.target.value)}
+                      className="input"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">تاریخ تا</label>
+                    <input
+                      type="date"
+                      value={filterDateTo}
+                      onChange={(e) => setFilterDateTo(e.target.value)}
+                      className="input"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Content */}
       <div className="glass-card">
         {activeTab === 'briefs' && (
           <BriefsList
-            briefs={briefs}
+            briefs={getFilteredAndSortedData(Array.isArray(briefs) ? briefs : [], 'briefs')}
             onEdit={(brief) => {
               setEditingItem(brief);
               setModalType('brief');
               setShowModal(true);
             }}
+            sortConfig={sortConfig}
+            onSort={handleSort}
           />
         )}
 
         {activeTab === 'items' && (
           <ItemsList
-            items={items}
+            items={getFilteredAndSortedData(Array.isArray(items) ? items : [], 'items')}
             onEdit={(item) => {
               setEditingItem(item);
               setModalType('item');
               setShowModal(true);
             }}
+            sortConfig={sortConfig}
+            onSort={handleSort}
           />
         )}
 
@@ -118,12 +327,14 @@ const Media = () => {
 
         {activeTab === 'assets' && (
           <AssetsList
-            assets={assets}
+            assets={getFilteredAndSortedData(Array.isArray(assets) ? assets : [], 'assets')}
             onEdit={(asset) => {
               setEditingItem(asset);
               setModalType('asset');
               setShowModal(true);
             }}
+            sortConfig={sortConfig}
+            onSort={handleSort}
           />
         )}
 
@@ -173,10 +384,51 @@ const getStatusColor = (status: string) => {
   return colors[status] || 'bg-gray-100 text-gray-700';
 };
 
-const BriefsList = ({ briefs, onEdit }: any) => {
+const BriefsList = ({ briefs, onEdit, sortConfig, onSort }: any) => {
+  const briefsArray = Array.isArray(briefs) ? briefs : [];
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  
+  // Pagination
+  const totalItems = briefsArray.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedBriefs = briefsArray.slice(startIndex, endIndex);
+  
+  if (currentPage > totalPages && totalPages > 0) {
+    setCurrentPage(1);
+  }
+  
   return (
     <div className="space-y-4">
-      {Array.isArray(briefs) && briefs.map((brief: any) => (
+      {briefsArray.length > 0 && onSort && (
+        <div className="flex gap-2 mb-4 pb-2 border-b border-neutral-200">
+          <button
+            onClick={() => onSort('title')}
+            className="flex items-center gap-1 text-sm hover:text-primary-600 transition-colors"
+          >
+            عنوان
+            {sortConfig?.field === 'title' ? (
+              sortConfig.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+            ) : (
+              <ArrowUpDown size={14} className="text-gray-400" />
+            )}
+          </button>
+          <button
+            onClick={() => onSort('created_at')}
+            className="flex items-center gap-1 text-sm hover:text-primary-600 transition-colors"
+          >
+            تاریخ ایجاد
+            {sortConfig?.field === 'created_at' ? (
+              sortConfig.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+            ) : (
+              <ArrowUpDown size={14} className="text-gray-400" />
+            )}
+          </button>
+        </div>
+      )}
+      {paginatedBriefs.map((brief: any) => (
         <div key={brief.id} className="border rounded-lg p-4 hover:bg-gray-50">
           <div className="flex justify-between items-start">
             <div className="flex-1">
@@ -214,13 +466,49 @@ const BriefsList = ({ briefs, onEdit }: any) => {
         </div>
       ))}
       {(!briefs || briefs.length === 0) && (
-        <div className="text-center py-12 text-gray-500">بریفی ثبت نشده است</div>
+        <EmptyState
+          icon={FileText}
+          title="بریفی ثبت نشده است"
+          description="برای شروع، اولین بریف محتوا را اضافه کنید"
+        />
+      )}
+      
+      {/* Pagination */}
+      {briefsArray.length > 0 && (
+        <div className="pt-4 border-t border-neutral-200 dark:border-neutral-700">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            itemsPerPage={itemsPerPage}
+            totalItems={totalItems}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={(newItemsPerPage) => {
+              setItemsPerPage(newItemsPerPage);
+              setCurrentPage(1);
+            }}
+          />
+        </div>
       )}
     </div>
   );
 };
 
 const ItemsList = ({ items, onEdit }: any) => {
+  const itemsArray = Array.isArray(items) ? items : [];
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  
+  // Pagination
+  const totalItems = itemsArray.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedItems = itemsArray.slice(startIndex, endIndex);
+  
+  if (currentPage > totalPages && totalPages > 0) {
+    setCurrentPage(1);
+  }
+  
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'video': return <Video size={20} />;
@@ -231,7 +519,7 @@ const ItemsList = ({ items, onEdit }: any) => {
 
   return (
     <div className="space-y-4">
-      {Array.isArray(items) && items.map((item: any) => (
+      {paginatedItems.map((item: any) => (
         <div key={item.id} className="border rounded-lg p-4 hover:bg-gray-50">
           <div className="flex justify-between items-start">
             <div className="flex-1">
@@ -265,8 +553,29 @@ const ItemsList = ({ items, onEdit }: any) => {
           </div>
         </div>
       ))}
-      {(!items || items.length === 0) && (
-        <div className="text-center py-12 text-gray-500">آیتمی ثبت نشده است</div>
+      {itemsArray.length === 0 && (
+        <EmptyState
+          icon={Image}
+          title="آیتمی ثبت نشده است"
+          description="برای شروع، اولین محتوای رسانه‌ای را اضافه کنید"
+        />
+      )}
+      
+      {/* Pagination */}
+      {itemsArray.length > 0 && (
+        <div className="pt-4 border-t border-neutral-200 dark:border-neutral-700">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            itemsPerPage={itemsPerPage}
+            totalItems={totalItems}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={(newItemsPerPage) => {
+              setItemsPerPage(newItemsPerPage);
+              setCurrentPage(1);
+            }}
+          />
+        </div>
       )}
     </div>
   );
@@ -318,7 +627,21 @@ const CalendarView = ({ calendar }: any) => {
   );
 };
 
-const AssetsList = ({ assets, onEdit }: any) => {
+const AssetsList = ({ assets, onEdit, sortConfig, onSort }: any) => {
+  const assetsArray = Array.isArray(assets) ? assets : [];
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  
+  // Pagination
+  const totalItems = assetsArray.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedAssets = assetsArray.slice(startIndex, endIndex);
+  
+  if (currentPage > totalPages && totalPages > 0) {
+    setCurrentPage(1);
+  }
   const getApprovalIcon = (status: string) => {
     switch (status) {
       case 'approved': return <CheckCircle className="text-green-600" size={20} />;
@@ -329,8 +652,46 @@ const AssetsList = ({ assets, onEdit }: any) => {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {Array.isArray(assets) && assets.map((asset: any) => (
+    <div className="space-y-4">
+      {assetsArray.length > 0 && onSort && (
+        <div className="flex gap-2 mb-4 pb-2 border-b border-neutral-200">
+          <button
+            onClick={() => onSort('name')}
+            className="flex items-center gap-1 text-sm hover:text-primary-600 transition-colors"
+          >
+            نام
+            {sortConfig?.field === 'name' ? (
+              sortConfig.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+            ) : (
+              <ArrowUpDown size={14} className="text-gray-400" />
+            )}
+          </button>
+          <button
+            onClick={() => onSort('approval_status')}
+            className="flex items-center gap-1 text-sm hover:text-primary-600 transition-colors"
+          >
+            وضعیت تایید
+            {sortConfig?.field === 'approval_status' ? (
+              sortConfig.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+            ) : (
+              <ArrowUpDown size={14} className="text-gray-400" />
+            )}
+          </button>
+          <button
+            onClick={() => onSort('created_at')}
+            className="flex items-center gap-1 text-sm hover:text-primary-600 transition-colors"
+          >
+            تاریخ ایجاد
+            {sortConfig?.field === 'created_at' ? (
+              sortConfig.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+            ) : (
+              <ArrowUpDown size={14} className="text-gray-400" />
+            )}
+          </button>
+        </div>
+      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {paginatedAssets.map((asset: any) => (
         <div key={asset.id} className="border rounded-lg p-4 hover:bg-gray-50">
           <div className="flex items-center justify-between mb-2">
             <span className="font-medium">{asset.file_name}</span>
@@ -354,8 +715,32 @@ const AssetsList = ({ assets, onEdit }: any) => {
           </button>
         </div>
       ))}
-      {(!assets || assets.length === 0) && (
-        <div className="col-span-full text-center py-12 text-gray-500">دارایی‌ای ثبت نشده است</div>
+      {assetsArray.length === 0 && (
+        <div className="col-span-full">
+          <EmptyState
+            icon={Image}
+            title="دارایی ثبت نشده است"
+            description="برای شروع، اولین دارایی رسانه‌ای را اضافه کنید"
+          />
+        </div>
+      )}
+      </div>
+      
+      {/* Pagination */}
+      {assetsArray.length > 0 && (
+        <div className="pt-4 border-t border-neutral-200 dark:border-neutral-700">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            itemsPerPage={itemsPerPage}
+            totalItems={totalItems}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={(newItemsPerPage) => {
+              setItemsPerPage(newItemsPerPage);
+              setCurrentPage(1);
+            }}
+          />
+        </div>
       )}
     </div>
   );
@@ -363,6 +748,7 @@ const AssetsList = ({ assets, onEdit }: any) => {
 
 const MediaModal = ({ type, item, onClose }: any) => {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [formData, setFormData] = useState<any>(() => {
     if (type === 'brief') {
       return {
@@ -424,12 +810,12 @@ const MediaModal = ({ type, item, onClose }: any) => {
         queryClient.invalidateQueries('media-briefs');
         queryClient.invalidateQueries('media-items');
         queryClient.invalidateQueries('media-assets');
-        alert('اطلاعات با موفقیت ذخیره شد');
+        toast.showSuccess('اطلاعات با موفقیت ذخیره شد');
         onClose();
       },
       onError: (error: any) => {
         console.error('Error saving media data:', error);
-        alert(error.response?.data?.error || 'خطا در ذخیره اطلاعات');
+        toast.showError(error.response?.data?.error || 'خطا در ذخیره اطلاعات');
       },
     }
   );
@@ -727,7 +1113,7 @@ const ImportCustomersSection = ({ onSuccess }: { onSuccess: (data?: any) => void
     {
       onSuccess: (data) => {
         if (!data || !data.headers || !Array.isArray(data.headers)) {
-          alert('خطا: داده‌های دریافتی از سرور نامعتبر است');
+          toast.showError('خطا: داده‌های دریافتی از سرور نامعتبر است');
           return;
         }
         setPreviewData(data);
@@ -923,7 +1309,7 @@ const ImportCustomersSection = ({ onSuccess }: { onSuccess: (data?: any) => void
         // Warn if name is not auto-mapped
         if (!Object.values(autoMapping).includes('name')) {
           console.warn('⚠️ ستون "نام و نام خانوادگی" به صورت خودکار شناسایی نشد. لطفاً به صورت دستی map کنید.');
-          alert('⚠️ توجه: ستون "نام و نام خانوادگی" به صورت خودکار شناسایی نشد.\nلطفاً این ستون را به فیلد "نام و نام خانوادگی *" نگاشت کنید.');
+          toast.showWarning('ستون "نام و نام خانوادگی" به صورت خودکار شناسایی نشد. لطفاً این ستون را به فیلد "نام و نام خانوادگی *" نگاشت کنید.');
         }
         
         setMapping(autoMapping);
@@ -931,7 +1317,7 @@ const ImportCustomersSection = ({ onSuccess }: { onSuccess: (data?: any) => void
       onError: (error: any) => {
         console.error('Preview error:', error);
         const errorMessage = error.response?.data?.error || error.message || 'خطا در پیش‌نمایش فایل';
-        alert(`خطا در خواندن فایل: ${errorMessage}`);
+        toast.showError(`خطا در خواندن فایل: ${errorMessage}`);
       },
     }
   );
@@ -964,7 +1350,7 @@ const ImportCustomersSection = ({ onSuccess }: { onSuccess: (data?: any) => void
         
         if (data.error) {
           console.error('Import error from backend:', data.error);
-          alert(`خطا در واردات: ${data.error}`);
+          toast.showError(`خطا در واردات: ${data.error}`);
           return;
         }
         
@@ -992,7 +1378,7 @@ const ImportCustomersSection = ({ onSuccess }: { onSuccess: (data?: any) => void
           });
         }
         
-        alert(message);
+        toast.showSuccess(message.replace(/\n/g, ' - '));
         setImportFile(null);
         setPreviewData(null);
         setMapping({});
@@ -1012,9 +1398,9 @@ const ImportCustomersSection = ({ onSuccess }: { onSuccess: (data?: any) => void
         const errorMessage = error.response?.data?.error || error.message || 'خطا در واردات فایل';
         const statusCode = error.response?.status;
         if (statusCode === 404) {
-          alert(`خطا 404: مسیر API یافت نشد. لطفاً سرور را بررسی کنید.\n${errorMessage}`);
+          toast.showError(`خطا 404: مسیر API یافت نشد. لطفاً سرور را بررسی کنید. ${errorMessage}`);
         } else {
-          alert(`خطا در واردات: ${errorMessage}${statusCode ? ` (کد خطا: ${statusCode})` : ''}`);
+          toast.showError(`خطا در واردات: ${errorMessage}${statusCode ? ` (کد خطا: ${statusCode})` : ''}`);
         }
       },
     }
@@ -1035,7 +1421,7 @@ const ImportCustomersSection = ({ onSuccess }: { onSuccess: (data?: any) => void
     if (importFile) {
       previewMutation.mutate(importFile);
     } else {
-      alert('لطفاً ابتدا فایل Excel را انتخاب کنید');
+      toast.showWarning('لطفاً ابتدا فایل Excel را انتخاب کنید');
     }
   };
 
@@ -1279,7 +1665,7 @@ const ImportCustomersSection = ({ onSuccess }: { onSuccess: (data?: any) => void
                       // Check if name field is mapped
                       const nameMapped = Object.keys(mapping).some(key => mapping[key] === 'name');
                       if (!nameMapped) {
-                        alert('لطفاً حداقل ستون "نام و نام خانوادگی" را نگاشت کنید');
+                        toast.showWarning('لطفاً حداقل ستون "نام و نام خانوادگی" را نگاشت کنید');
                         return;
                       }
                       importMutation.mutate();

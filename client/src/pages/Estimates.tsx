@@ -1,16 +1,25 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import api from '../services/api';
 import { Plus, Search, Edit, Trash2, FileText, Download, Printer, FileCheck } from 'lucide-react';
 import { toJalali } from '../utils/dateHelper';
+import { toPersianNumber } from '../utils/numberHelper';
+import { useToast } from '../contexts/ToastContext';
 import JalaliDatePicker from '../components/JalaliDatePicker';
+import ConfirmDialog from '../components/ConfirmDialog';
+import Pagination from '../components/Pagination';
 
 const Estimates = () => {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingEstimate, setEditingEstimate] = useState<any>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; id?: number }>({ show: false });
+  const [convertConfirm, setConvertConfirm] = useState<{ show: boolean; id?: number }>({ show: false });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(15);
   const [formData, setFormData] = useState({
     account_id: '',
     deal_id: '',
@@ -50,6 +59,29 @@ const Estimates = () => {
       }
     }
   );
+
+  // Pagination calculations - memoized for performance
+  const { totalItems, totalPages, paginatedEstimates } = useMemo(() => {
+    const estimatesArray = Array.isArray(estimates) ? estimates : [];
+    const total = estimatesArray.length;
+    const pages = Math.ceil(total / itemsPerPage);
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    const paginated = estimatesArray.slice(start, end);
+    
+    return {
+      totalItems: total,
+      totalPages: pages,
+      paginatedEstimates: paginated,
+    };
+  }, [estimates, currentPage, itemsPerPage]);
+
+  // Reset to page 1 if current page is out of bounds
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages) {
+      setCurrentPage(1);
+    }
+  }, [totalPages]);
 
   const { data: accounts, isLoading: accountsLoading, error: accountsError } = useQuery('accounts', async () => {
     try {
@@ -131,6 +163,12 @@ const Estimates = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('estimates');
+        toast.showSuccess('پیش‌فاکتور با موفقیت حذف شد');
+        setDeleteConfirm({ show: false });
+      },
+      onError: (error: any) => {
+        toast.showError('خطا در حذف پیش‌فاکتور: ' + (error.response?.data?.error || error.message));
+        setDeleteConfirm({ show: false });
       },
     }
   );
@@ -141,7 +179,12 @@ const Estimates = () => {
       onSuccess: () => {
         queryClient.invalidateQueries('estimates');
         queryClient.invalidateQueries('invoices');
-        alert('پیش‌فاکتور با موفقیت به فاکتور تبدیل شد');
+        toast.showSuccess('پیش‌فاکتور با موفقیت به فاکتور تبدیل شد');
+        setConvertConfirm({ show: false });
+      },
+      onError: (error: any) => {
+        toast.showError('خطا در تبدیل پیش‌فاکتور: ' + (error.response?.data?.error || error.message));
+        setConvertConfirm({ show: false });
       },
     }
   );
@@ -274,10 +317,12 @@ const Estimates = () => {
     setShowModal(true);
   };
 
+  const handleDelete = (id: number) => {
+    setDeleteConfirm({ show: true, id });
+  };
+
   const handleConvert = (id: number) => {
-    if (confirm('آیا مطمئن هستید که می‌خواهید این پیش‌فاکتور را به فاکتور تبدیل کنید؟')) {
-      convertMutation.mutate(id);
-    }
+    setConvertConfirm({ show: true, id });
   };
 
   if (isLoading) {
@@ -367,20 +412,20 @@ const Estimates = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {estimates && estimates.length > 0 ? (
-                estimates.map((estimate: any) => (
+              {paginatedEstimates && paginatedEstimates.length > 0 ? (
+                paginatedEstimates.map((estimate: any) => (
                   <tr key={estimate.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <FileText size={16} className="text-gray-400" />
-                        <span className="font-medium">{estimate.estimate_number}</span>
+                        <span className="font-medium">{toPersianNumber(estimate.estimate_number || estimate.id)}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {estimate.account_name || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {estimate.amount?.toLocaleString('fa-IR')} {estimate.currency}
+                      {toPersianNumber(estimate.amount?.toLocaleString('fa-IR') || '0')} {estimate.currency}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(estimate.status)}`}>
@@ -413,7 +458,7 @@ const Estimates = () => {
                         >
                           <Printer size={18} />
                         </button>
-                        {estimate.status !== 'cancelled' && (
+                        {estimate.status !== 'cancelled' && estimate.status !== 'declined' && (
                           <button
                             onClick={() => handleConvert(estimate.id)}
                             className="text-green-600 hover:text-green-800"
@@ -430,11 +475,7 @@ const Estimates = () => {
                           <Edit size={18} />
                         </button>
                         <button
-                          onClick={() => {
-                            if (confirm('آیا مطمئن هستید؟')) {
-                              deleteMutation.mutate(estimate.id);
-                            }
-                          }}
+                          onClick={() => handleDelete(estimate.id)}
                           className="text-red-600 hover:text-red-800"
                           title="حذف"
                         >
@@ -454,6 +495,23 @@ const Estimates = () => {
             </tbody>
           </table>
         </div>
+        
+        {/* Pagination */}
+        {totalItems > 0 && (
+          <div className="pt-4 border-t border-neutral-200 dark:border-neutral-700">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              itemsPerPage={itemsPerPage}
+              totalItems={totalItems}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={(newItemsPerPage) => {
+                setItemsPerPage(newItemsPerPage);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
+        )}
       </div>
       </div>
 
@@ -716,6 +774,34 @@ const Estimates = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Convert Confirm Dialog */}
+      {convertConfirm.show && (
+        <ConfirmDialog
+          title="تبدیل پیش‌فاکتور به فاکتور"
+          message="آیا مطمئن هستید که می‌خواهید این پیش‌فاکتور را به فاکتور تبدیل کنید؟"
+          onConfirm={() => {
+            if (convertConfirm.id) {
+              convertMutation.mutate(convertConfirm.id);
+            }
+          }}
+          onCancel={() => setConvertConfirm({ show: false })}
+        />
+      )}
+
+      {/* Delete Confirm Dialog */}
+      {deleteConfirm.show && (
+        <ConfirmDialog
+          title="حذف پیش‌فاکتور"
+          message="آیا مطمئن هستید که می‌خواهید این پیش‌فاکتور را حذف کنید؟ این عمل قابل بازگشت نیست."
+          onConfirm={() => {
+            if (deleteConfirm.id) {
+              deleteMutation.mutate(deleteConfirm.id);
+            }
+          }}
+          onCancel={() => setDeleteConfirm({ show: false })}
+        />
       )}
     </div>
   );

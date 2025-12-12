@@ -12,8 +12,18 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
+      staleTime: 2 * 60 * 1000, // 2 minutes - reduced for better responsiveness
+      cacheTime: 5 * 60 * 1000, // 5 minutes - reduced cache time
+      refetchOnMount: false, // Don't refetch on mount if data is fresh
+      refetchOnReconnect: true, // Refetch when network reconnects
       onError: (error) => {
         console.error('Query error:', error);
+      },
+    },
+    mutations: {
+      retry: 0, // Don't retry mutations
+      onError: (error) => {
+        console.error('Mutation error:', error);
       },
     },
   },

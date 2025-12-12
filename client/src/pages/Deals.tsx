@@ -5,8 +5,10 @@ import api from '../services/api';
 import { Plus, Search, Filter, Edit, Trash2, TrendingUp, DollarSign } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { translateDealStage } from '../utils/translations';
+import { toPersianNumber } from '../utils/numberHelper';
 import { formatDateForInput } from '../utils/dateHelper';
 import JalaliDatePicker from '../components/JalaliDatePicker';
+import Pagination from '../components/Pagination';
 
 const Deals = () => {
   const navigate = useNavigate();
@@ -16,6 +18,8 @@ const Deals = () => {
   const [viewMode, setViewMode] = useState<'list' | 'funnel'>('list');
   const [showModal, setShowModal] = useState(false);
   const [editingDeal, setEditingDeal] = useState<any>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
 
   const { data: deals, isLoading, error } = useQuery(
     ['deals', searchTerm, filterStage],
@@ -99,6 +103,18 @@ const Deals = () => {
   const dealsArray = Array.isArray(deals) ? deals : [];
   const pipelineArray = Array.isArray(pipeline) ? pipeline : [];
 
+  // Pagination calculations for list view
+  const totalItems = dealsArray.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedDeals = dealsArray.slice(startIndex, endIndex);
+
+  // Reset to page 1 if current page is out of bounds
+  if (currentPage > totalPages && totalPages > 0) {
+    setCurrentPage(1);
+  }
+
   const totalValue = dealsArray.reduce((sum: number, deal: any) => sum + (deal.budget || 0), 0);
   const weightedValue = dealsArray.reduce((sum: number, deal: any) => 
     sum + ((deal.budget || 0) * (deal.probability || 0) / 100), 0);
@@ -110,8 +126,8 @@ const Deals = () => {
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-primary-600 to-info-600 bg-clip-text text-transparent">مدیریت پروژه‌ها (Deals)</h1>
           <div className="flex items-center gap-6 mt-2 text-sm text-neutral-600">
-            <span>ارزش کل: <strong>{new Intl.NumberFormat('fa-IR').format(totalValue)}</strong> تومان</span>
-            <span>ارزش پیش‌بینی شده: <strong>{new Intl.NumberFormat('fa-IR').format(weightedValue)}</strong> تومان</span>
+            <span>ارزش کل: <strong>{toPersianNumber(new Intl.NumberFormat('fa-IR').format(totalValue))}</strong> تومان</span>
+            <span>ارزش پیش‌بینی شده: <strong>{toPersianNumber(new Intl.NumberFormat('fa-IR').format(weightedValue))}</strong> تومان</span>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -207,11 +223,11 @@ const Deals = () => {
                     <span className={`px-3 py-1 rounded text-sm ${getStageColor(stage.stage)}`}>
                       {getStageLabel(stage.stage)}
                     </span>
-                    <span className="font-bold">{stage.count} پروژه</span>
+                    <span className="font-bold">{toPersianNumber(stage.count)} پروژه</span>
                   </div>
                   <div className="text-sm text-neutral-600 space-y-1">
-                    <div>ارزش کل: {new Intl.NumberFormat('fa-IR').format(stage.total_value || 0)} تومان</div>
-                    <div>ارزش پیش‌بینی: {new Intl.NumberFormat('fa-IR').format(stage.weighted_value || 0)} تومان</div>
+                    <div>ارزش کل: {toPersianNumber(new Intl.NumberFormat('fa-IR').format(stage.total_value || 0))} تومان</div>
+                    <div>ارزش پیش‌بینی: {toPersianNumber(new Intl.NumberFormat('fa-IR').format(stage.weighted_value || 0))} تومان</div>
                   </div>
                 </div>
               ))}
@@ -237,7 +253,7 @@ const Deals = () => {
                 </tr>
               </thead>
               <tbody>
-                {dealsArray.map((deal: any) => {
+                {paginatedDeals.map((deal: any) => {
                   const weightedValue = (deal.budget || 0) * (deal.probability || 0) / 100;
                   return (
                     <tr key={deal.id}>
@@ -249,7 +265,7 @@ const Deals = () => {
                         </span>
                       </td>
                       <td>
-                        {deal.budget ? new Intl.NumberFormat('fa-IR').format(deal.budget) + ' تومان' : '-'}
+                        {deal.budget ? toPersianNumber(new Intl.NumberFormat('fa-IR').format(deal.budget)) + ' تومان' : '-'}
                       </td>
                       <td>
                         <div className="flex items-center gap-2">
@@ -259,11 +275,11 @@ const Deals = () => {
                               style={{ width: `${deal.probability || 0}%` }}
                             />
                           </div>
-                          <span className="text-sm">{deal.probability || 0}%</span>
+                          <span className="text-sm">{toPersianNumber(deal.probability || 0)}%</span>
                         </div>
                       </td>
                       <td className="font-medium">
-                        {new Intl.NumberFormat('fa-IR').format(weightedValue)} تومان
+                        {toPersianNumber(new Intl.NumberFormat('fa-IR').format(weightedValue))} تومان
                       </td>
                       <td>
                         <div className="flex items-center gap-2">
@@ -295,11 +311,28 @@ const Deals = () => {
                 })}
               </tbody>
             </table>
-            {dealsArray.length === 0 && (
-              <div className="text-center py-12 text-neutral-500">پروژه‌ای یافت نشد</div>
-            )}
-          </div>
+          {dealsArray.length === 0 && (
+            <div className="text-center py-12 text-neutral-500">پروژه‌ای یافت نشد</div>
+          )}
         </div>
+        
+        {/* Pagination */}
+        {dealsArray.length > 0 && (
+          <div className="px-4 sm:px-6 py-4">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              itemsPerPage={itemsPerPage}
+              totalItems={totalItems}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={(newItemsPerPage) => {
+                setItemsPerPage(newItemsPerPage);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
+        )}
+      </div>
       )}
 
       {/* Deal Modal */}

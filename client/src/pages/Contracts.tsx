@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import api from '../services/api';
 import { Plus, Edit, Trash2, Calendar, AlertCircle, RefreshCw, Download, FileText } from 'lucide-react';
 import { toJalali } from '../utils/dateHelper';
+import { toPersianNumber } from '../utils/numberHelper';
 import { translateContractStatus, translateCurrency } from '../utils/translations';
 import JalaliDatePicker from '../components/JalaliDatePicker';
 
@@ -135,7 +136,7 @@ const Contracts = () => {
                   <td>{toJalali(contract.start_date)}</td>
                   <td>{contract.end_date ? toJalali(contract.end_date) : '-'}</td>
                   <td>
-                    {contract.value ? new Intl.NumberFormat('fa-IR').format(contract.value) : '-'} {contract.currency ? translateCurrency(contract.currency) : ''}
+                    {contract.value ? toPersianNumber(new Intl.NumberFormat('fa-IR').format(contract.value)) : '-'} {contract.currency ? translateCurrency(contract.currency) : ''}
                   </td>
                   <td>
                     <span className={getStatusColor(contract.status)}>

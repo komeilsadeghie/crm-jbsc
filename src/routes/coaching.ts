@@ -71,12 +71,12 @@ router.post('/sessions', authenticate, async (req: AuthRequest, res: Response) =
 
     const result = await dbRun(
       'INSERT INTO coaching_sessions (customer_id, coach_id, session_date, duration, notes, status, session_type, meeting_link, tags, color) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [
-        session.customer_id,
+    [
+      session.customer_id,
         session.coach_id || req.user?.id,
-        session.session_date,
-        session.duration || null,
-        session.notes || null,
+      session.session_date,
+      session.duration || null,
+      session.notes || null,
         session.status || 'scheduled',
         session.session_type || null,
         session.meeting_link || null,
@@ -121,21 +121,21 @@ router.post('/sessions', authenticate, async (req: AuthRequest, res: Response) =
 
 router.put('/sessions/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const { id } = req.params;
+  const { id } = req.params;
     const session: any = req.body;
 
     const result = await dbRun(
-      `UPDATE coaching_sessions SET 
+    `UPDATE coaching_sessions SET 
         customer_id = ?, coach_id = ?, session_date = ?, duration = ?, notes = ?, status = ?,
         session_type = ?, meeting_link = ?, attendance = ?, rating = ?, tags = ?, color = ?
-       WHERE id = ?`,
-      [
-        session.customer_id,
-        session.coach_id,
-        session.session_date,
-        session.duration || null,
-        session.notes || null,
-        session.status || 'scheduled',
+     WHERE id = ?`,
+    [
+      session.customer_id,
+      session.coach_id,
+      session.session_date,
+      session.duration || null,
+      session.notes || null,
+      session.status || 'scheduled',
         session.session_type || null,
         session.meeting_link || null,
         session.attendance || null,
@@ -148,7 +148,7 @@ router.put('/sessions/:id', authenticate, async (req: AuthRequest, res: Response
 
     if (result.changes === 0) {
       return res.status(404).json({ error: 'جلسه یافت نشد' });
-    }
+      }
 
     // Update calendar event if it exists
     try {
@@ -202,7 +202,7 @@ router.put('/sessions/:id', authenticate, async (req: AuthRequest, res: Response
       // Don't fail the session update if calendar event fails
     }
 
-    res.json({ message: 'جلسه با موفقیت به‌روزرسانی شد' });
+      res.json({ message: 'جلسه با موفقیت به‌روزرسانی شد' });
   } catch (error: any) {
     console.error('Error updating session:', error);
     res.status(500).json({ error: 'خطا در به‌روزرسانی جلسه' });
@@ -497,30 +497,30 @@ router.post('/reports', authenticate, (req: AuthRequest, res: Response) => {
 
 router.put('/reports/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const { id } = req.params;
-    const report: GrowthReport = req.body;
+  const { id } = req.params;
+  const report: GrowthReport = req.body;
 
     const result = await dbRun(
-      `UPDATE growth_reports SET 
-        customer_id = ?, report_date = ?, metrics = ?, achievements = ?, challenges = ?,
-        next_steps = ?, overall_score = ?
-       WHERE id = ?`,
-      [
-        report.customer_id,
-        report.report_date,
-        report.metrics ? JSON.stringify(report.metrics) : null,
-        report.achievements || null,
-        report.challenges || null,
-        report.next_steps || null,
-        report.overall_score || null,
-        id
+    `UPDATE growth_reports SET 
+      customer_id = ?, report_date = ?, metrics = ?, achievements = ?, challenges = ?,
+      next_steps = ?, overall_score = ?
+     WHERE id = ?`,
+    [
+      report.customer_id,
+      report.report_date,
+      report.metrics ? JSON.stringify(report.metrics) : null,
+      report.achievements || null,
+      report.challenges || null,
+      report.next_steps || null,
+      report.overall_score || null,
+      id
       ]
     );
 
     if (result.changes === 0) {
-      return res.status(404).json({ error: 'گزارش یافت نشد' });
-    }
-    res.json({ message: 'گزارش با موفقیت به‌روزرسانی شد' });
+        return res.status(404).json({ error: 'گزارش یافت نشد' });
+      }
+      res.json({ message: 'گزارش با موفقیت به‌روزرسانی شد' });
   } catch (error: any) {
     console.error('Error updating report:', error);
     res.status(500).json({ error: 'خطا در به‌روزرسانی گزارش' });

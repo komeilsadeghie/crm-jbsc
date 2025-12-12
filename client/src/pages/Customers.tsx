@@ -1,26 +1,95 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { Plus, Search, Filter, Edit, Trash2, Eye, CheckSquare, Square } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Eye, CheckSquare, Square, Target, FileText as FileTextIcon, MessageSquare as MessageSquareIcon, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { useDebounce } from '../hooks/useDebounce';
+import EmptyState from '../components/EmptyState';
 import { toJalali } from '../utils/dateHelper';
 import { translateCustomerType, translateCustomerStatus } from '../utils/translations';
+import { useToast } from '../contexts/ToastContext';
+import ConfirmDialog from '../components/ConfirmDialog';
+import Pagination from '../components/Pagination';
 
 const Customers = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<any>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; id?: number; type?: 'single' | 'bulk'; count?: number }>({ show: false });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [activeTab, setActiveTab] = useState<'list' | 'programs' | 'templates' | 'feedback'>('list');
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ field: string; direction: 'asc' | 'desc' } | null>(null);
+  
+  // Debounce search term
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  
+  // Customer Programs
+  const { data: customerPrograms } = useQuery(
+    ['customer-programs', selectedCustomerId],
+    async () => {
+      const url = selectedCustomerId 
+        ? `/coaching/programs?customer_id=${selectedCustomerId}`
+        : '/coaching/programs';
+      const response = await api.get(url);
+      return Array.isArray(response.data) ? response.data : [];
+    },
+    { 
+      enabled: activeTab === 'programs',
+      staleTime: 1 * 60 * 1000, // 1 minute
+      cacheTime: 3 * 60 * 1000, // 3 minutes
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+    }
+  );
+
+  // Customer Templates
+  const { data: customerTemplates } = useQuery(
+    ['customer-templates'],
+    async () => {
+      const response = await api.get('/coaching/templates');
+      return Array.isArray(response.data) ? response.data : [];
+    },
+    { 
+      enabled: activeTab === 'templates',
+      staleTime: 5 * 60 * 1000, // 5 minutes - templates don't change often
+      cacheTime: 10 * 60 * 1000, // 10 minutes
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+    }
+  );
+
+  // Customer Feedback
+  const { data: customerFeedback } = useQuery(
+    ['customer-feedback', selectedCustomerId],
+    async () => {
+      const url = selectedCustomerId 
+        ? `/coaching/feedback?customer_id=${selectedCustomerId}`
+        : '/coaching/feedback';
+      const response = await api.get(url);
+      return Array.isArray(response.data) ? response.data : [];
+    },
+    { 
+      enabled: activeTab === 'feedback',
+      staleTime: 1 * 60 * 1000, // 1 minute
+      cacheTime: 3 * 60 * 1000, // 3 minutes
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+    }
+  );
 
   const { data: customers, isLoading, error } = useQuery(
-    ['customers', searchTerm, filterType, filterStatus],
+    ['customers', debouncedSearchTerm, filterType, filterStatus],
     async () => {
       const params = new URLSearchParams();
-      if (searchTerm) params.append('search', searchTerm);
+      if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
       if (filterType) params.append('type', filterType);
       if (filterStatus) params.append('status', filterStatus);
       const response = await api.get(`/customers?${params.toString()}`);
@@ -30,6 +99,10 @@ const Customers = () => {
     },
     {
       retry: 1,
+      staleTime: 2 * 60 * 1000, // 2 minutes - customers list changes more frequently
+      cacheTime: 5 * 60 * 1000, // 5 minutes
+      refetchOnWindowFocus: false,
+      keepPreviousData: true, // Keep previous data while fetching new data
       onError: (error) => {
         console.error('Error fetching customers:', error);
       }
@@ -42,6 +115,10 @@ const Customers = () => {
       onSuccess: () => {
         queryClient.invalidateQueries('customers');
         setSelectedIds([]);
+        toast.showSuccess('مشتری با موفقیت حذف شد');
+      },
+      onError: (error: any) => {
+        toast.showError('خطا در حذف مشتری: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -51,12 +128,12 @@ const Customers = () => {
     {
       onSuccess: (data) => {
         queryClient.invalidateQueries('customers');
-        setSelectedIds([]);
         const deletedCount = data.data?.deletedCount || selectedIds.length;
-        alert(`${deletedCount} مشتری با موفقیت حذف شد`);
+        setSelectedIds([]);
+        toast.showSuccess(`${deletedCount} مشتری با موفقیت حذف شد`);
       },
       onError: (error: any) => {
-        alert('خطا در حذف گروهی: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا در حذف گروهی: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -64,25 +141,99 @@ const Customers = () => {
   // Ensure customers is always an array
   const customersArray = Array.isArray(customers) ? customers : [];
 
-  const handleDelete = (id: number) => {
-    if (confirm('آیا از حذف این مشتری اطمینان دارید؟')) {
-      deleteMutation.mutate(id);
+  // Sort function
+  const handleSort = (field: string) => {
+    setSortConfig((current) => {
+      if (current?.field === field) {
+        return current.direction === 'asc' 
+          ? { field, direction: 'desc' }
+          : null;
+      }
+      return { field, direction: 'asc' };
+    });
+  };
+
+  // Sort data based on sortConfig
+  const getSortedData = (data: any[]) => {
+    if (!sortConfig) return data;
+    
+    return [...data].sort((a, b) => {
+      let aValue = a[sortConfig.field];
+      let bValue = b[sortConfig.field];
+      
+      // Handle null/undefined
+      if (aValue == null) aValue = '';
+      if (bValue == null) bValue = '';
+      
+      // Handle numbers
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+      
+      // Handle strings
+      const aStr = String(aValue).toLowerCase();
+      const bStr = String(bValue).toLowerCase();
+      
+      if (sortConfig.direction === 'asc') {
+        return aStr.localeCompare(bStr, 'fa');
+      } else {
+        return bStr.localeCompare(aStr, 'fa');
+      }
+    });
+  };
+
+  // Memoize sorted data to prevent unnecessary recalculations
+  const sortedCustomers = useMemo(() => getSortedData(customersArray), [customersArray, sortConfig]);
+  const sortedPrograms = useMemo(() => getSortedData(customerPrograms || []), [customerPrograms, sortConfig]);
+  const sortedTemplates = useMemo(() => getSortedData(customerTemplates || []), [customerTemplates, sortConfig]);
+  const sortedFeedbacks = useMemo(() => getSortedData(customerFeedback || []), [customerFeedback, sortConfig]);
+
+  // Pagination calculations for customers list - memoized for performance
+  const { totalItems, totalPages, paginatedCustomers } = useMemo(() => {
+    const total = sortedCustomers.length;
+    const pages = Math.ceil(total / itemsPerPage);
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    const paginated = sortedCustomers.slice(start, end);
+    
+    return {
+      totalItems: total,
+      totalPages: pages,
+      paginatedCustomers: paginated,
+    };
+  }, [sortedCustomers, currentPage, itemsPerPage]);
+
+  // Reset to page 1 if current page is out of bounds
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages) {
+      setCurrentPage(1);
     }
+  }, [totalPages]); // Only depend on totalPages to avoid infinite loop
+
+  const handleDelete = (id: number) => {
+    setDeleteConfirm({ show: true, id, type: 'single' });
   };
 
   const handleBulkDelete = () => {
     if (selectedIds.length === 0) {
-      alert('لطفاً حداقل یک مورد را انتخاب کنید');
+      toast.showWarning('لطفاً حداقل یک مورد را انتخاب کنید');
       return;
     }
-    if (confirm(`آیا از حذف ${selectedIds.length} مشتری انتخاب شده اطمینان دارید؟`)) {
+    setDeleteConfirm({ show: true, type: 'bulk', count: selectedIds.length });
+  };
+
+  const confirmDelete = () => {
+    if (deleteConfirm.type === 'single' && deleteConfirm.id) {
+      deleteMutation.mutate(deleteConfirm.id);
+    } else if (deleteConfirm.type === 'bulk') {
       bulkDeleteMutation.mutate(selectedIds);
     }
+    setDeleteConfirm({ show: false });
   };
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedIds(customersArray.map((c: any) => c.id));
+      setSelectedIds(paginatedCustomers.map((c: any) => c.id));
     } else {
       setSelectedIds([]);
     }
@@ -96,8 +247,11 @@ const Customers = () => {
     }
   };
 
-  const isAllSelected = customersArray.length > 0 && selectedIds.length === customersArray.length;
-  const isIndeterminate = selectedIds.length > 0 && selectedIds.length < customersArray.length;
+  const isAllSelected = paginatedCustomers.length > 0 && 
+    paginatedCustomers.every((c: any) => selectedIds.includes(c.id));
+  const isIndeterminate = selectedIds.length > 0 && 
+    selectedIds.length < paginatedCustomers.length && 
+    paginatedCustomers.some((c: any) => selectedIds.includes(c.id));
 
   if (isLoading) {
     return <div className="text-center py-12 text-neutral-800">در حال بارگذاری...</div>;
@@ -143,168 +297,304 @@ const Customers = () => {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Tabs */}
       <div className="card">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="relative">
-            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-400" size={20} />
-            <input
-              type="text"
-              placeholder="جستجو..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="input pr-10"
-            />
-          </div>
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            className="input"
-          >
-            <option value="">همه انواع</option>
-            <option value="company">شرکت</option>
-            <option value="individual">شخص</option>
-            <option value="export">صادرات</option>
-            <option value="import">واردات</option>
-            <option value="coaching">کوچینگ</option>
-          </select>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="input"
-          >
-            <option value="">همه وضعیت‌ها</option>
-            <option value="active">فعال</option>
-            <option value="inactive">غیرفعال</option>
-            <option value="lead">لید</option>
-            <option value="customer">مشتری</option>
-            <option value="partner">شریک</option>
-          </select>
+        <div className="flex gap-2 sm:gap-4 overflow-x-auto pb-2 border-b border-neutral-200 dark:border-neutral-700">
           <button
             onClick={() => {
-              setSearchTerm('');
-              setFilterType('');
-              setFilterStatus('');
+              setActiveTab('list');
+              setSortConfig(null);
             }}
-            className="btn btn-secondary"
+            className={`px-3 sm:px-4 py-2 font-medium transition-colors flex items-center gap-1 whitespace-nowrap text-sm sm:text-base ${
+              activeTab === 'list'
+                ? 'text-primary-600 border-b-2 border-primary-600'
+                : 'text-neutral-600 hover:text-neutral-800'
+            }`}
           >
-            پاک کردن فیلترها
+            لیست مشتریان
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('programs');
+              setSortConfig(null);
+            }}
+            className={`px-3 sm:px-4 py-2 font-medium transition-colors flex items-center gap-1 whitespace-nowrap text-sm sm:text-base ${
+              activeTab === 'programs'
+                ? 'text-primary-600 border-b-2 border-primary-600'
+                : 'text-neutral-600 hover:text-neutral-800'
+            }`}
+          >
+            <Target size={16} className="sm:w-[18px] sm:h-[18px]" />
+            <span className="hidden sm:inline">برنامه‌ها</span>
+            <span className="sm:hidden">برنامه</span>
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('templates');
+              setSortConfig(null);
+            }}
+            className={`px-3 sm:px-4 py-2 font-medium transition-colors flex items-center gap-1 whitespace-nowrap text-sm sm:text-base ${
+              activeTab === 'templates'
+                ? 'text-primary-600 border-b-2 border-primary-600'
+                : 'text-neutral-600 hover:text-neutral-800'
+            }`}
+          >
+            <FileTextIcon size={16} className="sm:w-[18px] sm:h-[18px]" />
+            <span className="hidden sm:inline">قالب‌ها</span>
+            <span className="sm:hidden">قالب</span>
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('feedback');
+              setSortConfig(null);
+            }}
+            className={`px-3 sm:px-4 py-2 font-medium transition-colors flex items-center gap-1 whitespace-nowrap text-sm sm:text-base ${
+              activeTab === 'feedback'
+                ? 'text-primary-600 border-b-2 border-primary-600'
+                : 'text-neutral-600 hover:text-neutral-800'
+            }`}
+          >
+            <MessageSquareIcon size={16} className="sm:w-[18px] sm:h-[18px]" />
+            <span className="hidden sm:inline">بازخورد</span>
+            <span className="sm:hidden">بازخورد</span>
           </button>
         </div>
       </div>
 
+      {/* Filters - Only show for list tab */}
+      {activeTab === 'list' && (
+        <div className="card">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="relative">
+              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-400" size={20} />
+              <input
+                type="text"
+                placeholder="جستجو..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="input pr-10"
+              />
+            </div>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="input"
+            >
+              <option value="">همه انواع</option>
+              <option value="company">شرکت</option>
+              <option value="individual">شخص</option>
+              <option value="export">صادرات</option>
+              <option value="import">واردات</option>
+              <option value="coaching">کوچینگ</option>
+            </select>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="input"
+            >
+              <option value="">همه وضعیت‌ها</option>
+              <option value="active">فعال</option>
+              <option value="inactive">غیرفعال</option>
+              <option value="lead">لید</option>
+              <option value="customer">مشتری</option>
+              <option value="partner">شریک</option>
+            </select>
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setFilterType('');
+                setFilterStatus('');
+              }}
+              className="btn btn-secondary"
+            >
+              پاک کردن فیلترها
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Customers Table */}
-      <div className="card">
-        <div className="overflow-x-auto">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>
-                  <button
-                    onClick={() => handleSelectAll(!isAllSelected)}
-                    className="flex items-center justify-center"
-                    title={isAllSelected ? 'لغو انتخاب همه' : 'انتخاب همه'}
-                  >
-                    {isAllSelected ? (
-                      <CheckSquare size={20} className="text-primary-600" />
-                    ) : isIndeterminate ? (
-                      <div className="w-5 h-5 border-2 border-primary-600 bg-primary-100 rounded"></div>
-                    ) : (
-                      <Square size={20} className="text-gray-400" />
-                    )}
-                  </button>
-                </th>
-                <th>نام</th>
-                <th>کد</th>
-                <th>نوع / نقش</th>
-                <th>ایمیل</th>
-                <th>تلفن</th>
-                <th>نمره</th>
-                <th>وضعیت</th>
-                <th>عملیات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {customersArray.map((customer: any) => (
-                <tr key={customer.id} className={selectedIds.includes(customer.id) ? 'bg-primary-50' : ''}>
-                  <td>
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.includes(customer.id)}
-                      onChange={(e) => handleSelectOne(customer.id, e.target.checked)}
-                      className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-                    />
-                  </td>
-                  <td className="font-medium">{customer.name}</td>
-                  <td>
-                    {customer.code ? (
-                      <span className="badge badge-primary font-mono">
-                        {customer.code}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )}
-                  </td>
-                  <td>
-                    <span className="badge badge-info" title={`نوع مشتری: ${translateCustomerType(customer.type)}`}>
-                      {translateCustomerType(customer.type)}
-                    </span>
-                  </td>
-                  <td>{customer.email || '-'}</td>
-                  <td>{customer.phone || '-'}</td>
-                  <td>
-                    <span className="badge badge-primary">
-                      {customer.score}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`badge ${
-                      customer.status === 'active' ? 'badge-success' :
-                      customer.status === 'inactive' ? 'badge-danger' :
-                      'badge-warning'
-                    }`}>
-                      {translateCustomerStatus(customer.status)}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => navigate(`/customers/${customer.id}`)}
-                        className="text-info-600 hover:text-info-700 hover:bg-info-50 p-2 rounded transition-colors"
-                        title="مشاهده"
-                      >
-                        <Eye size={18} />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setEditingCustomer(customer);
-                          setShowModal(true);
-                        }}
-                        className="text-success-600 hover:text-success-700 hover:bg-success-50 p-2 rounded transition-colors"
-                        title="ویرایش"
-                      >
-                        <Edit size={18} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(customer.id)}
-                        className="text-danger-600 hover:text-danger-700 hover:bg-danger-50 p-2 rounded transition-colors"
-                        title="حذف"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </td>
+      {activeTab === 'list' && (
+        <div className="card">
+          <div className="overflow-x-auto">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>
+                    <button
+                      onClick={() => handleSelectAll(!isAllSelected)}
+                      className="flex items-center justify-center"
+                      title={isAllSelected ? 'لغو انتخاب همه' : 'انتخاب همه'}
+                    >
+                      {isAllSelected ? (
+                        <CheckSquare size={20} className="text-primary-600" />
+                      ) : isIndeterminate ? (
+                        <div className="w-5 h-5 border-2 border-primary-600 bg-primary-100 rounded"></div>
+                      ) : (
+                        <Square size={20} className="text-gray-400" />
+                      )}
+                    </button>
+                  </th>
+                  <th>نام</th>
+                  <th>کد</th>
+                  <th>نوع / نقش</th>
+                  <th>ایمیل</th>
+                  <th>تلفن</th>
+                  <th>نمره</th>
+                  <th>وضعیت</th>
+                  <th>عملیات</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {paginatedCustomers.map((customer: any) => (
+                  <tr key={customer.id} className={selectedIds.includes(customer.id) ? 'bg-primary-50' : ''}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(customer.id)}
+                        onChange={(e) => handleSelectOne(customer.id, e.target.checked)}
+                        className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                      />
+                    </td>
+                    <td className="font-medium">{customer.name}</td>
+                    <td>
+                      {customer.code ? (
+                        <span className="badge badge-primary font-mono">
+                          {customer.code}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td>
+                      <span className="badge badge-info" title={`نوع مشتری: ${translateCustomerType(customer.type)}`}>
+                        {translateCustomerType(customer.type)}
+                      </span>
+                    </td>
+                    <td>{customer.email || '-'}</td>
+                    <td>{customer.phone || '-'}</td>
+                    <td>
+                      <span className="badge badge-primary">
+                        {customer.score}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`badge ${
+                        customer.status === 'active' ? 'badge-success' :
+                        customer.status === 'inactive' ? 'badge-danger' :
+                        'badge-warning'
+                      }`}>
+                        {translateCustomerStatus(customer.status)}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => navigate(`/customers/${customer.id}`)}
+                          className="text-info-600 hover:text-info-700 hover:bg-info-50 p-2 rounded transition-colors"
+                          title="مشاهده"
+                        >
+                          <Eye size={18} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingCustomer(customer);
+                            setShowModal(true);
+                          }}
+                          className="text-success-600 hover:text-success-700 hover:bg-success-50 p-2 rounded transition-colors"
+                          title="ویرایش"
+                        >
+                          <Edit size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(customer.id)}
+                          className="text-danger-600 hover:text-danger-700 hover:bg-danger-50 p-2 rounded transition-colors"
+                          title="حذف"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           {customersArray.length === 0 && (
             <div className="text-center py-12 text-neutral-500">
               مشتری‌ای یافت نشد
             </div>
           )}
+          
+          {/* Pagination */}
+          {customersArray.length > 0 && (
+            <div className="px-4 sm:px-6 py-4">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                itemsPerPage={itemsPerPage}
+                totalItems={totalItems}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={(newItemsPerPage) => {
+                  setItemsPerPage(newItemsPerPage);
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
+          )}
         </div>
-      </div>
+      )}
+
+      {/* Programs Tab */}
+      {activeTab === 'programs' && (
+        <div className="card">
+          <div className="mb-4">
+            <label className="label">انتخاب مشتری</label>
+            <select
+              value={selectedCustomerId || ''}
+              onChange={(e) => setSelectedCustomerId(e.target.value ? parseInt(e.target.value) : null)}
+              className="input"
+            >
+              <option value="">همه مشتریان</option>
+              {customersArray.map((customer: any) => (
+                <option key={customer.id} value={customer.id}>
+                  {customer.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <CustomerProgramsList programs={sortedPrograms} customers={customersArray} onEdit={() => {}} onDelete={() => {}} />
+        </div>
+      )}
+
+      {/* Templates Tab */}
+      {activeTab === 'templates' && (
+        <div className="card">
+          <CustomerTemplatesList templates={sortedTemplates} onEdit={() => {}} onDelete={() => {}} sortConfig={sortConfig} onSort={handleSort} />
+        </div>
+      )}
+
+      {/* Feedback Tab */}
+      {activeTab === 'feedback' && (
+        <div className="card">
+          <div className="mb-4">
+            <label className="label">انتخاب مشتری</label>
+            <select
+              value={selectedCustomerId || ''}
+              onChange={(e) => setSelectedCustomerId(e.target.value ? parseInt(e.target.value) : null)}
+              className="input"
+            >
+              <option value="">همه مشتریان</option>
+              {customersArray.map((customer: any) => (
+                <option key={customer.id} value={customer.id}>
+                  {customer.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <CustomerFeedbackList feedbacks={sortedFeedbacks} customers={customersArray} onEdit={() => {}} onDelete={() => {}} sortConfig={sortConfig} onSort={handleSort} />
+        </div>
+      )}
 
       {/* Customer Modal */}
       {showModal && (
@@ -316,6 +606,23 @@ const Customers = () => {
           }}
         />
       )}
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirm.show}
+        onClose={() => setDeleteConfirm({ show: false })}
+        onConfirm={confirmDelete}
+        title={deleteConfirm.type === 'bulk' ? 'حذف چند مورد' : 'حذف مشتری'}
+        message={
+          deleteConfirm.type === 'bulk'
+            ? `آیا از حذف ${deleteConfirm.count} مشتری انتخاب شده اطمینان دارید؟ این عمل قابل بازگشت نیست.`
+            : 'آیا از حذف این مشتری اطمینان دارید؟ این عمل قابل بازگشت نیست.'
+        }
+        type="danger"
+        confirmText="حذف"
+        cancelText="لغو"
+        isLoading={deleteMutation.isLoading || bulkDeleteMutation.isLoading}
+      />
       </div>
     </div>
   );
@@ -323,6 +630,7 @@ const Customers = () => {
 
 const CustomerModal = ({ customer, onClose }: { customer: any; onClose: () => void }) => {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [formData, setFormData] = useState({
     name: customer?.name || '',
     type: customer?.type || 'individual',
@@ -356,12 +664,12 @@ const CustomerModal = ({ customer, onClose }: { customer: any; onClose: () => vo
     {
       onSuccess: () => {
         queryClient.invalidateQueries('customers');
-        alert('مشتری با موفقیت ذخیره شد');
+        toast.showSuccess('مشتری با موفقیت ذخیره شد');
         onClose();
       },
       onError: (error: any) => {
         console.error('Error saving customer:', error);
-        alert(error.response?.data?.error || 'خطا در ذخیره مشتری');
+        toast.showError(error.response?.data?.error || 'خطا در ذخیره مشتری');
       },
     }
   );
@@ -589,6 +897,270 @@ const CustomerModal = ({ customer, onClose }: { customer: any; onClose: () => vo
           </div>
         </form>
       </div>
+    </div>
+  );
+};
+
+// Customer Programs List Component
+const CustomerProgramsList = ({ programs, customers, onEdit, onDelete }: any) => {
+  const customersArray = Array.isArray(customers) ? customers : [];
+  const programsArray = Array.isArray(programs) ? programs : [];
+  
+  const getCustomerName = (id: number) => {
+    return customersArray.find((c: any) => c.id === id)?.name || 'نامشخص';
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'bg-green-100 text-green-700 border-green-300';
+      case 'completed': return 'bg-blue-100 text-blue-700 border-blue-300';
+      case 'cancelled': return 'bg-red-100 text-red-700 border-red-300';
+      case 'on_hold': return 'bg-yellow-100 text-yellow-700 border-yellow-300';
+      default: return 'bg-gray-100 text-gray-700 border-gray-300';
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {programsArray.map((program: any) => (
+        <div key={program.id} className="border rounded-lg p-4 hover:bg-gray-50">
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="font-bold text-lg">{program.title}</span>
+                <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(program.status)}`}>
+                  {program.status === 'active' ? 'فعال' : 
+                   program.status === 'completed' ? 'تکمیل شده' :
+                   program.status === 'cancelled' ? 'لغو شده' : 'متوقف شده'}
+                </span>
+              </div>
+              <div className="text-sm text-gray-600 mb-2">
+                <span>مشتری: {getCustomerName(program.customer_id)}</span>
+                {program.start_date && (
+                  <span className="mr-4">شروع: {toJalali(program.start_date)}</span>
+                )}
+                {program.end_date && (
+                  <span>پایان: {toJalali(program.end_date)}</span>
+                )}
+              </div>
+              {program.description && (
+                <p className="text-gray-700 mb-2">{program.description}</p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => onEdit(program)}
+                className="p-2 text-primary-600 hover:bg-primary-50 rounded transition-colors"
+                title="ویرایش"
+              >
+                ✏️ ویرایش
+              </button>
+              <button
+                onClick={() => onDelete('program', program.id)}
+                className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                title="حذف"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
+      {programsArray.length === 0 && (
+        <EmptyState
+          icon={Target}
+          title="برنامه‌ای ثبت نشده است"
+          description="برای شروع، اولین برنامه کوچینگ را اضافه کنید"
+        />
+      )}
+    </div>
+  );
+};
+
+// Customer Templates List Component
+const CustomerTemplatesList = ({ templates, onEdit, onDelete, sortConfig, onSort }: any) => {
+  const templatesArray = Array.isArray(templates) ? templates : [];
+  
+  const getTypeLabel = (type: string) => {
+    switch (type) {
+      case 'goal': return 'هدف';
+      case 'exercise': return 'تمرین';
+      case 'session': return 'جلسه';
+      case 'report': return 'گزارش';
+      default: return type;
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {templatesArray.length > 0 && onSort && (
+        <div className="flex gap-2 mb-4 pb-2 border-b border-neutral-200">
+          <button
+            onClick={() => onSort('name')}
+            className="flex items-center gap-1 text-sm hover:text-primary-600 transition-colors"
+          >
+            نام
+            {sortConfig?.field === 'name' ? (
+              sortConfig.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+            ) : (
+              <ArrowUpDown size={14} className="text-gray-400" />
+            )}
+          </button>
+          <button
+            onClick={() => onSort('type')}
+            className="flex items-center gap-1 text-sm hover:text-primary-600 transition-colors"
+          >
+            نوع
+            {sortConfig?.field === 'type' ? (
+              sortConfig.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+            ) : (
+              <ArrowUpDown size={14} className="text-gray-400" />
+            )}
+          </button>
+        </div>
+      )}
+      {templatesArray.map((template: any) => (
+        <div key={template.id} className="border rounded-lg p-4 hover:bg-gray-50">
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="font-bold text-lg">{template.name}</span>
+                <span className="px-2 py-1 bg-primary-100 text-primary-700 rounded text-sm">
+                  {getTypeLabel(template.type)}
+                </span>
+                {template.is_default === 1 && (
+                  <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-sm">
+                    پیش‌فرض
+                  </span>
+                )}
+              </div>
+              {template.content && (
+                <div className="text-sm text-gray-600">
+                  <pre className="whitespace-pre-wrap">{JSON.stringify(typeof template.content === 'string' ? JSON.parse(template.content) : template.content, null, 2)}</pre>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => onEdit(template)}
+                className="p-2 text-primary-600 hover:bg-primary-50 rounded transition-colors"
+                title="ویرایش"
+              >
+                ✏️ ویرایش
+              </button>
+              <button
+                onClick={() => onDelete('template', template.id)}
+                className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                title="حذف"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
+      {templatesArray.length === 0 && (
+        <EmptyState
+          icon={FileTextIcon}
+          title="قالبی ثبت نشده است"
+          description="برای شروع، اولین قالب کوچینگ را اضافه کنید"
+        />
+      )}
+    </div>
+  );
+};
+
+// Customer Feedback List Component
+const CustomerFeedbackList = ({ feedbacks, customers, onEdit, onDelete, sortConfig, onSort }: any) => {
+  const customersArray = Array.isArray(customers) ? customers : [];
+  const feedbacksArray = Array.isArray(feedbacks) ? feedbacks : [];
+  
+  const getCustomerName = (id: number) => {
+    return customersArray.find((c: any) => c.id === id)?.name || 'نامشخص';
+  };
+
+  const getFeedbackTypeLabel = (type: string) => {
+    switch (type) {
+      case 'pre_session': return 'قبل از جلسه';
+      case 'post_session': return 'بعد از جلسه';
+      case 'general': return 'عمومی';
+      default: return type;
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {feedbacksArray.length > 0 && onSort && (
+        <div className="flex gap-2 mb-4 pb-2 border-b border-neutral-200">
+          <button
+            onClick={() => onSort('customer_id')}
+            className="flex items-center gap-1 text-sm hover:text-primary-600 transition-colors"
+          >
+            مشتری
+            {sortConfig?.field === 'customer_id' ? (
+              sortConfig.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+            ) : (
+              <ArrowUpDown size={14} className="text-gray-400" />
+            )}
+          </button>
+          <button
+            onClick={() => onSort('feedback_type')}
+            className="flex items-center gap-1 text-sm hover:text-primary-600 transition-colors"
+          >
+            نوع بازخورد
+            {sortConfig?.field === 'feedback_type' ? (
+              sortConfig.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+            ) : (
+              <ArrowUpDown size={14} className="text-gray-400" />
+            )}
+          </button>
+        </div>
+      )}
+      {feedbacksArray.map((feedback: any) => (
+        <div key={feedback.id} className="border rounded-lg p-4 hover:bg-gray-50">
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="font-medium">{getCustomerName(feedback.customer_id)}</span>
+                <span className="px-2 py-1 bg-info-100 text-info-700 rounded text-sm">
+                  {getFeedbackTypeLabel(feedback.feedback_type)}
+                </span>
+                {feedback.rating && (
+                  <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-sm">
+                    ⭐ {feedback.rating}/5
+                  </span>
+                )}
+              </div>
+              {feedback.comments && (
+                <p className="text-gray-700 mb-2">{feedback.comments}</p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => onEdit(feedback)}
+                className="p-2 text-primary-600 hover:bg-primary-50 rounded transition-colors"
+                title="ویرایش"
+              >
+                ✏️ ویرایش
+              </button>
+              <button
+                onClick={() => onDelete('feedback', feedback.id)}
+                className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                title="حذف"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
+      {feedbacksArray.length === 0 && (
+        <EmptyState
+          icon={MessageSquareIcon}
+          title="هیچ بازخوردی ثبت نشده است"
+          description="برای شروع، اولین بازخورد را اضافه کنید"
+        />
+      )}
     </div>
   );
 };

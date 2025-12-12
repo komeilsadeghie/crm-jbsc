@@ -121,104 +121,132 @@ const Dashboard = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-[1600px] mx-auto space-y-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-neutral-900 p-2 sm:p-4 transition-colors">
+      <div className="max-w-[1600px] mx-auto space-y-3 sm:space-y-4 animate-fade-in">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-800">داشبورد</h1>
-        <div className="text-sm text-gray-600">
+        <div className="bg-white dark:bg-neutral-800 rounded-lg shadow-sm p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 transition-colors animate-slide-down">
+          <h1 className="heading-2 text-gray-800 dark:text-gray-100">داشبورد</h1>
+        <div className="body-small text-gray-600 dark:text-gray-400">
           خوش آمدید، {user?.full_name || user?.username}
         </div>
       </div>
 
         {/* KPIs Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Link to="/invoices" className="bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600">فاکتورهای در انتظار پرداخت</span>
-              <FileText className="text-red-500" size={20} />
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-gray-800">
-                {kpis.invoices_awaiting_payment || 0}
-              </span>
-              <span className="text-sm text-gray-500">/ {kpis.invoices_total || 0}</span>
-            </div>
-            <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-red-500 h-2 rounded-full transition-all"
-                style={{ width: `${getPercentage(kpis.invoices_awaiting_payment || 0, kpis.invoices_total || 1)}%` }}
-              />
-            </div>
-          </Link>
-
-          <Link to="/leads" className="bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600">سرنخ‌های تبدیل شده</span>
-              <TrendingUp className="text-green-500" size={20} />
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-gray-800">
-                {kpis.converted_leads || 0}
-              </span>
-              <span className="text-sm text-gray-500">/ {kpis.leads_total || 0}</span>
-            </div>
-            <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-green-500 h-2 rounded-full transition-all"
-                style={{ width: `${getPercentage(kpis.converted_leads || 0, kpis.leads_total || 1)}%` }}
-              />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <Link 
+            to="/invoices" 
+            className="group bg-white dark:bg-neutral-800 rounded-lg shadow-sm p-3 sm:p-4 hover:shadow-md transition-all duration-300 hover:scale-[1.02] relative overflow-hidden animate-slide-up"
+            style={{ animationDelay: '0.1s' }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-red-50/0 to-red-50/0 dark:from-red-900/0 dark:to-red-900/0 group-hover:from-red-50/50 group-hover:to-red-50/0 dark:group-hover:from-red-900/20 dark:group-hover:to-red-900/0 transition-all duration-300" />
+            <div className="relative">
+              <div className="flex items-center justify-between mb-2">
+                <span className="body-small text-gray-600 dark:text-gray-400">فاکتورهای در انتظار پرداخت</span>
+                <FileText className="text-red-500 dark:text-red-400" size={18} className="sm:w-5 sm:h-5 flex-shrink-0 group-hover:scale-110 transition-transform" />
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="heading-2 text-gray-800 dark:text-gray-100">
+                  {kpis.invoices_awaiting_payment || 0}
+                </span>
+                <span className="body-small text-gray-500 dark:text-gray-400">/ {kpis.invoices_total || 0}</span>
+              </div>
+              <div className="mt-2 w-full bg-gray-200 dark:bg-neutral-700 rounded-full h-2 overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-red-500 to-red-600 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${getPercentage(kpis.invoices_awaiting_payment || 0, kpis.invoices_total || 1)}%` }}
+                />
+              </div>
             </div>
           </Link>
 
-          <Link to="/projects" className="bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600">پروژه‌های در حال انجام</span>
-              <FolderOpen className="text-blue-500" size={20} />
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-gray-800">
-                {kpis.projects_in_progress || 0}
-              </span>
-              <span className="text-sm text-gray-500">/ {kpis.projects_total || 0}</span>
-            </div>
-            <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-blue-500 h-2 rounded-full transition-all"
-                style={{ width: `${getPercentage(kpis.projects_in_progress || 0, kpis.projects_total || 1)}%` }}
-              />
+          <Link 
+            to="/leads" 
+            className="group bg-white dark:bg-neutral-800 rounded-lg shadow-sm p-3 sm:p-4 hover:shadow-md transition-all duration-300 hover:scale-[1.02] relative overflow-hidden animate-slide-up"
+            style={{ animationDelay: '0.2s' }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-green-50/0 to-green-50/0 dark:from-green-900/0 dark:to-green-900/0 group-hover:from-green-50/50 group-hover:to-green-50/0 dark:group-hover:from-green-900/20 dark:group-hover:to-green-900/0 transition-all duration-300" />
+            <div className="relative">
+              <div className="flex items-center justify-between mb-2">
+                <span className="body-small text-gray-600 dark:text-gray-400">سرنخ‌های تبدیل شده</span>
+                <TrendingUp className="text-green-500 dark:text-green-400" size={18} className="sm:w-5 sm:h-5 flex-shrink-0 group-hover:scale-110 transition-transform" />
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="heading-2 text-gray-800 dark:text-gray-100">
+                  {kpis.converted_leads || 0}
+                </span>
+                <span className="body-small text-gray-500 dark:text-gray-400">/ {kpis.leads_total || 0}</span>
+              </div>
+              <div className="mt-2 w-full bg-gray-200 dark:bg-neutral-700 rounded-full h-2 overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-green-500 to-green-600 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${getPercentage(kpis.converted_leads || 0, kpis.leads_total || 1)}%` }}
+                />
+              </div>
             </div>
           </Link>
 
-          <Link to="/tasks" className="bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600">وظایف تمام نشده</span>
-              <CheckSquare className="text-gray-500" size={20} />
+          <Link 
+            to="/projects" 
+            className="group bg-white dark:bg-neutral-800 rounded-lg shadow-sm p-3 sm:p-4 hover:shadow-md transition-all duration-300 hover:scale-[1.02] relative overflow-hidden animate-slide-up"
+            style={{ animationDelay: '0.3s' }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-50/0 to-blue-50/0 dark:from-blue-900/0 dark:to-blue-900/0 group-hover:from-blue-50/50 group-hover:to-blue-50/0 dark:group-hover:from-blue-900/20 dark:group-hover:to-blue-900/0 transition-all duration-300" />
+            <div className="relative">
+              <div className="flex items-center justify-between mb-2">
+                <span className="body-small text-gray-600 dark:text-gray-400">پروژه‌های در حال انجام</span>
+                <FolderOpen className="text-blue-500 dark:text-blue-400" size={18} className="sm:w-5 sm:h-5 flex-shrink-0 group-hover:scale-110 transition-transform" />
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="heading-2 text-gray-800 dark:text-gray-100">
+                  {kpis.projects_in_progress || 0}
+                </span>
+                <span className="body-small text-gray-500 dark:text-gray-400">/ {kpis.projects_total || 0}</span>
+              </div>
+              <div className="mt-2 w-full bg-gray-200 dark:bg-neutral-700 rounded-full h-2 overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${getPercentage(kpis.projects_in_progress || 0, kpis.projects_total || 1)}%` }}
+                />
+              </div>
             </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-gray-800">
-                {kpis.tasks_not_finished || 0}
-              </span>
-              <span className="text-sm text-gray-500">/ {kpis.tasks_total || 0}</span>
-            </div>
-            <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-gray-500 h-2 rounded-full transition-all"
-                style={{ width: `${getPercentage(kpis.tasks_not_finished || 0, kpis.tasks_total || 1)}%` }}
-              />
+          </Link>
+
+          <Link 
+            to="/tasks" 
+            className="group bg-white dark:bg-neutral-800 rounded-lg shadow-sm p-3 sm:p-4 hover:shadow-md transition-all duration-300 hover:scale-[1.02] relative overflow-hidden animate-slide-up"
+            style={{ animationDelay: '0.4s' }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-gray-50/0 to-gray-50/0 dark:from-gray-800/0 dark:to-gray-800/0 group-hover:from-gray-50/50 group-hover:to-gray-50/0 dark:group-hover:from-gray-800/50 dark:group-hover:to-gray-800/0 transition-all duration-300" />
+            <div className="relative">
+              <div className="flex items-center justify-between mb-2">
+                <span className="body-small text-gray-600 dark:text-gray-400">وظایف تمام نشده</span>
+                <CheckSquare className="text-gray-500 dark:text-gray-400" size={18} className="sm:w-5 sm:h-5 flex-shrink-0 group-hover:scale-110 transition-transform" />
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="heading-2 text-gray-800 dark:text-gray-100">
+                  {kpis.tasks_not_finished || 0}
+                </span>
+                <span className="body-small text-gray-500 dark:text-gray-400">/ {kpis.tasks_total || 0}</span>
+              </div>
+              <div className="mt-2 w-full bg-gray-200 dark:bg-neutral-700 rounded-full h-2 overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-gray-500 to-gray-600 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${getPercentage(kpis.tasks_not_finished || 0, kpis.tasks_total || 1)}%` }}
+                />
+              </div>
             </div>
           </Link>
         </div>
 
         {/* Overview Sections */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
           {/* Invoice Overview */}
-          <div className="bg-white rounded-lg shadow-sm p-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-gray-800">خلاصه فاکتورها</h3>
-              <Link to="/invoices" className="text-sm text-blue-600 hover:text-blue-700">مشاهده همه</Link>
+          <div className="bg-white dark:bg-neutral-800 rounded-lg shadow-sm p-3 sm:p-4 transition-colors animate-slide-up" style={{ animationDelay: '0.5s' }}>
+            <div className="flex justify-between items-center mb-3 sm:mb-4">
+              <h3 className="heading-4 text-gray-800 dark:text-gray-100">خلاصه فاکتورها</h3>
+              <Link to="/invoices" className="body-small text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">مشاهده همه</Link>
             </div>
-            <div className="space-y-2 text-sm">
+            <div className="space-y-2 body-small">
               <div className="flex justify-between">
                 <span className="text-gray-600">پیش‌نویس:</span>
                 <span className="font-medium">{invoiceOverview.draft || 0} ({getPercentage(invoiceOverview.draft || 0, invoiceOverview.total || 1)}%)</span>

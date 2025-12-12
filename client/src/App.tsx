@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 import { useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -11,6 +12,8 @@ import Deals from './pages/Deals';
 import Media from './pages/Media';
 import Calendar from './pages/Calendar';
 import Profile from './pages/Profile';
+import Timesheets from './pages/Timesheets';
+import ProfileEdit from './pages/ProfileEdit';
 import ImportExport from './pages/ImportExport';
 import Estimates from './pages/Estimates';
 import Tasks from './pages/Tasks';
@@ -26,10 +29,23 @@ import Proposals from './pages/Proposals';
 import PaymentGateways from './pages/PaymentGateways';
 import Surveys from './pages/Surveys';
 import ActivityLog from './pages/ActivityLog';
+
+// Lazy load utility pages for better performance
+const Goals = lazy(() => import('./pages/utilities/Goals'));
+const Announcements = lazy(() => import('./pages/utilities/Announcements'));
+const BulkPDFExport = lazy(() => import('./pages/utilities/BulkPDFExport'));
+const CSVExport = lazy(() => import('./pages/utilities/CSVExport'));
+const EInvoiceExport = lazy(() => import('./pages/utilities/EInvoiceExport'));
+const DatabaseBackup = lazy(() => import('./pages/utilities/DatabaseBackup'));
+const TicketPipeLog = lazy(() => import('./pages/utilities/TicketPipeLog'));
 import Layout from './components/Layout';
 import { SettingsProvider } from './components/SettingsProvider';
 import ProtectedRoute from './components/ProtectedRoute';
 import { ROUTE_PERMISSIONS } from './utils/permissions';
+import { ToastProvider } from './contexts/ToastContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+import PageTransition from './components/PageTransition';
+import ErrorBoundary from './components/ErrorBoundary';
 
 function App() {
   const { user, loading } = useAuth();
@@ -47,10 +63,13 @@ function App() {
   }
 
   return (
-    <>
-      <SettingsProvider />
-      <Layout>
-        <Routes>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <ToastProvider>
+          <SettingsProvider />
+          <Layout>
+            <PageTransition>
+              <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route 
             path="/dashboard" 
@@ -74,7 +93,7 @@ function App() {
           />
           <Route 
             path="/media" 
-            element={<ProtectedRoute allow={ROUTE_PERMISSIONS['/media'] || []} element={<Media />} />} 
+            element={<Navigate to="/utilities/media" replace />} 
           />
           <Route 
             path="/coaching" 
@@ -90,7 +109,15 @@ function App() {
           />
           <Route 
             path="/profile" 
-            element={<ProtectedRoute allow={ROUTE_PERMISSIONS['/profile'] || []} element={<Profile />} />} 
+            element={<ProtectedRoute allow={ROUTE_PERMISSIONS['/profile'] || ['admin', 'sales', 'sales_manager', 'coach', 'media', 'media_manager', 'designer', 'finance', 'user']} element={<Profile />} />} 
+          />
+          <Route 
+            path="/profile/timesheets" 
+            element={<ProtectedRoute allow={ROUTE_PERMISSIONS['/profile'] || ['admin', 'sales', 'sales_manager', 'coach', 'media', 'media_manager', 'designer', 'finance', 'user']} element={<Timesheets />} />} 
+          />
+          <Route 
+            path="/profile/edit" 
+            element={<ProtectedRoute allow={ROUTE_PERMISSIONS['/profile'] || ['admin', 'sales', 'sales_manager', 'coach', 'media', 'media_manager', 'designer', 'finance', 'user']} element={<ProfileEdit />} />} 
           />
           <Route 
             path="/import-export" 
@@ -148,13 +175,124 @@ function App() {
             path="/activity-log" 
             element={<ProtectedRoute allow={ROUTE_PERMISSIONS['/activity-log'] || []} element={<ActivityLog />} />} 
           />
+          {/* Utilities Routes */}
+          <Route 
+            path="/utilities/media" 
+            element={<ProtectedRoute allow={ROUTE_PERMISSIONS['/utilities/media'] || ['admin']} element={<Media />} />} 
+          />
+          <Route 
+            path="/utilities/bulk-pdf-export" 
+            element={
+              <ProtectedRoute 
+                allow={ROUTE_PERMISSIONS['/utilities/bulk-pdf-export'] || ['admin']} 
+                element={
+                  <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="text-center">در حال بارگذاری...</div></div>}>
+                    <BulkPDFExport />
+                  </Suspense>
+                } 
+              />
+            } 
+          />
+          <Route 
+            path="/utilities/e-invoice-export" 
+            element={
+              <ProtectedRoute 
+                allow={ROUTE_PERMISSIONS['/utilities/e-invoice-export'] || ['admin']} 
+                element={
+                  <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="text-center">در حال بارگذاری...</div></div>}>
+                    <EInvoiceExport />
+                  </Suspense>
+                } 
+              />
+            } 
+          />
+          <Route 
+            path="/utilities/csv-export" 
+            element={
+              <ProtectedRoute 
+                allow={ROUTE_PERMISSIONS['/utilities/csv-export'] || ['admin']} 
+                element={
+                  <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="text-center">در حال بارگذاری...</div></div>}>
+                    <CSVExport />
+                  </Suspense>
+                } 
+              />
+            } 
+          />
+          <Route 
+            path="/utilities/calendar" 
+            element={<ProtectedRoute allow={ROUTE_PERMISSIONS['/utilities/calendar'] || ['admin']} element={<Calendar />} />} 
+          />
+          <Route 
+            path="/utilities/announcements" 
+            element={
+              <ProtectedRoute 
+                allow={ROUTE_PERMISSIONS['/utilities/announcements'] || ['admin']} 
+                element={
+                  <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="text-center">در حال بارگذاری...</div></div>}>
+                    <Announcements />
+                  </Suspense>
+                } 
+              />
+            } 
+          />
+          <Route 
+            path="/utilities/goals" 
+            element={
+              <ProtectedRoute 
+                allow={ROUTE_PERMISSIONS['/utilities/goals'] || ['admin']} 
+                element={
+                  <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="text-center">در حال بارگذاری...</div></div>}>
+                    <Goals />
+                  </Suspense>
+                } 
+              />
+            } 
+          />
+          <Route 
+            path="/utilities/activity-log" 
+            element={<ProtectedRoute allow={ROUTE_PERMISSIONS['/utilities/activity-log'] || ['admin']} element={<ActivityLog />} />} 
+          />
+          <Route 
+            path="/utilities/surveys" 
+            element={<ProtectedRoute allow={ROUTE_PERMISSIONS['/utilities/surveys'] || ['admin']} element={<Surveys />} />} 
+          />
+          <Route 
+            path="/utilities/database-backup" 
+            element={
+              <ProtectedRoute 
+                allow={ROUTE_PERMISSIONS['/utilities/database-backup'] || ['admin']} 
+                element={
+                  <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="text-center">در حال بارگذاری...</div></div>}>
+                    <DatabaseBackup />
+                  </Suspense>
+                } 
+              />
+            } 
+          />
+          <Route 
+            path="/utilities/ticket-pipe-log" 
+            element={
+              <ProtectedRoute 
+                allow={ROUTE_PERMISSIONS['/utilities/ticket-pipe-log'] || ['admin']} 
+                element={
+                  <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="text-center">در حال بارگذاری...</div></div>}>
+                    <TicketPipeLog />
+                  </Suspense>
+                } 
+              />
+            } 
+          />
           <Route 
             path="/settings" 
             element={<ProtectedRoute allow={ROUTE_PERMISSIONS['/settings'] || []} element={<Settings />} />} 
           />
-        </Routes>
-      </Layout>
-    </>
+              </Routes>
+            </PageTransition>
+          </Layout>
+        </ToastProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

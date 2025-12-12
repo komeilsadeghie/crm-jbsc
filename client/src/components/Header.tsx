@@ -5,6 +5,7 @@ import { Bell, CheckSquare, Clock, X, Ticket } from 'lucide-react';
 import api from '../services/api';
 import { toJalali } from '../utils/dateHelper';
 import { translateTaskStatus } from '../utils/translations';
+import ThemeSelector from './ThemeSelector';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -153,13 +154,16 @@ const Header = () => {
   };
 
   return (
-    <header className="fixed top-0 right-0 left-0 lg:right-64 h-16 bg-white shadow-medium border-b border-neutral-200 z-40" dir="rtl">
-      <div className="h-full px-4 lg:px-6 flex items-center justify-between">
+    <header className="fixed top-0 right-0 left-0 lg:right-64 h-14 sm:h-16 bg-white dark:bg-neutral-900 shadow-medium border-b border-neutral-200 dark:border-neutral-800 z-40" dir="rtl">
+      <div className="h-full px-3 sm:px-4 lg:px-6 flex items-center justify-between">
         {/* Left side - can be used for breadcrumbs or title */}
         <div className="flex-1"></div>
 
         {/* Right side - Notifications */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
+          {/* Theme Selector */}
+          <ThemeSelector />
+          
           {/* Tickets Notifications */}
           <div className="relative" ref={ticketDropdownRef}>
             <button
@@ -167,14 +171,14 @@ const Header = () => {
                 setShowTicketNotifications(!showTicketNotifications);
                 refetchTickets();
               }}
-              className={`relative p-2 rounded-lg transition-colors ${
+              className={`relative p-1.5 sm:p-2 rounded-lg transition-colors ${
                 showTicketNotifications 
                   ? 'bg-info-50 text-info-600' 
                   : 'text-neutral-700 hover:bg-neutral-100 hover:text-info-600'
               }`}
               aria-label="اعلان‌های تیکت"
             >
-              <Ticket size={22} />
+              <Ticket size={20} className="sm:w-[22px] sm:h-[22px]" />
               {ticketNotificationCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-gradient-to-br from-info-500 to-info-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-md ring-2 ring-white">
                   {ticketNotificationCount > 9 ? '9+' : ticketNotificationCount}
@@ -184,7 +188,7 @@ const Header = () => {
 
             {/* Tickets Dropdown */}
             {showTicketNotifications && (
-              <div className="absolute left-0 top-full mt-2 w-[calc(100vw-2rem)] lg:w-96 max-w-[calc(100vw-2rem)] lg:max-w-none bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-info-200/50 overflow-hidden z-50">
+              <div className="absolute left-0 top-full mt-2 w-[calc(100vw-1rem)] sm:w-[calc(100vw-2rem)] lg:w-96 max-w-[calc(100vw-1rem)] sm:max-w-[calc(100vw-2rem)] lg:max-w-none bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-info-200/50 overflow-hidden z-50">
                 <div className="p-4 border-b border-info-200/50 bg-gradient-to-r from-info-50 via-info-50/80 to-primary-50">
                   <div className="flex items-center justify-between">
                     <h3 className="font-bold text-info-700 flex items-center gap-2">
@@ -293,14 +297,14 @@ const Header = () => {
                 setShowNotifications(!showNotifications);
                 refetch();
               }}
-              className={`relative p-2 rounded-lg transition-colors ${
+              className={`relative p-1.5 sm:p-2 rounded-lg transition-colors ${
                 showNotifications 
                   ? 'bg-primary-50 text-primary-600' 
                   : 'text-neutral-700 hover:bg-neutral-100 hover:text-primary-600'
               }`}
               aria-label="اعلان‌ها"
             >
-              <Bell size={22} />
+              <Bell size={20} className="sm:w-[22px] sm:h-[22px]" />
               {notificationCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-gradient-to-br from-danger-500 to-danger-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-md ring-2 ring-white">
                   {notificationCount > 9 ? '9+' : notificationCount}
@@ -310,7 +314,7 @@ const Header = () => {
 
             {/* Dropdown */}
             {showNotifications && (
-              <div className="absolute left-0 top-full mt-2 w-[calc(100vw-2rem)] lg:w-96 max-w-[calc(100vw-2rem)] lg:max-w-none bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-primary-200/50 overflow-hidden z-50">
+              <div className="absolute left-0 top-full mt-2 w-[calc(100vw-1rem)] sm:w-[calc(100vw-2rem)] lg:w-96 max-w-[calc(100vw-1rem)] sm:max-w-[calc(100vw-2rem)] lg:max-w-none bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-primary-200/50 overflow-hidden z-50">
                 <div className="p-4 border-b border-primary-200/50 bg-gradient-to-r from-primary-50 via-primary-50/80 to-info-50">
                   <div className="flex items-center justify-between">
                     <h3 className="font-bold text-primary-700 flex items-center gap-2">

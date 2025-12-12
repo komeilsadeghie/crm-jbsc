@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import api from '../services/api';
 import { Plus, Search, Edit, Trash2, FileText, Send, CheckCircle, XCircle, Eye, Calendar } from 'lucide-react';
 import { toJalali } from '../utils/dateHelper';
+import { toPersianNumber } from '../utils/numberHelper';
 import JalaliDatePicker from '../components/JalaliDatePicker';
 
 const Proposals = () => {
@@ -290,11 +291,11 @@ const Proposals = () => {
             ) : (
               filteredProposals.map((proposal: any) => (
                 <tr key={proposal.id} className="border-b hover:bg-gray-50">
-                  <td className="p-3">{proposal.proposal_number}</td>
+                  <td className="p-3">{toPersianNumber(proposal.proposal_number)}</td>
                   <td className="p-3 font-medium">{proposal.title}</td>
                   <td className="p-3">{proposal.account_name || '-'}</td>
                   <td className="p-3">
-                    {proposal.amount ? `${parseFloat(proposal.amount).toLocaleString()} ${proposal.currency}` : '-'}
+                    {proposal.amount ? `${toPersianNumber(parseFloat(proposal.amount).toLocaleString())} ${proposal.currency}` : '-'}
                   </td>
                   <td className="p-3">
                     <span className={`px-2 py-1 rounded text-xs ${getStatusColor(proposal.status)}`}>

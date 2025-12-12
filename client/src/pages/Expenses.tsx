@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import api from '../services/api';
 import { Plus, Edit, Trash2, Receipt, DollarSign } from 'lucide-react';
 import { toJalali, formatDateForInput } from '../utils/dateHelper';
+import { toPersianNumber } from '../utils/numberHelper';
 import JalaliDatePicker from '../components/JalaliDatePicker';
 
 const Expenses = () => {
@@ -69,7 +70,7 @@ const Expenses = () => {
             <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">هزینه‌ها</h1>
           <div className="mt-2 flex items-center gap-4">
             <div className="text-lg font-medium text-gray-700">
-              مجموع: {new Intl.NumberFormat('fa-IR').format(totalAmount)} ریال
+              مجموع: {toPersianNumber(new Intl.NumberFormat('fa-IR').format(totalAmount))} ریال
             </div>
           </div>
         </div>
@@ -117,7 +118,7 @@ const Expenses = () => {
                   <td className="p-3">{toJalali(expense.expense_date)}</td>
                   <td className="p-3">{expense.category}</td>
                   <td className="p-3 font-medium">
-                    {new Intl.NumberFormat('fa-IR').format(expense.amount)} {expense.currency}
+                    {toPersianNumber(new Intl.NumberFormat('fa-IR').format(expense.amount))} {expense.currency}
                   </td>
                   <td className="p-3">{expense.description || '-'}</td>
                   <td className="p-3">{expense.account_name || '-'}</td>

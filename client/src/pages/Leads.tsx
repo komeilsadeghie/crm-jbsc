@@ -4,7 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { Plus, Search, Filter, Edit, Trash2, TrendingUp, UserPlus, List, Kanban as KanbanIcon } from 'lucide-react';
 import { translateLeadStatus, translateSource } from '../utils/translations';
+import { toPersianNumber } from '../utils/numberHelper';
 import { BulkDeleteActions, SelectAllCheckbox, RowCheckbox } from '../components/BulkDeleteActions';
+import Pagination from '../components/Pagination';
 
 const Leads = () => {
   const navigate = useNavigate();
@@ -16,6 +18,8 @@ const Leads = () => {
   const [editingLead, setEditingLead] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
 
   const { data: leads, isLoading, error } = useQuery(
     ['leads', searchTerm, filterStatus, filterSource],
@@ -54,7 +58,7 @@ const Leads = () => {
         queryClient.invalidateQueries('leads');
         setSelectedIds([]);
         const deletedCount = data.data?.deletedCount || data.data?.ids?.length || 0;
-        alert(`${deletedCount} سرنخ با موفقیت حذف شد`);
+        alert(`${toPersianNumber(deletedCount)} سرنخ با موفقیت حذف شد`);
       },
       onError: (error: any) => {
         alert('خطا در حذف گروهی: ' + (error.response?.data?.error || error.message));
@@ -147,19 +151,31 @@ const Leads = () => {
   // Ensure leads is always an array
   const leadsArray = Array.isArray(leads) ? leads : [];
 
+  // Pagination calculations
+  const totalItems = leadsArray.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedLeads = leadsArray.slice(startIndex, endIndex);
+
+  // Reset to page 1 if current page is out of bounds
+  if (currentPage > totalPages && totalPages > 0) {
+    setCurrentPage(1);
+  }
+
   const handleBulkDelete = () => {
     if (selectedIds.length === 0) {
       alert('لطفاً حداقل یک مورد را انتخاب کنید');
       return;
     }
-    if (confirm(`آیا از حذف ${selectedIds.length} سرنخ انتخاب شده اطمینان دارید؟`)) {
+    if (confirm(`آیا از حذف ${toPersianNumber(selectedIds.length)} سرنخ انتخاب شده اطمینان دارید؟`)) {
       bulkDeleteMutation.mutate(selectedIds);
     }
   };
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedIds(leadsArray.map((l: any) => l.id));
+      setSelectedIds(paginatedLeads.map((l: any) => l.id));
     } else {
       setSelectedIds([]);
     }
@@ -173,8 +189,11 @@ const Leads = () => {
     }
   };
 
-  const isAllSelected = leadsArray.length > 0 && selectedIds.length === leadsArray.length;
-  const isIndeterminate = selectedIds.length > 0 && selectedIds.length < leadsArray.length;
+  const isAllSelected = paginatedLeads.length > 0 && 
+    paginatedLeads.every((l: any) => selectedIds.includes(l.id));
+  const isIndeterminate = selectedIds.length > 0 && 
+    selectedIds.length < paginatedLeads.length && 
+    paginatedLeads.some((l: any) => selectedIds.includes(l.id));
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-primary-50/30 to-info-50/30 p-6">
@@ -284,7 +303,7 @@ const Leads = () => {
                 onDragOver={handleDragOver}
               >
                 <h3 className="font-bold mb-4 text-neutral-700">
-                  {stageInfo.label || stage} ({leads.length})
+                  {stageInfo.label || stage} ({toPersianNumber(leads.length)})
                 </h3>
                 <div className="space-y-2">
                   {leads.map((lead: any) => (
@@ -311,7 +330,7 @@ const Leads = () => {
                             style={{ width: `${lead.lead_score || 0}%` }}
                           />
                         </div>
-                        <span className="text-xs font-medium text-neutral-700">{lead.lead_score || 0}</span>
+                        <span className="text-xs font-medium text-neutral-700">{toPersianNumber(lead.lead_score || 0)}</span>
                       </div>
                     </div>
                   ))}
@@ -347,7 +366,7 @@ const Leads = () => {
               </tr>
             </thead>
             <tbody>
-              {leadsArray.map((lead: any) => (
+              {paginatedLeads.map((lead: any) => (
                 <tr key={lead.id} className={selectedIds.includes(lead.id) ? 'bg-primary-50' : ''}>
                   <RowCheckbox
                     id={lead.id}
@@ -429,6 +448,23 @@ const Leads = () => {
             <div className="text-center py-12 text-neutral-500">سرنخی یافت نشد</div>
           )}
         </div>
+        
+        {/* Pagination */}
+        {leadsArray.length > 0 && (
+          <div className="px-4 sm:px-6 py-4">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              itemsPerPage={itemsPerPage}
+              totalItems={totalItems}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={(newItemsPerPage) => {
+                setItemsPerPage(newItemsPerPage);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
+        )}
       </div>
       )}
       </div>

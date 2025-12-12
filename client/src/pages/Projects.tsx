@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { Plus, Edit, Trash2, FolderOpen, Calendar, Users, DollarSign } from 'lucide-react';
 import { toJalali, formatDateForInput } from '../utils/dateHelper';
+import { toPersianNumber } from '../utils/numberHelper';
 import JalaliDatePicker from '../components/JalaliDatePicker';
+import Pagination from '../components/Pagination';
 
 const Projects = () => {
   const navigate = useNavigate();
@@ -12,13 +14,38 @@ const Projects = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingProject, setEditingProject] = useState<any>(null);
   const [filterStatus, setFilterStatus] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(15);
 
   const { data: projects } = useQuery(['projects', filterStatus], async () => {
     const params = new URLSearchParams();
     if (filterStatus) params.append('status', filterStatus);
     const response = await api.get(`/projects?${params.toString()}`);
-    return response.data || [];
+    return Array.isArray(response.data) ? response.data : [];
   });
+
+  // Pagination calculations - memoized for performance
+  const { totalItems, totalPages, paginatedProjects } = useMemo(() => {
+    const projectsArray = Array.isArray(projects) ? projects : [];
+    const total = projectsArray.length;
+    const pages = Math.ceil(total / itemsPerPage);
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    const paginated = projectsArray.slice(start, end);
+    
+    return {
+      totalItems: total,
+      totalPages: pages,
+      paginatedProjects: paginated,
+    };
+  }, [projects, currentPage, itemsPerPage]);
+
+  // Reset to page 1 if current page is out of bounds
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages) {
+      setCurrentPage(1);
+    }
+  }, [totalPages]);
 
   const createMutation = useMutation(
     (data: any) => api.post('/projects', data),
@@ -152,7 +179,7 @@ const Projects = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {projects?.map((project: any) => (
+        {paginatedProjects?.map((project: any) => (
           <div
             key={project.id}
             onClick={() => navigate(`/projects/${project.id}`)}
@@ -192,7 +219,7 @@ const Projects = () => {
               {project.budget && (
                 <div className="flex items-center gap-2">
                   <DollarSign size={16} />
-                  بودجه: {new Intl.NumberFormat('fa-IR').format(project.budget)}
+                  بودجه: {toPersianNumber(new Intl.NumberFormat('fa-IR').format(project.budget))}
                 </div>
               )}
             </div>
@@ -222,6 +249,23 @@ const Projects = () => {
           </div>
         ))}
       </div>
+
+      {/* Pagination */}
+      {totalItems > 0 && (
+        <div className="pt-4 border-t border-neutral-200 dark:border-neutral-700">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            itemsPerPage={itemsPerPage}
+            totalItems={totalItems}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={(newItemsPerPage) => {
+              setItemsPerPage(newItemsPerPage);
+              setCurrentPage(1);
+            }}
+          />
+        </div>
+      )}
 
       {showModal && (
         <ProjectModal

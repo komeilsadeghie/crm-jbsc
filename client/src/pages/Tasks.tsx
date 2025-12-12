@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import api from '../services/api';
 import { Plus, CheckSquare, Clock, List, Kanban, GanttChart, Calendar, Filter, Tag, FolderOpen, Trash2, Edit } from 'lucide-react';
 import { toJalali } from '../utils/dateHelper';
+import { toPersianNumber } from '../utils/numberHelper';
 import { translateTaskStatus, translatePriority } from '../utils/translations';
 import JalaliDatePicker from '../components/JalaliDatePicker';
+import Pagination from '../components/Pagination';
 
 const Tasks = () => {
   const queryClient = useQueryClient();
@@ -13,6 +15,8 @@ const Tasks = () => {
   const [editingTask, setEditingTask] = useState<any>(null);
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [projectFilter, setProjectFilter] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(15);
 
   const { data: projects } = useQuery('projects', async () => {
     const response = await api.get('/projects');
@@ -33,9 +37,32 @@ const Tasks = () => {
     async () => {
       const params = projectFilter ? `?project_id=${projectFilter}` : '';
       const response = await api.get(`/tasks${params}`);
-      return response.data || [];
+      return Array.isArray(response.data) ? response.data : [];
     }
   );
+
+  // Pagination calculations for list view - memoized for performance
+  const { totalItems, totalPages, paginatedTasks } = useMemo(() => {
+    const tasksArray = Array.isArray(tasksList) ? tasksList : [];
+    const total = tasksArray.length;
+    const pages = Math.ceil(total / itemsPerPage);
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    const paginated = tasksArray.slice(start, end);
+    
+    return {
+      totalItems: total,
+      totalPages: pages,
+      paginatedTasks: paginated,
+    };
+  }, [tasksList, currentPage, itemsPerPage]);
+
+  // Reset to page 1 if current page is out of bounds
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages) {
+      setCurrentPage(1);
+    }
+  }, [totalPages]);
 
   const createMutation = useMutation(
     (data: any) => api.post('/tasks', data),
@@ -154,7 +181,32 @@ const Tasks = () => {
     try {
       const taskData = JSON.parse(e.dataTransfer.getData('task'));
       const tasksInColumn = kanbanBoard?.[column] || [];
-      console.log('Dropping task to column:', column, 'Task:', taskData.id);
+      const oldStatus = taskData.kanban_column || taskData.status;
+      const newStatus = column;
+      
+      console.log('Dropping task to column:', column, 'Task:', taskData.id, 'Old:', oldStatus, 'New:', newStatus);
+      
+      // If task moved from todo to done, log the time automatically
+      if ((oldStatus === 'todo' || oldStatus === 'in_progress' || oldStatus === 'review') && newStatus === 'done') {
+        // Calculate time difference if task has a start time
+        const now = new Date();
+        const startTime = taskData.start_time ? new Date(taskData.start_time) : now;
+        const durationMinutes = Math.max(0, Math.floor((now.getTime() - startTime.getTime()) / (1000 * 60)));
+        
+        // Log time automatically
+        if (durationMinutes > 0) {
+          api.post(`/tasks/${taskData.id}/time/log`, {
+            start_time: taskData.start_time || startTime.toISOString(),
+            end_time: now.toISOString(),
+            duration_minutes: durationMinutes,
+            note: 'زمان ثبت شده به صورت خودکار هنگام انتقال تسک به انجام شده',
+          }).catch((error) => {
+            console.error('Error logging time automatically:', error);
+            // Continue with position update even if time logging fails
+          });
+        }
+      }
+      
       updatePositionMutation.mutate({
         id: taskData.id,
         position: tasksInColumn.length,
@@ -254,7 +306,7 @@ const Tasks = () => {
                 }}
               >
                 <h3 className="font-bold mb-4 text-neutral-700">
-                  {column.label} ({tasks.length})
+                  {column.label} ({toPersianNumber(tasks.length)})
                 </h3>
                 <div className="space-y-2">
                   {tasks.map((task: any) => (
@@ -316,7 +368,7 @@ const Tasks = () => {
       ) : (
         <div className="glass-card">
           <div className="space-y-3">
-            {tasksList?.map((task: any) => (
+            {paginatedTasks?.map((task: any) => (
               <div
                 key={task.id}
                 data-task-id={task.id}
@@ -376,6 +428,23 @@ const Tasks = () => {
               </div>
             ))}
           </div>
+          
+          {/* Pagination */}
+          {totalItems > 0 && (
+            <div className="pt-4 border-t border-neutral-200 dark:border-neutral-700 mt-4">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                itemsPerPage={itemsPerPage}
+                totalItems={totalItems}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={(newItemsPerPage) => {
+                  setItemsPerPage(newItemsPerPage);
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
+          )}
         </div>
       )}
 
