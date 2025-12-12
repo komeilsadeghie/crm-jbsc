@@ -1,16 +1,74 @@
+# --- Node Dependencies ---
 node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Build outputs (React/Vite/Next.js) ---
 dist/
-client/node_modules/
-client/dist/
-client/build/
-.env
-*.db
-*.db-journal
-whatsapp-sessions/
+build/
+out/
+.next/
+coverage/
+storybook-static/
+
+# --- Editor and system files ---
 .DS_Store
-*.log
 .vscode/
 .idea/
+*.swp
+*~
 
+# --- Environment ---
+.env
+.env.*
+*.local
 
+# --- Temp & cache ---
+.tmp/
+temp/
+.cache/
 
+# --- Prisma / SQLite local databases ---
+prisma/dev.db
+prisma/dev.db-journal
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# --- Uploads (اگر فایل‌های واقعی کاربر هستن و لازم نیست داخل Repo باشند) ---
+uploads/
+
+# --- Folder database (به نظر میاد دیتابیس خام CRM است) ---
+database/
+
+# --- Cursor AI generated analysis files ---
+ANALYSIS_*.md
+ANALYSIS_COMPLETE_*.md
+BUGFIXES_*.md
+COMPARISON_*.md
+FEATURE_ANALYSIS*.md
+FINAL_*.md
+IMPLEMENTATION_*.md
+IMPROVEMENTS_*.md
+MODULES_*.md
+PERMISSIONS_GUIDE.md
+PROJECT_ANALYSIS.md
+PROGRESS.md
+TEST_REPORT.md
+TROUBLESHOOTING.md
+QUICKSTART.md
+AGENT_REVIEW.md
+SQLITE_FIX.md
+
+# --- Media / FM files directory (به احتمال زیاد بزرگ و غیرضروری است) ---
+fm files/
+
+# Logs
+*.log
+logs/
+
+# Backup files
+*.bak

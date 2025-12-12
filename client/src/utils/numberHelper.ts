@@ -63,19 +63,26 @@ export const formatPersianNumber = (
   num: number | string,
   options?: { decimals?: number; locale?: string }
 ): string => {
+  let numValue: number;
+  
   if (typeof num === 'string') {
-    num = parseFloat(num);
+    numValue = parseFloat(num);
+  } else {
+    numValue = num;
   }
   
-  if (isNaN(num)) {
+  if (isNaN(numValue)) {
     return '';
   }
   
   const locale = options?.locale || 'fa-IR';
-  let formatted = num.toLocaleString(locale);
+  let formatted: string;
   
   if (options?.decimals !== undefined) {
-    formatted = num.toFixed(options.decimals).toLocaleString(locale);
+    const fixedStr = numValue.toFixed(options.decimals);
+    formatted = parseFloat(fixedStr).toLocaleString(locale);
+  } else {
+    formatted = numValue.toLocaleString(locale);
   }
   
   // Convert to Persian digits
