@@ -20,6 +20,15 @@ export interface Customer {
   status: 'active' | 'inactive' | 'lead' | 'customer' | 'partner';
   category?: string;
   notes?: string;
+  code?: string;
+  designer?: string;
+  gender?: string;
+  site_languages_count?: number;
+  service_type?: string;
+  delivery_deadline?: string;
+  site_costs?: number;
+  initial_delivery_date?: string;
+  languages_added_date?: string;
   created_by?: number;
   created_at?: string;
   updated_at?: string;
