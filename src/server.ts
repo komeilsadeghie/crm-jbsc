@@ -104,39 +104,23 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
         console.error("❌ Could not fix unique_id column:", fixError);
       }
     }
-    
-    // Migrate project payment stages
-    console.log("🔄 Migrating project payment stages...");
-    await migrateProjectPayments();
-    
-    // Migrate customer Excel fields
-    console.log("🔄 Migrating customer Excel fields...");
-    await migrateCustomerExcelFields();
-    
-    // Migrate coaching enhanced features
-    console.log("🔄 Migrating coaching enhanced features...");
-    await migrateCoachingEnhanced();
-    
-    // Migrate knowledge base enhanced (SOP and attachments)
-    console.log("🔄 Migrating knowledge base enhanced...");
-    await migrateKnowledgeBaseEnhanced();
-    
-    // Migrate customer journey
-    console.log("🔄 Migrating customer journey...");
-    await migrateCustomerJourney();
-    
-    // Migrate goals enhanced (KR/OKR separation)
-    console.log("🔄 Migrating goals enhanced...");
-    await migrateGoalsEnhanced();
-    
-    // Migrate project labels
-    console.log("🔄 Migrating project labels...");
-    await migrateProjectLabels();
-    
-    // Migrate users VOIP extension
-    console.log("🔄 Migrating users VOIP extension...");
-    await migrateUsersVoipExtension();
-    
+    // Optional migrations (files may not exist in some deployments)
+try {
+  if (process.env.RUN_MIGRATIONS === "true") {
+    console.log("🔄 Running optional migrations...");
+
+    await (await import("./database/migrate-knowledge-base-enhanced")).migrateKnowledgeBaseEnhanced();
+    await (await import("./database/migrate-customer-journey")).migrateCustomerJourney();
+    await (await import("./database/migrate-goals-enhanced")).migrateGoalsEnhanced();
+    await (await import("./database/migrate-project-labels")).migrateProjectLabels();
+    await (await import("./database/migrate-users-voip")).migrateUsersVoipExtension();
+  } else {
+    console.log("ℹ️ Optional migrations skipped (set RUN_MIGRATIONS=true to run).");
+  }
+} catch (e) {
+  console.warn("⚠️ Optional migrations not available or failed; continuing without them.", e);
+}
+
     console.log("✅ Database initialized successfully!");
   } catch (err) {
     console.error("❌ Database initialization error:", err);
