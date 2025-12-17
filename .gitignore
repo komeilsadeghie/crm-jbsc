@@ -43,6 +43,9 @@ uploads/
 
 # --- Folder database (به نظر میاد دیتابیس خام CRM است) ---
 database/
+# Allow src/database migration files
+!src/database/
+!src/database/**/*.ts
 
 # --- Cursor AI generated analysis files ---
 ANALYSIS_*.md
