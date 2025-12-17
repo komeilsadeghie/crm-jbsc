@@ -83,7 +83,7 @@ const Pagination = ({
             </option>
           ))}
         </select>
-        <span>مورد در هر صفحه</span>
+        <span style={{ fontSize: '15px', textAlign: 'center', verticalAlign: 'middle', display: 'flex', flexWrap: 'wrap' }}>مورد در هر صفحه</span>
       </div>
 
       {/* Page info */}

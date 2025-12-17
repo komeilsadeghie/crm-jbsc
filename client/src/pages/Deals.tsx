@@ -378,9 +378,13 @@ const DealModal = ({ deal, onClose }: { deal: any; onClose: () => void }) => {
     }
   });
 
-  const { data: users } = useQuery('users', async () => {
-    // This would need a users endpoint
-    return [];
+  const { data: users } = useQuery('assignable-users', async () => {
+    try {
+      const response = await api.get('/users/assignable');
+      return response.data || [];
+    } catch {
+      return [];
+    }
   });
 
   const mutation = useMutation(

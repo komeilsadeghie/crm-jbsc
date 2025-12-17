@@ -191,13 +191,13 @@ const Estimates = () => {
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      draft: 'bg-gray-100 text-gray-700',
-      sent: 'bg-blue-100 text-blue-700',
+      draft: 'bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300',
+      sent: 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300',
       accepted: 'bg-green-100 text-green-700',
       declined: 'bg-red-100 text-red-700',
       expired: 'bg-orange-100 text-orange-700',
     };
-    return colors[status] || 'bg-gray-100 text-gray-700';
+    return colors[status] || 'bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300';
   };
 
   const getStatusLabel = (status: string) => {
@@ -330,11 +330,11 @@ const Estimates = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-6">
+    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center glass-card">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">پیش‌فاکتورها</h1>
+          <h1 className="page-heading-gradient">پیش‌فاکتورها</h1>
         <button
           onClick={() => {
             setEditingEstimate(null);
@@ -373,20 +373,21 @@ const Estimates = () => {
       <div className="bg-white rounded-lg shadow p-4 flex gap-4">
         <div className="flex-1">
           <div className="relative">
-            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-400 dark:text-neutral-500" size={20} />
             <input
               type="text"
               placeholder="جستجو..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pr-10 pl-4 py-2 border rounded-lg"
+              className="w-full pr-10 pl-4 py-2 border rounded-lg bg-white"
             />
           </div>
         </div>
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-4 py-2 border rounded-lg"
+          className="px-4 py-2 border rounded-lg bg-white"
+          style={{ borderColor: 'rgba(0, 0, 0, 0.02)', borderImage: 'none' }}
         >
           <option value="">همه وضعیت‌ها</option>
           <option value="draft">پیش‌نویس</option>
@@ -401,23 +402,23 @@ const Estimates = () => {
       <div className="glass-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="backdrop-blur-sm bg-white/50">
+            <thead className="backdrop-blur-sm bg-white/50 dark:bg-neutral-800/50">
               <tr>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">شماره</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">مشتری</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">مبلغ</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">وضعیت</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">اعتبار تا</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">عملیات</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase">شماره</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase">مشتری</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase">مبلغ</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase">وضعیت</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase">اعتبار تا</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase">عملیات</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700">
               {paginatedEstimates && paginatedEstimates.length > 0 ? (
                 paginatedEstimates.map((estimate: any) => (
-                  <tr key={estimate.id} className="hover:bg-gray-50">
+                  <tr key={estimate.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
-                        <FileText size={16} className="text-gray-400" />
+                        <FileText size={16} className="text-neutral-400 dark:text-neutral-500" />
                         <span className="font-medium">{toPersianNumber(estimate.estimate_number || estimate.id)}</span>
                       </div>
                     </td>
@@ -439,14 +440,14 @@ const Estimates = () => {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleDownloadPDF(estimate.id)}
-                          className="text-purple-600 hover:text-purple-800"
+                          className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
                           title="دانلود PDF"
                         >
                           <FileText size={18} />
                         </button>
                         <button
                           onClick={() => handleDownloadWord(estimate.id)}
-                          className="text-blue-600 hover:text-blue-800"
+                          className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
                           title="دانلود Word"
                         >
                           <Download size={18} />
@@ -469,7 +470,7 @@ const Estimates = () => {
                         )}
                         <button
                           onClick={() => handleEdit(estimate)}
-                          className="text-blue-600 hover:text-blue-800"
+                          className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
                           title="ویرایش"
                         >
                           <Edit size={18} />
@@ -487,7 +488,7 @@ const Estimates = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-12 text-center text-neutral-500 dark:text-neutral-400">
                     پیش‌فاکتوری یافت نشد
                   </td>
                 </tr>
@@ -529,7 +530,7 @@ const Estimates = () => {
                   <select
                     value={formData.account_id}
                     onChange={(e) => setFormData({ ...formData, account_id: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg"
+                    className="input"
                   >
                     <option value="">انتخاب مشتری</option>
                     {accountsLoading ? (
@@ -552,7 +553,7 @@ const Estimates = () => {
                   <select
                     value={formData.deal_id}
                     onChange={(e) => setFormData({ ...formData, deal_id: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg"
+                    className="input"
                   >
                     <option value="">انتخاب پروژه</option>
                     {deals?.map((deal: any) => (
@@ -571,7 +572,7 @@ const Estimates = () => {
                     required
                     value={formData.amount}
                     onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg"
+                    className="input"
                   />
                 </div>
                 <div>
@@ -579,7 +580,7 @@ const Estimates = () => {
                   <select
                     value={formData.currency}
                     onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg"
+                    className="input"
                   >
                     <option value="IRR">ریال</option>
                     <option value="USD">دلار</option>
@@ -593,7 +594,7 @@ const Estimates = () => {
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg"
+                    className="input"
                   >
                     <option value="draft">پیش‌نویس</option>
                     <option value="sent">ارسال شده</option>
@@ -620,7 +621,7 @@ const Estimates = () => {
                     <select
                       value={formData.contract_type}
                       onChange={(e) => setFormData({ ...formData, contract_type: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="input"
                     >
                       <option value="">انتخاب کنید</option>
                       <option value="website">طراحی وب‌سایت</option>
@@ -638,7 +639,7 @@ const Estimates = () => {
                       type="text"
                       value={formData.domain_name}
                       onChange={(e) => setFormData({ ...formData, domain_name: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="input"
                       placeholder="example.com"
                     />
                   </div>
@@ -648,7 +649,7 @@ const Estimates = () => {
                       type="text"
                       value={formData.hosting_type}
                       onChange={(e) => setFormData({ ...formData, hosting_type: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="input"
                       placeholder="مثلاً: Linux, Windows"
                     />
                   </div>
@@ -658,7 +659,7 @@ const Estimates = () => {
                       type="number"
                       value={formData.hosting_duration}
                       onChange={(e) => setFormData({ ...formData, hosting_duration: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="input"
                     />
                   </div>
                   <div>
@@ -678,7 +679,7 @@ const Estimates = () => {
                       type="number"
                       value={formData.maintenance_months}
                       onChange={(e) => setFormData({ ...formData, maintenance_months: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="input"
                     />
                   </div>
                   <div>
@@ -687,7 +688,7 @@ const Estimates = () => {
                       type="text"
                       value={formData.seo_package}
                       onChange={(e) => setFormData({ ...formData, seo_package: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="input"
                     />
                   </div>
                   <div>
@@ -696,7 +697,7 @@ const Estimates = () => {
                       type="number"
                       value={formData.site_pages}
                       onChange={(e) => setFormData({ ...formData, site_pages: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="input"
                     />
                   </div>
                   <div>
@@ -705,7 +706,7 @@ const Estimates = () => {
                       type="text"
                       value={formData.site_languages}
                       onChange={(e) => setFormData({ ...formData, site_languages: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="input"
                       placeholder="مثلاً: فارسی، انگلیسی"
                     />
                   </div>
@@ -715,7 +716,7 @@ const Estimates = () => {
                       type="text"
                       value={formData.payment_terms}
                       onChange={(e) => setFormData({ ...formData, payment_terms: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="input"
                       placeholder="مثلاً: 50% پیش‌پرداخت"
                     />
                   </div>
@@ -725,7 +726,7 @@ const Estimates = () => {
                       type="number"
                       value={formData.delivery_days}
                       onChange={(e) => setFormData({ ...formData, delivery_days: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="input"
                     />
                   </div>
                   <div>
@@ -734,7 +735,7 @@ const Estimates = () => {
                       type="number"
                       value={formData.warranty_months}
                       onChange={(e) => setFormData({ ...formData, warranty_months: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="input"
                     />
                   </div>
                 </div>
@@ -744,7 +745,7 @@ const Estimates = () => {
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="input"
                   rows={3}
                 />
               </div>

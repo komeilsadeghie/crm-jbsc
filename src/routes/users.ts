@@ -5,6 +5,30 @@ import { authenticate, AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
 
+// Get assignable users (for task assignment - available to all authenticated users)
+router.get('/assignable', authenticate, (req: AuthRequest, res: Response) => {
+  // Return only basic info needed for assignment
+  db.all(`SELECT id, username, full_name, first_name, last_name, role, avatar_url, voip_extension 
+          FROM users 
+          WHERE is_staff = 1 OR is_admin = 1
+          ORDER BY full_name ASC, username ASC`, [], (err, users) => {
+    if (err) {
+      console.error('Error fetching assignable users:', err);
+      return res.status(500).json({ error: 'خطا در دریافت کاربران' });
+    }
+    // Format user display name
+    const formattedUsers = (users || []).map((user: any) => ({
+      id: user.id,
+      username: user.username,
+      full_name: user.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username,
+      role: user.role,
+      avatar_url: user.avatar_url,
+      voip_extension: user.voip_extension || null,
+    }));
+    res.json(formattedUsers);
+  });
+});
+
 // Get all users (admin only)
 router.get('/', authenticate, (req: AuthRequest, res: Response) => {
   // Check if user is admin
@@ -14,7 +38,7 @@ router.get('/', authenticate, (req: AuthRequest, res: Response) => {
 
   db.all(`SELECT id, username, email, full_name, first_name, last_name, phone, role, 
           hourly_rate, facebook, linkedin, skype, email_signature, default_language, 
-          direction, is_admin, is_staff, avatar_url, created_at 
+          direction, is_admin, is_staff, avatar_url, voip_extension, created_at 
           FROM users ORDER BY created_at DESC`, [], (err, users) => {
     if (err) {
       console.error('Error fetching users:', err);
@@ -35,7 +59,7 @@ router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
 
   db.get(`SELECT id, username, email, full_name, first_name, last_name, phone, role, 
           hourly_rate, facebook, linkedin, skype, email_signature, default_language, 
-          direction, is_admin, is_staff, avatar_url, created_at 
+          direction, is_admin, is_staff, avatar_url, voip_extension, created_at 
           FROM users WHERE id = ?`, [id], (err, user) => {
     if (err) {
       return res.status(500).json({ error: 'خطا در دریافت کاربر' });
@@ -56,7 +80,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
   const { 
     username, email, password, full_name, first_name, last_name, phone, role,
     hourly_rate, facebook, linkedin, skype, email_signature, default_language,
-    direction, is_admin, is_staff
+    direction, is_admin, is_staff, voip_extension
   } = req.body;
 
   if (!username || !email || !password || !role) {
@@ -79,8 +103,8 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
         `INSERT INTO users (
           username, email, password, full_name, first_name, last_name, phone, role,
           hourly_rate, facebook, linkedin, skype, email_signature, default_language,
-          direction, is_admin, is_staff
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          direction, is_admin, is_staff, voip_extension
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           username.toLowerCase(), 
           email.toLowerCase(), 
@@ -99,6 +123,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
           direction || 'rtl',
           is_admin ? 1 : 0,
           is_staff !== undefined ? (is_staff ? 1 : 0) : 1,
+          voip_extension || null,
         ],
         function(err) {
           if (err) {
@@ -127,7 +152,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   const { 
     username, email, full_name, first_name, last_name, phone, role, password,
     hourly_rate, facebook, linkedin, skype, email_signature, default_language,
-    direction, is_admin, is_staff
+    direction, is_admin, is_staff, voip_extension
   } = req.body;
 
   // Build update query dynamically
@@ -193,6 +218,10 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   if (is_staff !== undefined && req.user?.role === 'admin') {
     updates.push('is_staff = ?');
     params.push(is_staff ? 1 : 0);
+  }
+  if (voip_extension !== undefined) {
+    updates.push('voip_extension = ?');
+    params.push(voip_extension || null);
   }
   if (role && req.user?.role === 'admin') {
     updates.push('role = ?');

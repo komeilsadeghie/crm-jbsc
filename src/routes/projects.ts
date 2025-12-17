@@ -35,7 +35,42 @@ router.get('/', authenticate, (req: AuthRequest, res: Response) => {
     if (err) {
       return res.status(500).json({ error: 'خطا در دریافت پروژه‌ها' });
     }
-    res.json(projects);
+    
+    // Fetch labels for each project
+    if (!projects || projects.length === 0) {
+      return res.json([]);
+    }
+    
+    const projectIds = projects.map((p: any) => p.id);
+    const placeholders = projectIds.map(() => '?').join(',');
+    
+    db.all(
+      `SELECT * FROM project_labels WHERE project_id IN (${placeholders})`,
+      projectIds,
+      (labelErr, labels) => {
+        if (labelErr) {
+          console.error('Error fetching labels:', labelErr);
+          return res.json(projects);
+        }
+        
+        // Group labels by project_id
+        const labelsByProject: Record<number, any[]> = {};
+        (labels || []).forEach((label: any) => {
+          if (!labelsByProject[label.project_id]) {
+            labelsByProject[label.project_id] = [];
+          }
+          labelsByProject[label.project_id].push(label);
+        });
+        
+        // Add labels to projects
+        const projectsWithLabels = projects.map((project: any) => ({
+          ...project,
+          labels: labelsByProject[project.id] || []
+        }));
+        
+        res.json(projectsWithLabels);
+      }
+    );
   });
 });
 
@@ -67,7 +102,7 @@ router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
 
       // Get discussions
       db.all(`
-        SELECT pd.*, u.username, u.full_name
+        SELECT pd.*, u.username, u.full_name, u.role as user_role
         FROM project_discussions pd
         LEFT JOIN users u ON pd.user_id = u.id
         WHERE pd.project_id = ?
@@ -418,6 +453,77 @@ router.post('/:id/discussions', authenticate, (req: AuthRequest, res: Response) 
         return res.status(500).json({ error: 'خطا در ثبت discussion' });
       }
       res.status(201).json({ id: this.lastID, message: 'Discussion با موفقیت ثبت شد' });
+    }
+  );
+});
+
+// Get project labels
+router.get('/:id/labels', authenticate, (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+  
+  db.all(
+    'SELECT * FROM project_labels WHERE project_id = ? ORDER BY created_at DESC',
+    [id],
+    (err, labels) => {
+      if (err) {
+        return res.status(500).json({ error: 'خطا در دریافت لیبل‌ها' });
+      }
+      res.json(labels || []);
+    }
+  );
+});
+
+// Add label to project
+router.post('/:id/labels', authenticate, (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+  const { label_name, label_color } = req.body;
+  
+  if (!label_name || label_name.trim() === '') {
+    return res.status(400).json({ error: 'نام لیبل الزامی است' });
+  }
+  
+  db.run(
+    'INSERT INTO project_labels (project_id, label_name, label_color) VALUES (?, ?, ?)',
+    [id, label_name.trim(), label_color || '#3B82F6'],
+    function(err) {
+      if (err) {
+        console.error('Error adding label:', err);
+        return res.status(500).json({ error: 'خطا در اضافه کردن لیبل' });
+      }
+      res.status(201).json({ id: this.lastID, message: 'لیبل با موفقیت اضافه شد' });
+    }
+  );
+});
+
+// Delete label from project
+router.delete('/:id/labels/:labelId', authenticate, (req: AuthRequest, res: Response) => {
+  const { id, labelId } = req.params;
+  
+  db.run(
+    'DELETE FROM project_labels WHERE id = ? AND project_id = ?',
+    [labelId, id],
+    function(err) {
+      if (err) {
+        return res.status(500).json({ error: 'خطا در حذف لیبل' });
+      }
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'لیبل یافت نشد' });
+      }
+      res.json({ message: 'لیبل با موفقیت حذف شد' });
+    }
+  );
+});
+
+// Get available labels (all unique labels used in projects)
+router.get('/labels/available', authenticate, (req: AuthRequest, res: Response) => {
+  db.all(
+    'SELECT DISTINCT label_name, label_color FROM project_labels ORDER BY label_name',
+    [],
+    (err, labels) => {
+      if (err) {
+        return res.status(500).json({ error: 'خطا در دریافت لیبل‌ها' });
+      }
+      res.json(labels || []);
     }
   );
 });

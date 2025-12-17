@@ -29,6 +29,8 @@ export interface Customer {
   site_costs?: number;
   initial_delivery_date?: string;
   languages_added_date?: string;
+  journey_stage?: string;
+  coach_id?: number;
   created_by?: number;
   created_at?: string;
   updated_at?: string;

@@ -155,10 +155,10 @@ const Media = () => {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-3 sm:p-4 md:p-6">
+    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 p-3 sm:p-4 md:p-6">
       <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 glass-card">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">مدیریت محتوا و مدیا</h1>
+          <h1 className="page-heading-gradient text-xl sm:text-2xl md:text-3xl">مدیریت محتوا و مدیا</h1>
         <button
           onClick={() => {
             setEditingItem(null);

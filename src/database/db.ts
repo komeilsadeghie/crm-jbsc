@@ -1261,6 +1261,55 @@ export const initDatabase = () => {
           FOREIGN KEY (content_id) REFERENCES content_items(id) ON DELETE CASCADE,
           FOREIGN KEY (created_by) REFERENCES users(id)
         )
+      `);
+
+      // Activity Log table
+      db.run(`
+        CREATE TABLE IF NOT EXISTS activity_log (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          action TEXT NOT NULL,
+          entity_type TEXT NOT NULL,
+          entity_id INTEGER,
+          description TEXT,
+          ip_address TEXT,
+          user_agent TEXT,
+          metadata TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+      `);
+
+      // Notifications table
+      db.run(`
+        CREATE TABLE IF NOT EXISTS notifications (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          type TEXT NOT NULL CHECK(type IN ('task_assigned', 'task_created', 'announcement', 'activity', 'system')),
+          title TEXT NOT NULL,
+          message TEXT NOT NULL,
+          entity_type TEXT,
+          entity_id INTEGER,
+          is_read INTEGER DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+      `);
+
+      // Announcements table
+      db.run(`
+        CREATE TABLE IF NOT EXISTS announcements (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          message TEXT NOT NULL,
+          start_date DATE,
+          end_date DATE,
+          is_active INTEGER DEFAULT 1,
+          created_by INTEGER,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (created_by) REFERENCES users(id)
+        )
       `, (err) => {
         if (err) {
           console.error('❌ Error initializing database tables:', err);

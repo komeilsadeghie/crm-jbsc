@@ -188,12 +188,12 @@ const Proposals = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'draft': return 'bg-gray-100 text-gray-800';
-      case 'sent': return 'bg-blue-100 text-blue-800';
-      case 'accepted': return 'bg-green-100 text-green-800';
-      case 'declined': return 'bg-red-100 text-red-800';
-      case 'expired': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'draft': return 'bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200';
+      case 'sent': return 'bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300';
+      case 'accepted': return 'bg-success-100 dark:bg-success-900/30 text-success-800 dark:text-success-300';
+      case 'declined': return 'bg-danger-100 dark:bg-danger-900/30 text-danger-800 dark:text-danger-300';
+      case 'expired': return 'bg-warning-100 dark:bg-warning-900/30 text-warning-800 dark:text-warning-300';
+      default: return 'bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200';
     }
   };
 
@@ -221,9 +221,9 @@ const Proposals = () => {
   }) || [];
 
   return (
-    <div className="p-6">
+    <div className="p-6 bg-neutral-50 dark:bg-neutral-900 min-h-screen">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-primary-600">پروپوزال‌ها</h1>
+        <h1 className="page-heading-gradient">پروپوزال‌ها</h1>
         <button
           onClick={() => {
             setEditingProposal(null);
@@ -241,7 +241,7 @@ const Proposals = () => {
       <div className="glass-card p-4 mb-6 flex gap-4">
         <div className="flex-1">
           <div className="relative">
-            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-400 dark:text-neutral-500" size={20} />
             <input
               type="text"
               placeholder="جستجو..."
@@ -290,7 +290,7 @@ const Proposals = () => {
               </tr>
             ) : (
               filteredProposals.map((proposal: any) => (
-                <tr key={proposal.id} className="border-b hover:bg-gray-50">
+                <tr key={proposal.id} className="border-b border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800/50">
                   <td className="p-3">{toPersianNumber(proposal.proposal_number)}</td>
                   <td className="p-3 font-medium">{proposal.title}</td>
                   <td className="p-3">{proposal.account_name || '-'}</td>
@@ -310,7 +310,7 @@ const Proposals = () => {
                       {proposal.status === 'draft' && (
                         <button
                           onClick={() => sendMutation.mutate(proposal.id)}
-                          className="text-blue-600 hover:text-blue-800"
+                          className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
                           title="ارسال"
                         >
                           <Send size={18} />
@@ -511,7 +511,7 @@ const ProposalModal = ({
             {formData.items.length > 0 && (
               <div className="space-y-2">
                 {formData.items.map((item: any, index: number) => (
-                  <div key={index} className="flex gap-2 items-start p-2 bg-gray-50 rounded">
+                  <div key={index} className="flex gap-2 items-start p-2 bg-neutral-50 dark:bg-neutral-800 rounded">
                     <div className="flex-1 grid grid-cols-4 gap-2">
                       <input
                         type="text"

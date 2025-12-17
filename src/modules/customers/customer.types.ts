@@ -9,6 +9,10 @@ export interface CustomerFilters {
   tagIds?: string[];
   customerModels?: number[];
   createdById?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  journey_stage?: string;
+  coach_id?: string;
 }
 
 export interface CustomerPayload {

@@ -236,10 +236,10 @@ const Tasks = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-primary-50/30 to-info-50/30 p-6">
+    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex justify-between items-center card">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary-600 to-info-600 bg-clip-text text-transparent">وظایف</h1>
+          <h1 className="page-heading-gradient">وظایف</h1>
         <div className="flex gap-2">
           <select
             value={projectFilter}
@@ -482,9 +482,9 @@ const TaskModal = ({ task, onClose, onSave }: any) => {
     return response.data || [];
   });
 
-  const { data: users } = useQuery('users', async () => {
+  const { data: users } = useQuery('assignable-users', async () => {
     try {
-      const response = await api.get('/users');
+      const response = await api.get('/users/assignable');
       return response.data || [];
     } catch {
       return [];
@@ -574,7 +574,7 @@ const TaskModal = ({ task, onClose, onSave }: any) => {
               <select
                 value={formData.project_id}
                 onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
+                className="input"
               >
                 <option value="">انتخاب پروژه</option>
                 {projects?.map((project: any) => (
@@ -589,7 +589,7 @@ const TaskModal = ({ task, onClose, onSave }: any) => {
               <select
                 value={formData.assigned_to}
                 onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
+                className="input"
               >
                 <option value="">انتخاب کاربر</option>
                 {users?.map((user: any) => (

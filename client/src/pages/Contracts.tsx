@@ -278,6 +278,7 @@ const ContractModal = ({ contract, onClose, onSave }: any) => {
     title: contract?.title || '',
     description: contract?.description || '',
     contract_type: contract?.contract_type || '',
+    contract_model: contract?.contract_model || '',
     start_date: contract?.start_date || '',
     end_date: contract?.end_date || '',
     value: contract?.value || '',
@@ -374,6 +375,41 @@ const ContractModal = ({ contract, onClose, onSave }: any) => {
               className="input"
               rows={3}
             />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">نوع قرارداد</label>
+              <select
+                value={formData.contract_type}
+                onChange={(e) => setFormData({ ...formData, contract_type: e.target.value })}
+                className="input"
+              >
+                <option value="">انتخاب نوع قرارداد</option>
+                <option value="service">خدمات</option>
+                <option value="product">محصول</option>
+                <option value="maintenance">پشتیبانی</option>
+                <option value="hosting">هاستینگ</option>
+                <option value="website">وب‌سایت</option>
+                <option value="seo">سئو</option>
+                <option value="other">سایر</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">مدل قرارداد</label>
+              <select
+                value={formData.contract_model || ''}
+                onChange={(e) => setFormData({ ...formData, contract_model: e.target.value })}
+                className="input"
+              >
+                <option value="">انتخاب مدل قرارداد</option>
+                <option value="fixed_price">قیمت ثابت</option>
+                <option value="hourly">ساعتی</option>
+                <option value="monthly">ماهانه</option>
+                <option value="yearly">سالانه</option>
+                <option value="milestone">بر اساس milestone</option>
+                <option value="retainer">Retainer</option>
+              </select>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>

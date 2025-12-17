@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { authenticate, authorize, AuthRequest } from '../../middleware/auth';
 import { getUserProfile, listUsersByRole, updateUserProfile } from './profile.service';
+import { db } from '../../database/db';
+import bcrypt from 'bcryptjs';
 
 const router = Router();
 
@@ -54,9 +56,6 @@ router.put('/me/password', authenticate, async (req: AuthRequest, res) => {
     }
 
     // Get user from database
-    const db = require('../../database/db').db;
-    const bcrypt = require('bcryptjs');
-
     db.get('SELECT password FROM users WHERE id = ?', [userId], async (err: any, user: any) => {
       if (err || !user) {
         return res.status(404).json({ error: 'کاربر یافت نشد' });

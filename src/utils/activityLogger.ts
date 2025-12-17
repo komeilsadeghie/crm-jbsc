@@ -1,5 +1,6 @@
 import { db } from '../database/db';
 import { Request } from 'express';
+import { generatePersianDescription, getPersianActionLabel, getPersianEntityLabel } from './activityLoggerPersian';
 
 export interface ActivityLogData {
   userId: number;
@@ -10,10 +11,11 @@ export interface ActivityLogData {
   ipAddress?: string;
   userAgent?: string;
   metadata?: any;
+  entityTitle?: string;
 }
 
 /**
- * Log activity to database
+ * Log activity to database with automatic Persian description generation
  */
 export const logActivity = (data: ActivityLogData): Promise<void> => {
   return new Promise((resolve, reject) => {
@@ -25,8 +27,24 @@ export const logActivity = (data: ActivityLogData): Promise<void> => {
       description,
       ipAddress,
       userAgent,
-      metadata
+      metadata,
+      entityTitle
     } = data;
+
+    // Generate Persian description if not provided
+    let persianDescription = description;
+    if (!persianDescription) {
+      const additionalInfo: any = {};
+      if (metadata) {
+        if (metadata.status) additionalInfo.status = metadata.status;
+        if (metadata.amount) additionalInfo.amount = metadata.amount;
+        if (metadata.assignedTo || metadata.assigned_user_id) {
+          additionalInfo.assignedTo = metadata.assignedTo || metadata.assigned_user_id;
+        }
+        if (metadata.priority) additionalInfo.priority = metadata.priority;
+      }
+      persianDescription = generatePersianDescription(action, entityType, entityTitle, Object.keys(additionalInfo).length > 0 ? additionalInfo : undefined);
+    }
 
     db.run(
       `INSERT INTO activity_log (
@@ -38,7 +56,7 @@ export const logActivity = (data: ActivityLogData): Promise<void> => {
         action,
         entityType,
         entityId || null,
-        description || null,
+        persianDescription || null,
         ipAddress || null,
         userAgent || null,
         metadata ? JSON.stringify(metadata) : null

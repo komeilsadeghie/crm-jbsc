@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { Plus, Edit, Trash2, FolderOpen, Calendar, Users, DollarSign } from 'lucide-react';
+import { Plus, Edit, Trash2, FolderOpen, Calendar, Users, DollarSign, X, Tag } from 'lucide-react';
 import { toJalali, formatDateForInput } from '../utils/dateHelper';
 import { toPersianNumber } from '../utils/numberHelper';
 import JalaliDatePicker from '../components/JalaliDatePicker';
@@ -111,7 +111,7 @@ const Projects = () => {
       'cooperation_ended': 'اتمام همکاری',
       'on_hold': 'هولد شده',
       planning: 'در حال برنامه‌ریزی',
-      active: 'فعال',
+      active: 'انجام شده',
       cancelled: 'لغو شده',
     };
     return labels[status] || status;
@@ -132,10 +132,10 @@ const Projects = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-6">
+    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex justify-between items-center glass-card">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">پروژه‌ها</h1>
+          <h1 className="page-heading-gradient">پروژه‌ها</h1>
         <button
           onClick={() => {
             setEditingProject(null);
@@ -164,7 +164,7 @@ const Projects = () => {
             <option value="cooperation_ended">🔴 اتمام همکاری</option>
             <option value="on_hold">🟠 هولد شده</option>
             <option value="planning">در حال برنامه‌ریزی</option>
-            <option value="active">فعال</option>
+            <option value="active">انجام شده</option>
             <option value="cancelled">لغو شده</option>
           </select>
           {filterStatus && (
@@ -183,21 +183,40 @@ const Projects = () => {
           <div
             key={project.id}
             onClick={() => navigate(`/projects/${project.id}`)}
-            className={`backdrop-blur-md bg-white/90 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer border border-white/40 hover:bg-white ${getStatusBorderColor(project.status)}`}
+            className={`card-hover cursor-pointer ${getStatusBorderColor(project.status)}`}
           >
             <div className="flex justify-between items-start mb-3">
               <div className="flex items-center gap-2">
                 <FolderOpen className="text-primary-600" size={24} />
                 <h3 className="font-bold text-lg">{project.name}</h3>
               </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(project.status)}`}>
-                {getStatusLabel(project.status)}
-              </span>
+              <div className="flex flex-col items-end gap-1">
+                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(project.status)}`}>
+                  {getStatusLabel(project.status)}
+                </span>
+                {project.labels && project.labels.length > 0 && (
+                  <div className="flex flex-wrap gap-1 justify-end">
+                    {project.labels.map((label: any) => (
+                      <span
+                        key={label.id}
+                        className="px-2 py-0.5 rounded-full text-xs font-medium"
+                        style={{
+                          backgroundColor: `${label.label_color}20`,
+                          color: label.label_color,
+                          border: `1px solid ${label.label_color}40`
+                        }}
+                      >
+                        {label.label_name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             {project.description && (
-              <p className="text-sm text-gray-600 mb-3 line-clamp-2">{project.description}</p>
+              <p className="text-sm text-neutral-600 dark:text-neutral-300 mb-3 line-clamp-2">{project.description}</p>
             )}
-            <div className="space-y-2 text-sm text-gray-600">
+            <div className="space-y-2 text-sm text-neutral-600 dark:text-neutral-300">
               {project.account_name && (
                 <div className="flex items-center gap-2">
                   <Users size={16} />
@@ -230,8 +249,10 @@ const Projects = () => {
                   setEditingProject(project);
                   setShowModal(true);
                 }}
-                className="text-blue-600 hover:text-blue-700 text-sm"
+                className="flex items-center gap-2 px-3 py-1.5 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-900/50 rounded-lg transition-colors text-sm font-medium"
+                title="ویرایش"
               >
+                <Edit size={16} />
                 ویرایش
               </button>
               <button
@@ -241,8 +262,10 @@ const Projects = () => {
                     deleteMutation.mutate(project.id);
                   }
                 }}
-                className="text-red-600 hover:text-red-700 text-sm"
+                className="flex items-center gap-2 px-3 py-1.5 bg-danger-50 dark:bg-danger-900/30 text-danger-600 dark:text-danger-400 hover:bg-danger-100 dark:hover:bg-danger-900/50 rounded-lg transition-colors text-sm font-medium"
+                title="حذف"
               >
+                <Trash2 size={16} />
                 حذف
               </button>
             </div>
@@ -290,6 +313,8 @@ const Projects = () => {
 };
 
 const ProjectModal = ({ project, onClose, onSave }: any) => {
+  const queryClient = useQueryClient();
+  
   const { data: accounts, isLoading: accountsLoading } = useQuery('accounts', async () => {
     try {
       const response = await api.get('/accounts');
@@ -300,6 +325,59 @@ const ProjectModal = ({ project, onClose, onSave }: any) => {
       return [];
     }
   });
+
+  // Fetch project labels
+  const { data: projectLabels = [] } = useQuery(
+    ['project-labels', project?.id],
+    async () => {
+      if (!project?.id) return [];
+      try {
+        const response = await api.get(`/projects/${project.id}/labels`);
+        return response.data || [];
+      } catch {
+        return [];
+      }
+    },
+    { enabled: !!project?.id }
+  );
+
+  // Fetch available labels
+  const { data: availableLabels = [] } = useQuery(
+    'available-labels',
+    async () => {
+      try {
+        const response = await api.get('/projects/labels/available');
+        return response.data || [];
+      } catch {
+        return [];
+      }
+    }
+  );
+
+  const [newLabelName, setNewLabelName] = useState('');
+  const [newLabelColor, setNewLabelColor] = useState('#3B82F6');
+
+  const addLabelMutation = useMutation(
+    ({ projectId, labelName, labelColor }: { projectId: number; labelName: string; labelColor: string }) =>
+      api.post(`/projects/${projectId}/labels`, { label_name: labelName, label_color: labelColor }),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['project-labels', project?.id]);
+        setNewLabelName('');
+        setNewLabelColor('#3B82F6');
+      },
+    }
+  );
+
+  const deleteLabelMutation = useMutation(
+    ({ projectId, labelId }: { projectId: number; labelId: number }) =>
+      api.delete(`/projects/${projectId}/labels/${labelId}`),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['project-labels', project?.id]);
+      },
+    }
+  );
 
   const [formData, setFormData] = useState({
     account_id: project?.account_id || '',
@@ -404,7 +482,7 @@ const ProjectModal = ({ project, onClose, onSave }: any) => {
               required
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="input"
             />
           </div>
           <div>
@@ -412,7 +490,7 @@ const ProjectModal = ({ project, onClose, onSave }: any) => {
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="input"
               rows={3}
             />
           </div>
@@ -422,7 +500,7 @@ const ProjectModal = ({ project, onClose, onSave }: any) => {
               <select
                 value={formData.account_id}
                 onChange={(e) => setFormData({ ...formData, account_id: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
+                className="input"
               >
               <option value="">انتخاب مشتری</option>
               {accountsLoading ? (
@@ -441,10 +519,10 @@ const ProjectModal = ({ project, onClose, onSave }: any) => {
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
+                className="input"
               >
                 <option value="planning">در حال برنامه‌ریزی</option>
-                <option value="active">فعال</option>
+                <option value="active">انجام شده</option>
                 <option value="completed">✅ تکمیل شده</option>
                 <option value="customer_following">🔵 مشتری در حال پیگیری</option>
                 <option value="in_progress">🔵 در حال رسیدگی</option>
@@ -475,7 +553,7 @@ const ProjectModal = ({ project, onClose, onSave }: any) => {
                 type="number"
                 value={formData.budget}
                 onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
+                className="input"
               />
             </div>
           </div>
@@ -492,7 +570,7 @@ const ProjectModal = ({ project, onClose, onSave }: any) => {
                       type="number"
                       value={formData[`payment_stage_${stage}` as keyof typeof formData] || ''}
                       onChange={(e) => setFormData({ ...formData, [`payment_stage_${stage}`]: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="input"
                       placeholder="مبلغ را وارد کنید"
                     />
                   </div>
@@ -518,7 +596,7 @@ const ProjectModal = ({ project, onClose, onSave }: any) => {
                 <select
                   value={formData.settlement_kamil}
                   onChange={(e) => setFormData({ ...formData, settlement_kamil: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="input"
                 >
                   <option value="">--</option>
                   <option value="true">بله</option>
@@ -530,7 +608,7 @@ const ProjectModal = ({ project, onClose, onSave }: any) => {
                 <select
                   value={formData.settlement_asdan}
                   onChange={(e) => setFormData({ ...formData, settlement_asdan: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="input"
                 >
                   <option value="">--</option>
                   <option value="true">بله</option>
@@ -542,7 +620,7 @@ const ProjectModal = ({ project, onClose, onSave }: any) => {
                 <select
                   value={formData.settlement_soleimani}
                   onChange={(e) => setFormData({ ...formData, settlement_soleimani: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="input"
                 >
                   <option value="">--</option>
                   <option value="true">بله</option>
@@ -551,6 +629,125 @@ const ProjectModal = ({ project, onClose, onSave }: any) => {
               </div>
             </div>
           </div>
+
+          {/* Labels Section - Only show when editing existing project */}
+          {project?.id && (
+            <div className="border-t pt-4">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Tag size={20} />
+                لیبل‌ها
+              </h3>
+              
+              {/* Existing Labels */}
+              {projectLabels.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {projectLabels.map((label: any) => (
+                    <span
+                      key={label.id}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium"
+                      style={{
+                        backgroundColor: `${label.label_color}20`,
+                        color: label.label_color,
+                        border: `1px solid ${label.label_color}40`
+                      }}
+                    >
+                      {label.label_name}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm('آیا از حذف این لیبل اطمینان دارید؟')) {
+                            deleteLabelMutation.mutate({ projectId: project.id, labelId: label.id });
+                          }
+                        }}
+                        className="hover:bg-black/10 rounded-full p-0.5"
+                      >
+                        <X size={14} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Add New Label */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newLabelName}
+                  onChange={(e) => setNewLabelName(e.target.value)}
+                  placeholder="نام لیبل جدید"
+                  className="input flex-1"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && newLabelName.trim() && project?.id) {
+                      e.preventDefault();
+                      addLabelMutation.mutate({
+                        projectId: project.id,
+                        labelName: newLabelName.trim(),
+                        labelColor: newLabelColor
+                      });
+                    }
+                  }}
+                />
+                <input
+                  type="color"
+                  value={newLabelColor}
+                  onChange={(e) => setNewLabelColor(e.target.value)}
+                  className="w-12 h-10 rounded cursor-pointer"
+                  title="انتخاب رنگ"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (newLabelName.trim() && project?.id) {
+                      addLabelMutation.mutate({
+                        projectId: project.id,
+                        labelName: newLabelName.trim(),
+                        labelColor: newLabelColor
+                      });
+                    }
+                  }}
+                  disabled={!newLabelName.trim() || addLabelMutation.isLoading}
+                  className="btn btn-primary flex items-center gap-2"
+                >
+                  <Plus size={16} />
+                  افزودن
+                </button>
+              </div>
+
+              {/* Available Labels */}
+              {availableLabels.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-2">لیبل‌های موجود:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {availableLabels
+                      .filter((label: any) => !projectLabels.some((pl: any) => pl.label_name === label.label_name))
+                      .map((label: any) => (
+                        <button
+                          key={label.label_name}
+                          type="button"
+                          onClick={() => {
+                            if (project?.id) {
+                              addLabelMutation.mutate({
+                                projectId: project.id,
+                                labelName: label.label_name,
+                                labelColor: label.label_color
+                              });
+                            }
+                          }}
+                          className="px-3 py-1 rounded-full text-sm font-medium hover:opacity-80 transition-opacity"
+                          style={{
+                            backgroundColor: `${label.label_color}20`,
+                            color: label.label_color,
+                            border: `1px solid ${label.label_color}40`
+                          }}
+                        >
+                          {label.label_name}
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           
           <div className="flex justify-end gap-4">
             <button type="button" onClick={onClose} className="btn btn-secondary">

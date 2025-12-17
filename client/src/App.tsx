@@ -29,6 +29,7 @@ import Proposals from './pages/Proposals';
 import PaymentGateways from './pages/PaymentGateways';
 import Surveys from './pages/Surveys';
 import ActivityLog from './pages/ActivityLog';
+import VoipMonitoring from './pages/VoipMonitoring';
 
 // Lazy load utility pages for better performance
 const Goals = lazy(() => import('./pages/utilities/Goals'));
@@ -286,6 +287,10 @@ function App() {
           <Route 
             path="/settings" 
             element={<ProtectedRoute allow={ROUTE_PERMISSIONS['/settings'] || []} element={<Settings />} />} 
+          />
+          <Route 
+            path="/voip/monitoring" 
+            element={<ProtectedRoute allow={ROUTE_PERMISSIONS['/voip/monitoring'] || []} element={<VoipMonitoring />} />} 
           />
               </Routes>
             </PageTransition>

@@ -41,9 +41,13 @@ const ActivityLog = () => {
     }
   );
 
-  const { data: users } = useQuery('users', async () => {
-    const response = await api.get('/users');
-    return response.data || [];
+  const { data: users } = useQuery('assignable-users', async () => {
+    try {
+      const response = await api.get('/users/assignable');
+      return response.data || [];
+    } catch {
+      return [];
+    }
   });
 
   const getActionLabel = (action: string) => {
@@ -133,7 +137,7 @@ const ActivityLog = () => {
       )}
 
       {/* Filters */}
-      <div className="glass-card p-4 mb-6">
+      <div className="glass-card relative z-10 p-4 mb-6">
         <div className="grid grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">کاربر</label>
@@ -164,6 +168,14 @@ const ActivityLog = () => {
               <option value="task">تسک</option>
               <option value="contract">قرارداد</option>
               <option value="ticket">تیکت</option>
+              <option value="account">حساب</option>
+              <option value="contact">مخاطب</option>
+              <option value="deal">معامله</option>
+              <option value="project">پروژه</option>
+              <option value="payment_gateway">درگاه پرداخت</option>
+              <option value="payment_transaction">تراکنش پرداخت</option>
+              <option value="recurring_invoice">فاکتور تکراری</option>
+              <option value="survey">نظرسنجی</option>
             </select>
           </div>
           <div>
@@ -178,6 +190,17 @@ const ActivityLog = () => {
               <option value="update">ویرایش</option>
               <option value="delete">حذف</option>
               <option value="send">ارسال</option>
+              <option value="accept">قبول</option>
+              <option value="decline">رد</option>
+              <option value="assign">اختصاص</option>
+              <option value="unassign">حذف اختصاص</option>
+              <option value="follow">دنبال کردن</option>
+              <option value="unfollow">لغو دنبال کردن</option>
+              <option value="comment">نظر</option>
+              <option value="upload_attachment">آپلود ضمیمه</option>
+              <option value="delete_attachment">حذف ضمیمه</option>
+              <option value="generate">تولید</option>
+              <option value="refund">بازگشت وجه</option>
             </select>
           </div>
           <div>

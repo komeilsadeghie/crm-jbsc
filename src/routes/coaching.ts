@@ -35,27 +35,45 @@ const dbRun = (query: string, params: any[]): Promise<{ lastID?: number; changes
 
 // ========== Coaching Sessions ==========
 router.get('/sessions', authenticate, (req: AuthRequest, res: Response) => {
-  const { customer_id, coach_id, status } = req.query;
+  const { customer_id, coach_id, status, start_date, end_date } = req.query;
   
-  let query = 'SELECT * FROM coaching_sessions WHERE 1=1';
+  let query = `
+    SELECT cs.*, 
+           c.name as customer_name,
+           u.username as coach_username
+    FROM coaching_sessions cs
+    LEFT JOIN customers c ON cs.customer_id = c.id
+    LEFT JOIN users u ON cs.coach_id = u.id
+    WHERE 1=1
+  `;
   const params: any[] = [];
 
   if (customer_id) {
-    query += ' AND customer_id = ?';
+    query += ' AND cs.customer_id = ?';
     params.push(customer_id);
   }
 
   if (coach_id) {
-    query += ' AND coach_id = ?';
+    query += ' AND cs.coach_id = ?';
     params.push(coach_id);
   }
 
   if (status) {
-    query += ' AND status = ?';
+    query += ' AND cs.status = ?';
     params.push(status);
   }
 
-  query += ' ORDER BY session_date DESC';
+  if (start_date) {
+    query += ' AND DATE(cs.session_date) >= ?';
+    params.push(start_date);
+  }
+
+  if (end_date) {
+    query += ' AND DATE(cs.session_date) <= ?';
+    params.push(end_date);
+  }
+
+  query += ' ORDER BY cs.session_date DESC';
 
   db.all(query, params, (err, sessions) => {
     if (err) {
@@ -70,7 +88,7 @@ router.post('/sessions', authenticate, async (req: AuthRequest, res: Response) =
     const session: any = req.body;
 
     const result = await dbRun(
-      'INSERT INTO coaching_sessions (customer_id, coach_id, session_date, duration, notes, status, session_type, meeting_link, tags, color) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO coaching_sessions (customer_id, coach_id, session_date, duration, notes, status, session_type, meeting_link, tags, color, kanban_column, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [
       session.customer_id,
         session.coach_id || req.user?.id,
@@ -81,7 +99,9 @@ router.post('/sessions', authenticate, async (req: AuthRequest, res: Response) =
         session.session_type || null,
         session.meeting_link || null,
         session.tags || null,
-        session.color || null
+        session.color || null,
+        session.kanban_column || 'code_executed',
+        session.position || 0
       ]
     );
 
@@ -127,7 +147,8 @@ router.put('/sessions/:id', authenticate, async (req: AuthRequest, res: Response
     const result = await dbRun(
     `UPDATE coaching_sessions SET 
         customer_id = ?, coach_id = ?, session_date = ?, duration = ?, notes = ?, status = ?,
-        session_type = ?, meeting_link = ?, attendance = ?, rating = ?, tags = ?, color = ?
+        session_type = ?, meeting_link = ?, attendance = ?, rating = ?, tags = ?, color = ?,
+        kanban_column = ?, position = ?
      WHERE id = ?`,
     [
       session.customer_id,
@@ -142,6 +163,8 @@ router.put('/sessions/:id', authenticate, async (req: AuthRequest, res: Response
         session.rating || null,
         session.tags || null,
         session.color || null,
+        session.kanban_column || 'code_executed',
+        session.position || 0,
         id
       ]
     );
@@ -235,6 +258,107 @@ router.delete('/sessions/:id', authenticate, async (req: AuthRequest, res: Respo
   } catch (error: any) {
     console.error('Error deleting session:', error);
     res.status(500).json({ error: 'خطا در حذف جلسه' });
+  }
+});
+
+// ========== Kanban Board Routes ==========
+
+// Get sessions for Kanban board
+router.get('/kanban', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const sessions = await dbAll(`
+      SELECT cs.*, 
+             c.name as customer_name,
+             c.id as customer_id,
+             u.username as coach_username
+      FROM coaching_sessions cs
+      JOIN customers c ON cs.customer_id = c.id
+      LEFT JOIN users u ON cs.coach_id = u.id
+      ORDER BY cs.kanban_column, cs.position, cs.session_date
+    `, []);
+
+    // Group sessions by kanban column
+    const kanbanData: any = {
+      'code_executed': [],
+      'list_sent_to_coaching': [],
+      'initial_contact': [],
+      'product_selection_session': [],
+      'key_actions': [],
+      'coach_feedback': [],
+      'completed': []
+    };
+
+    sessions.forEach((session: any) => {
+      const column = session.kanban_column || 'scheduled';
+      if (kanbanData[column]) {
+        kanbanData[column].push(session);
+      } else {
+        kanbanData['code_executed'].push(session);
+      }
+    });
+
+    res.json(kanbanData);
+  } catch (error: any) {
+    console.error('Error fetching kanban sessions:', error);
+    res.status(500).json({ error: 'خطا در دریافت جلسات' });
+  }
+});
+
+// Update session kanban position (drag and drop)
+router.put('/sessions/:id/kanban', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { kanban_column, position } = req.body;
+
+    const result = await dbRun(
+      'UPDATE coaching_sessions SET kanban_column = ?, position = ? WHERE id = ?',
+      [kanban_column || 'code_executed', position || 0, id]
+    );
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'جلسه یافت نشد' });
+    }
+
+    res.json({ message: 'موقعیت جلسه به‌روزرسانی شد' });
+  } catch (error: any) {
+    console.error('Error updating kanban position:', error);
+    res.status(500).json({ error: 'خطا در به‌روزرسانی موقعیت' });
+  }
+});
+
+// Update customer journey stage
+router.put('/customers/:id/journey', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { journey_stage } = req.body;
+
+    const validStages = [
+      'code_executed',
+      'list_sent_to_coaching',
+      'initial_contact',
+      'product_selection_session',
+      'key_actions',
+      'coach_feedback',
+      'completed'
+    ];
+
+    if (journey_stage && !validStages.includes(journey_stage)) {
+      return res.status(400).json({ error: 'مرحله سفر مشتری نامعتبر است' });
+    }
+
+    const result = await dbRun(
+      'UPDATE customers SET journey_stage = ? WHERE id = ?',
+      [journey_stage || 'code_executed', id]
+    );
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'مشتری یافت نشد' });
+    }
+
+    res.json({ message: 'مرحله سفر مشتری به‌روزرسانی شد' });
+  } catch (error: any) {
+    console.error('Error updating customer journey:', error);
+    res.status(500).json({ error: 'خطا در به‌روزرسانی مرحله سفر' });
   }
 });
 

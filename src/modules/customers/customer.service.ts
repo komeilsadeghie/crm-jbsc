@@ -47,7 +47,7 @@ const validateCustomerModel = (customerModel?: number | null) => {
 };
 
 export const listCustomers = async (filters: CustomerFilters) => {
-  const { tagIds, customerModels, search, category, status, type, createdById } = filters;
+  const { tagIds, customerModels, search, category, status, type, createdById, dateFrom, dateTo, journey_stage, coach_id } = filters;
 
   let query = `
     SELECT DISTINCT c.*,
@@ -77,6 +77,26 @@ export const listCustomers = async (filters: CustomerFilters) => {
   if (createdById) {
     query += ' AND c.created_by = ?';
     params.push(createdById);
+  }
+
+  if (dateFrom) {
+    query += ' AND DATE(c.created_at) >= ?';
+    params.push(dateFrom);
+  }
+
+  if (dateTo) {
+    query += ' AND DATE(c.created_at) <= ?';
+    params.push(dateTo);
+  }
+
+  if (journey_stage) {
+    query += ' AND c.journey_stage = ?';
+    params.push(journey_stage);
+  }
+
+  if (coach_id) {
+    query += ' AND c.coach_id = ?';
+    params.push(coach_id);
   }
 
   if (search) {

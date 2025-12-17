@@ -176,7 +176,7 @@ const TemplateModal = ({ template, onClose, onSave }: any) => {
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
+                className="input"
               />
             </div>
             <div>
@@ -184,7 +184,7 @@ const TemplateModal = ({ template, onClose, onSave }: any) => {
               <select
                 value={formData.template_type}
                 onChange={(e) => setFormData({ ...formData, template_type: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
+                className="input"
               >
                 <option value="custom">سفارشی</option>
                 <option value="invoice">فاکتور</option>
@@ -200,7 +200,7 @@ const TemplateModal = ({ template, onClose, onSave }: any) => {
               required
               value={formData.subject}
               onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="input"
               placeholder="مثلاً: {{customer_name}} - فاکتور شما آماده است"
             />
           </div>
@@ -210,7 +210,7 @@ const TemplateModal = ({ template, onClose, onSave }: any) => {
               required
               value={formData.body}
               onChange={(e) => setFormData({ ...formData, body: e.target.value })}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="input"
               rows={10}
               placeholder="استفاده از {{field_name}} برای merge fields"
             />
@@ -274,7 +274,7 @@ const SendEmailModal = ({ template, onClose }: any) => {
               required
               value={recipient}
               onChange={(e) => setRecipient(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="input"
             />
           </div>
           <div>
@@ -282,7 +282,7 @@ const SendEmailModal = ({ template, onClose }: any) => {
             <textarea
               value={mergeData}
               onChange={(e) => setMergeData(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg font-mono text-sm"
+              className="input font-mono text-sm"
               rows={5}
               placeholder='{"customer_name": "علی احمدی", "invoice_number": "INV-001"}'
             />

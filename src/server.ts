@@ -18,6 +18,12 @@ import { migrateMediaImportFields } from './database/migrate-media-import';
 import { migrateProjectPayments } from './database/migrate-project-payments';
 import { migrateCustomerExcelFields } from './database/migrate-customer-excel-fields';
 import { migrateCoachingEnhanced } from './database/migrate-coaching-enhanced';
+import { migrateKnowledgeBaseEnhanced } from './database/migrate-knowledge-base-enhanced';
+import { migrateCustomerJourney } from './database/migrate-customer-journey';
+import { migrateGoalsEnhanced } from './database/migrate-goals-enhanced';
+import { migrateProjectLabels } from './database/migrate-project-labels';
+import { migrateUsersVoipExtension } from './database/migrate-users-voip';
+import { fixUniqueIdColumn } from './database/fix-unique-id';
 
 // Load ENV
 dotenv.config();
@@ -91,7 +97,6 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
     } catch (migrationError: any) {
       console.error("⚠️ Error in migrateMediaImportFields:", migrationError);
       // Try to fix unique_id column manually
-      const { fixUniqueIdColumn } = require('./database/fix-unique-id');
       console.log("🔄 Attempting to fix unique_id column...");
       try {
         await fixUniqueIdColumn();
@@ -111,6 +116,26 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
     // Migrate coaching enhanced features
     console.log("🔄 Migrating coaching enhanced features...");
     await migrateCoachingEnhanced();
+    
+    // Migrate knowledge base enhanced (SOP and attachments)
+    console.log("🔄 Migrating knowledge base enhanced...");
+    await migrateKnowledgeBaseEnhanced();
+    
+    // Migrate customer journey
+    console.log("🔄 Migrating customer journey...");
+    await migrateCustomerJourney();
+    
+    // Migrate goals enhanced (KR/OKR separation)
+    console.log("🔄 Migrating goals enhanced...");
+    await migrateGoalsEnhanced();
+    
+    // Migrate project labels
+    console.log("🔄 Migrating project labels...");
+    await migrateProjectLabels();
+    
+    // Migrate users VOIP extension
+    console.log("🔄 Migrating users VOIP extension...");
+    await migrateUsersVoipExtension();
     
     console.log("✅ Database initialized successfully!");
   } catch (err) {
@@ -159,10 +184,11 @@ import settingsRoutes from './routes/settings';
 import permissionsRoutes from './routes/permissions';
 import recurringInvoicesRoutes from './routes/recurring-invoices';
 import proposalsRoutes from './routes/proposals';
-import tasksEnhancedRoutes from './routes/tasks-enhanced';
 import paymentGatewaysRoutes from './routes/payment-gateways';
 import surveysRoutes from './routes/surveys';
 import activityLogRoutes from './routes/activity-log';
+import announcementsRoutes from './routes/announcements';
+import notificationsRoutes from './routes/notifications';
 
 // Register routes
 app.use('/api/auth', authRoutes);
@@ -205,10 +231,11 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/permissions', permissionsRoutes);
 app.use('/api/recurring-invoices', recurringInvoicesRoutes);
 app.use('/api/proposals', proposalsRoutes);
-app.use('/api/tasks', tasksEnhancedRoutes);
 app.use('/api/payment-gateways', paymentGatewaysRoutes);
 app.use('/api/surveys', surveysRoutes);
 app.use('/api/activity-log', activityLogRoutes);
+app.use('/api/utilities/announcements', announcementsRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // Serve static files for uploads
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));

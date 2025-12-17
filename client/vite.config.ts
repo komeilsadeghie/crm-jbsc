@@ -24,7 +24,36 @@ export default defineConfig({
         },
       }
     }
-  }
+  },
+  build: {
+    // بهینه‌سازی برای production
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: false, // غیرفعال کردن sourcemap برای کاهش حجم
+    minify: 'terser', // استفاده از terser برای minify بهتر
+    terserOptions: {
+      compress: {
+        drop_console: true, // حذف console.log ها در production
+        drop_debugger: true,
+      },
+    },
+    rollupOptions: {
+      output: {
+        // تقسیم کد به chunk های کوچکتر
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui-vendor': ['lucide-react', 'recharts'],
+          'utils-vendor': ['axios', 'react-query', 'date-fns'],
+        },
+        // بهینه‌سازی نام فایل‌ها
+        chunkFileNames: 'assets/js/[name]-[hash].js',
+        entryFileNames: 'assets/js/[name]-[hash].js',
+        assetFileNames: 'assets/[ext]/[name]-[hash].[ext]',
+      },
+    },
+    // افزایش chunk size warning limit
+    chunkSizeWarningLimit: 1000,
+  },
 });
 
 
