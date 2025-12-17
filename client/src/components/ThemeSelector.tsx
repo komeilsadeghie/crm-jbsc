@@ -26,10 +26,10 @@ const ThemeSelector = () => {
   return (
     <div className="relative" ref={dropdownRef}>
       <div className="flex items-center gap-2">
-        {/* Dark Mode Toggle */}
+        {/* Dark Mode Toggle - Hidden */}
         <button
           onClick={toggleTheme}
-          className="p-2 rounded-lg text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+          className="hidden p-2 rounded-lg text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
           aria-label={theme === 'light' ? 'فعال‌سازی حالت تاریک' : 'فعال‌سازی حالت روشن'}
           title={theme === 'light' ? 'حالت تاریک' : 'حالت روشن'}
         >
@@ -57,7 +57,7 @@ const ThemeSelector = () => {
           <h3 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-3">
             انتخاب رنگ تم
           </h3>
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
             {Object.entries(colorThemes).map(([key, value]) => (
               <button
                 key={key}

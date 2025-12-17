@@ -59,6 +59,87 @@ router.get('/categories', authenticate, (req: AuthRequest, res: Response) => {
   });
 });
 
+// Create expense category (admin only)
+router.post('/categories', authenticate, (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ error: 'دسترسی محدود' });
+  }
+
+  const { name, description, color } = req.body;
+
+  if (!name) {
+    return res.status(400).json({ error: 'نام دسته‌بندی الزامی است' });
+  }
+
+  db.run(
+    'INSERT INTO expense_categories (name, description, color) VALUES (?, ?, ?)',
+    [name, description || null, color || '#00A3FF'],
+    function(err) {
+      if (err) {
+        if (err.message.includes('UNIQUE constraint')) {
+          return res.status(400).json({ error: 'این دسته‌بندی قبلاً وجود دارد' });
+        }
+        return res.status(500).json({ error: 'خطا در ایجاد دسته‌بندی' });
+      }
+      res.status(201).json({ id: this.lastID, message: 'دسته‌بندی با موفقیت ایجاد شد' });
+    }
+  );
+});
+
+// Update expense category (admin only)
+router.put('/categories/:id', authenticate, (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ error: 'دسترسی محدود' });
+  }
+
+  const { id } = req.params;
+  const { name, description, color } = req.body;
+
+  db.run(
+    'UPDATE expense_categories SET name = ?, description = ?, color = ? WHERE id = ?',
+    [name, description || null, color || '#00A3FF', id],
+    function(err) {
+      if (err) {
+        return res.status(500).json({ error: 'خطا در به‌روزرسانی دسته‌بندی' });
+      }
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'دسته‌بندی یافت نشد' });
+      }
+      res.json({ message: 'دسته‌بندی با موفقیت به‌روزرسانی شد' });
+    }
+  );
+});
+
+// Delete expense category (admin only)
+router.delete('/categories/:id', authenticate, (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ error: 'دسترسی محدود' });
+  }
+
+  const { id } = req.params;
+
+  // Check if category is being used
+  db.get('SELECT COUNT(*) as count FROM expenses WHERE category = (SELECT name FROM expense_categories WHERE id = ?)', [id], (err, result: any) => {
+    if (err) {
+      return res.status(500).json({ error: 'خطا در بررسی استفاده دسته‌بندی' });
+    }
+
+    if (result.count > 0) {
+      return res.status(400).json({ error: 'این دسته‌بندی در حال استفاده است و نمی‌تواند حذف شود' });
+    }
+
+    db.run('DELETE FROM expense_categories WHERE id = ?', [id], function(err) {
+      if (err) {
+        return res.status(500).json({ error: 'خطا در حذف دسته‌بندی' });
+      }
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'دسته‌بندی یافت نشد' });
+      }
+      res.json({ message: 'دسته‌بندی با موفقیت حذف شد' });
+    });
+  });
+});
+
 // Create expense
 router.post('/', authenticate, (req: AuthRequest, res: Response) => {
   const expense = req.body;

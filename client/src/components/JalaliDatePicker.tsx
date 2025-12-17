@@ -219,7 +219,7 @@ const JalaliDatePicker = ({
   }
 
   return (
-    <div className="relative" ref={pickerRef}>
+    <div className="relative z-50" ref={pickerRef}>
       <div className="relative">
         <input
           type="text"
@@ -238,14 +238,14 @@ const JalaliDatePicker = ({
       </div>
       
       {isOpen && !disabled && (
-        <div className="absolute z-50 mt-2 bg-white rounded-xl shadow-large border border-neutral-200 p-4 w-80">
+        <div className="absolute z-[9999] mt-2 bg-white dark:bg-neutral-800 rounded-xl shadow-large border border-neutral-200 dark:border-neutral-700 p-4 w-80">
           {/* Header with Year and Month Selectors */}
           <div className="flex items-center justify-between mb-4 gap-2">
             <button
               type="button"
               onClick={handlePrevMonth}
               disabled={currentYear === 1404 && currentMonth === 1}
-              className="p-2 hover:bg-neutral-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-neutral-600 dark:text-neutral-300"
             >
               <span className="text-neutral-600">‹</span>
             </button>
@@ -253,7 +253,7 @@ const JalaliDatePicker = ({
               <select
                 value={currentYear}
                 onChange={handleYearChange}
-                className="px-3 py-1 border border-neutral-300 rounded-lg text-sm font-bold text-neutral-800 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="px-3 py-1 border border-neutral-300 dark:border-neutral-600 rounded-lg text-sm font-bold text-neutral-800 dark:text-neutral-100 bg-white dark:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 {Array.from({ length: 27 }, (_, i) => 1404 + i).map((year) => (
                   <option key={year} value={year}>
@@ -265,7 +265,7 @@ const JalaliDatePicker = ({
               <select
                 value={currentMonth}
                 onChange={handleMonthChange}
-                className="px-3 py-1 border border-neutral-300 rounded-lg text-sm font-bold text-neutral-800 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="px-3 py-1 border border-neutral-300 dark:border-neutral-600 rounded-lg text-sm font-bold text-neutral-800 dark:text-neutral-100 bg-white dark:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 {jalaliMonthNames.map((monthName, index) => (
                   <option key={index + 1} value={index + 1}>
@@ -278,7 +278,7 @@ const JalaliDatePicker = ({
               type="button"
               onClick={handleNextMonth}
               disabled={currentYear === 1430 && currentMonth === 12}
-              className="p-2 hover:bg-neutral-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-neutral-600 dark:text-neutral-300"
             >
               <span className="text-neutral-600">›</span>
             </button>

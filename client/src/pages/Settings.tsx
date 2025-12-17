@@ -81,10 +81,10 @@ const Settings = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-6">
+    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex justify-between items-center glass-card">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">تنظیمات</h1>
+          <h1 className="page-heading-gradient">تنظیمات</h1>
         </div>
 
       {/* Tabs */}
@@ -94,7 +94,7 @@ const Settings = () => {
           className={`px-4 py-2 font-medium ${
             activeTab === 'general'
               ? 'border-b-2 border-primary-600 text-primary-600'
-              : 'text-gray-600'
+              : 'text-neutral-600 dark:text-neutral-400'
           }`}
         >
           <SettingsIcon className="inline-block ml-2" size={20} />
@@ -105,7 +105,7 @@ const Settings = () => {
           className={`px-4 py-2 font-medium ${
             activeTab === 'users'
               ? 'border-b-2 border-primary-600 text-primary-600'
-              : 'text-gray-600'
+              : 'text-neutral-600 dark:text-neutral-400'
           }`}
         >
           <Users className="inline-block ml-2" size={20} />
@@ -116,7 +116,7 @@ const Settings = () => {
           className={`px-4 py-2 font-medium ${
             activeTab === 'roles'
               ? 'border-b-2 border-primary-600 text-primary-600'
-              : 'text-gray-600'
+              : 'text-neutral-600 dark:text-neutral-400'
           }`}
         >
           <Shield className="inline-block ml-2" size={20} />
@@ -127,7 +127,7 @@ const Settings = () => {
           className={`px-4 py-2 font-medium ${
             activeTab === 'departments'
               ? 'border-b-2 border-primary-600 text-primary-600'
-              : 'text-gray-600'
+              : 'text-neutral-600 dark:text-neutral-400'
           }`}
         >
           <Building2 className="inline-block ml-2" size={20} />
@@ -278,6 +278,7 @@ const UserModal = ({ user, roleLabels, onClose, onSave }: any) => {
     direction: user?.direction || 'rtl',
     is_admin: user?.is_admin || false,
     is_staff: user?.is_staff !== undefined ? user.is_staff : true,
+    voip_extension: user?.voip_extension || '',
   });
 
   const { data: departments } = useQuery('departments', async () => {
@@ -403,7 +404,7 @@ const UserModal = ({ user, roleLabels, onClose, onSave }: any) => {
             className={`px-4 py-2 font-medium ${
               activeTab === 'profile'
                 ? 'border-b-2 border-primary-600 text-primary-600'
-                : 'text-gray-600'
+                : 'text-neutral-600 dark:text-neutral-400'
             }`}
           >
             پروفایل
@@ -415,7 +416,7 @@ const UserModal = ({ user, roleLabels, onClose, onSave }: any) => {
               className={`px-4 py-2 font-medium ${
                 activeTab === 'permissions'
                   ? 'border-b-2 border-primary-600 text-primary-600'
-                  : 'text-gray-600'
+                  : 'text-neutral-600 dark:text-neutral-400'
               }`}
             >
               دسترسی‌ها
@@ -434,7 +435,7 @@ const UserModal = ({ user, roleLabels, onClose, onSave }: any) => {
                     required
                     value={formData.role}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg"
+                    className="input"
                   >
                     {Object.entries(roleLabels).map(([value, label]) => (
                       <option key={value} value={value}>{label}</option>
@@ -472,7 +473,7 @@ const UserModal = ({ user, roleLabels, onClose, onSave }: any) => {
                     required
                     value={formData.username}
                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg"
+                    className="input"
                   />
                 </div>
                 <div>
@@ -482,7 +483,7 @@ const UserModal = ({ user, roleLabels, onClose, onSave }: any) => {
                     required
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg"
+                    className="input"
                   />
                 </div>
                 <div>
@@ -492,7 +493,7 @@ const UserModal = ({ user, roleLabels, onClose, onSave }: any) => {
                     required
                     value={formData.first_name}
                     onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg"
+                    className="input"
                   />
                 </div>
                 <div>
@@ -502,7 +503,7 @@ const UserModal = ({ user, roleLabels, onClose, onSave }: any) => {
                     required
                     value={formData.last_name}
                     onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg"
+                    className="input"
                   />
                 </div>
                 <div>
@@ -511,7 +512,7 @@ const UserModal = ({ user, roleLabels, onClose, onSave }: any) => {
                     type="text"
                     value={formData.full_name}
                     onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg"
+                    className="input"
                   />
                 </div>
                 <div>
@@ -520,7 +521,17 @@ const UserModal = ({ user, roleLabels, onClose, onSave }: any) => {
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg"
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">شماره داخلی VOIP</label>
+                  <input
+                    type="text"
+                    value={formData.voip_extension}
+                    onChange={(e) => setFormData({ ...formData, voip_extension: e.target.value })}
+                    className="input"
+                    placeholder="مثال: 1001"
                   />
                 </div>
                 <div>
@@ -530,7 +541,7 @@ const UserModal = ({ user, roleLabels, onClose, onSave }: any) => {
                     step="0.01"
                     value={formData.hourly_rate}
                     onChange={(e) => setFormData({ ...formData, hourly_rate: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg"
+                    className="input"
                   />
                 </div>
                 <div>
@@ -542,7 +553,7 @@ const UserModal = ({ user, roleLabels, onClose, onSave }: any) => {
                     required={!user}
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg"
+                    className="input"
                   />
                 </div>
               </div>
@@ -557,7 +568,7 @@ const UserModal = ({ user, roleLabels, onClose, onSave }: any) => {
                       type="url"
                       value={formData.facebook}
                       onChange={(e) => setFormData({ ...formData, facebook: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="input"
                       placeholder="https://facebook.com/..."
                     />
                   </div>
@@ -567,7 +578,7 @@ const UserModal = ({ user, roleLabels, onClose, onSave }: any) => {
                       type="url"
                       value={formData.linkedin}
                       onChange={(e) => setFormData({ ...formData, linkedin: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="input"
                       placeholder="https://linkedin.com/in/..."
                     />
                   </div>
@@ -577,7 +588,7 @@ const UserModal = ({ user, roleLabels, onClose, onSave }: any) => {
                       type="text"
                       value={formData.skype}
                       onChange={(e) => setFormData({ ...formData, skype: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="input"
                       placeholder="skype_username"
                     />
                   </div>
@@ -591,7 +602,7 @@ const UserModal = ({ user, roleLabels, onClose, onSave }: any) => {
                   <select
                     value={formData.default_language}
                     onChange={(e) => setFormData({ ...formData, default_language: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg"
+                    className="input"
                   >
                     <option value="fa">فارسی</option>
                     <option value="en">English</option>
@@ -602,7 +613,7 @@ const UserModal = ({ user, roleLabels, onClose, onSave }: any) => {
                   <select
                     value={formData.direction}
                     onChange={(e) => setFormData({ ...formData, direction: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg"
+                    className="input"
                   >
                     <option value="rtl">راست به چپ</option>
                     <option value="ltr">چپ به راست</option>
@@ -614,7 +625,7 @@ const UserModal = ({ user, roleLabels, onClose, onSave }: any) => {
                 <textarea
                   value={formData.email_signature}
                   onChange={(e) => setFormData({ ...formData, email_signature: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="input"
                   rows={4}
                   placeholder="امضای ایمیل..."
                 />
@@ -709,6 +720,13 @@ const GeneralSettings = () => {
     rtl_admin_area: '1',
     rtl_customers_area: '1',
     allowed_file_types: '',
+    // VOIP / Isabel configuration
+    isabel_host: '',
+    isabel_port: '',
+    isabel_username: '',
+    isabel_password: '',
+    isabel_protocol: 'http',
+    isabel_enabled: 'false',
   });
 
   // Update form data when settings are loaded
@@ -720,6 +738,12 @@ const GeneralSettings = () => {
         rtl_admin_area: settings.rtl_admin_area || '1',
         rtl_customers_area: settings.rtl_customers_area || '1',
         allowed_file_types: settings.allowed_file_types || '',
+        isabel_host: settings.isabel_host || '',
+        isabel_port: settings.isabel_port || '',
+        isabel_username: settings.isabel_username || '',
+        isabel_password: settings.isabel_password || '',
+        isabel_protocol: settings.isabel_protocol || 'http',
+        isabel_enabled: settings.isabel_enabled || 'false',
       });
     }
   }, [settings]);
@@ -933,7 +957,7 @@ const GeneralSettings = () => {
               type="text"
               value={formData.company_name}
               onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="input"
               placeholder="نام شرکت"
             />
           </div>
@@ -944,7 +968,7 @@ const GeneralSettings = () => {
               type="url"
               value={formData.company_domain}
               onChange={(e) => setFormData({ ...formData, company_domain: e.target.value })}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="input"
               placeholder="https://example.com"
             />
           </div>
@@ -1003,6 +1027,85 @@ const GeneralSettings = () => {
           </div>
         </div>
 
+        {/* VOIP / AGI Isabel Settings */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">تنظیمات VOIP (AGI Isabel)</h3>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">
+            با پر کردن تنظیمات زیر، مانیتورینگ VOIP در بخش «مانیتورینگ VOIP» فعال می‌شود.
+          </p>
+
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={formData.isabel_enabled === 'true'}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    isabel_enabled: e.target.checked ? 'true' : 'false',
+                  })
+                }
+                className="w-4 h-4"
+              />
+              <span className="text-sm">فعال‌سازی مانیتورینگ VOIP</span>
+            </label>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">آدرس سرور Isabel (Host)</label>
+              <input
+                type="text"
+                value={formData.isabel_host}
+                onChange={(e) => setFormData({ ...formData, isabel_host: e.target.value })}
+                className="input"
+                placeholder="مثال: isabel.example.com یا 192.168.1.10"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">پورت (Port)</label>
+              <input
+                type="number"
+                value={formData.isabel_port}
+                onChange={(e) => setFormData({ ...formData, isabel_port: e.target.value })}
+                className="input"
+                placeholder="معمولاً 8088 یا 8089"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">نام کاربری API</label>
+              <input
+                type="text"
+                value={formData.isabel_username}
+                onChange={(e) => setFormData({ ...formData, isabel_username: e.target.value })}
+                className="input"
+                placeholder="نام کاربری API در Isabel"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">رمز عبور API</label>
+              <input
+                type="password"
+                value={formData.isabel_password}
+                onChange={(e) => setFormData({ ...formData, isabel_password: e.target.value })}
+                className="input"
+                placeholder="رمز عبور API در Isabel"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">پروتکل</label>
+              <select
+                value={formData.isabel_protocol}
+                onChange={(e) => setFormData({ ...formData, isabel_protocol: e.target.value })}
+                className="input"
+              >
+                <option value="http">HTTP</option>
+                <option value="https">HTTPS</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
         {/* Allowed File Types */}
         <div>
           <label className="block text-sm font-medium mb-2">انواع فایل‌های مجاز</label>
@@ -1010,7 +1113,7 @@ const GeneralSettings = () => {
             type="text"
             value={formData.allowed_file_types}
             onChange={(e) => setFormData({ ...formData, allowed_file_types: e.target.value })}
-            className="w-full px-4 py-2 border rounded-lg"
+            className="input"
             placeholder=".png,.jpg,.pdf,.doc,.docx"
           />
           <p className="text-sm text-gray-500 mt-1">انواع فایل‌ها را با کاما جدا کنید</p>
@@ -1312,7 +1415,7 @@ const DepartmentModal = ({ department, onClose, onSave }: any) => {
               required
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="input"
               placeholder="مثال: پشتیبانی فنی"
             />
           </div>
@@ -1322,7 +1425,7 @@ const DepartmentModal = ({ department, onClose, onSave }: any) => {
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="input"
               placeholder="support@example.com"
             />
           </div>
@@ -1331,7 +1434,7 @@ const DepartmentModal = ({ department, onClose, onSave }: any) => {
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="input"
               rows={3}
               placeholder="توضیحات دپارتمان..."
             />

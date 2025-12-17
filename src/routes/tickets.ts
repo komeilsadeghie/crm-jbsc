@@ -83,7 +83,7 @@ router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
     // Get replies
     db.all(`
       SELECT tr.*, 
-             u.username as user_username, u.full_name as user_full_name,
+             u.username as user_username, u.full_name as user_full_name, u.role as user_role,
              c.first_name || ' ' || c.last_name as contact_name
       FROM ticket_replies tr
       LEFT JOIN users u ON tr.user_id = u.id

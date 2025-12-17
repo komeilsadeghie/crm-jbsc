@@ -33,7 +33,7 @@ html {
 }
 
 html.dark {
-  background-color: #111827;
+  background-color: #0f172a;
 }
 
 body {
@@ -48,8 +48,51 @@ body {
 }
 
 html.dark body {
-  background-color: #111827;
-  color: #f9fafb;
+  background-color: #0f172a;
+  color: #f1f5f9;
+}
+
+/* Dark Mode Text Color Overrides - بهبود کنتراست متن در دارک مود */
+html.dark .text-gray-800,
+html.dark .text-gray-900 {
+  color: #f9fafb; /* neutral-50 */
+}
+
+html.dark .text-gray-700 {
+  color: #e5e7eb; /* neutral-200 */
+}
+
+html.dark .text-gray-600 {
+  color: #d1d5db; /* neutral-300 */
+}
+
+html.dark .text-gray-500 {
+  color: #9ca3af; /* neutral-400 */
+}
+
+html.dark .text-gray-400 {
+  color: #6b7280; /* neutral-500 */
+}
+
+html.dark .text-gray-300 {
+  color: #4b5563; /* neutral-600 */
+}
+
+html.dark .bg-gray-100 {
+  background-color: #1f2937; /* neutral-800 */
+}
+
+html.dark .bg-gray-200 {
+  background-color: #374151; /* neutral-700 */
+}
+
+html.dark .bg-gray-50 {
+  background-color: #111827; /* neutral-900 */
+}
+
+html.dark .border-gray-300,
+html.dark .border-gray-200 {
+  border-color: #374151; /* neutral-700 */
 }
 
 /* Smooth transitions for theme changes */
@@ -100,31 +143,36 @@ html * {
 @layer components {
   /* Typography System */
   .heading-1 {
-    @apply text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-900 leading-tight;
+    @apply text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-900 dark:text-neutral-50 leading-tight;
   }
   
   .heading-2 {
-    @apply text-xl sm:text-2xl md:text-3xl font-semibold text-neutral-800 leading-tight;
+    @apply text-xl sm:text-2xl md:text-3xl font-semibold text-neutral-800 dark:text-neutral-100 leading-tight;
   }
   
   .heading-3 {
-    @apply text-lg sm:text-xl md:text-2xl font-semibold text-neutral-700 leading-snug;
+    @apply text-lg sm:text-xl md:text-2xl font-semibold text-neutral-700 dark:text-neutral-200 leading-snug;
   }
   
   .heading-4 {
-    @apply text-base sm:text-lg md:text-xl font-semibold text-neutral-700;
+    @apply text-base sm:text-lg md:text-xl font-semibold text-neutral-700 dark:text-neutral-200;
   }
   
   .body-large {
-    @apply text-base sm:text-lg text-neutral-700 leading-relaxed;
+    @apply text-base sm:text-lg text-neutral-700 dark:text-neutral-200 leading-relaxed;
   }
   
   .body-regular {
-    @apply text-sm sm:text-base text-neutral-600 leading-relaxed;
+    @apply text-sm sm:text-base text-neutral-600 dark:text-neutral-300 leading-relaxed;
   }
   
   .body-small {
-    @apply text-xs sm:text-sm text-neutral-500 leading-normal;
+    @apply text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 leading-normal;
+  }
+  
+  /* Centered Container with Top Padding */
+  .container-center {
+    @apply mx-auto pt-[50px];
   }
   
   /* Buttons */
@@ -170,7 +218,7 @@ html * {
   
   /* Cards */
   .card {
-    @apply bg-white dark:bg-neutral-800 rounded-xl shadow-soft border border-neutral-200 dark:border-neutral-700 p-3 sm:p-4 md:p-6 transition-colors;
+    @apply bg-white dark:bg-slate-800 rounded-xl shadow-soft border border-neutral-200 dark:border-slate-700 p-3 sm:p-4 md:p-6 transition-colors;
   }
   
   .card-hover {
@@ -192,7 +240,7 @@ html * {
   
   /* Labels */
   .label {
-    @apply block text-sm font-medium text-neutral-700 mb-2;
+    @apply block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-2;
   }
   
   .label-required::after {
@@ -248,15 +296,15 @@ html * {
   }
   
   .table th {
-    @apply px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-right text-xs sm:text-sm font-semibold text-neutral-700 dark:text-neutral-300 bg-neutral-50 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700 whitespace-nowrap;
+    @apply px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-right text-xs sm:text-sm font-semibold text-neutral-700 dark:text-slate-200 bg-neutral-50 dark:bg-slate-800 border-b border-neutral-200 dark:border-slate-700 whitespace-nowrap;
   }
   
   .table td {
-    @apply px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-neutral-900 dark:text-neutral-100 border-b border-neutral-100 dark:border-neutral-800;
+    @apply px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-neutral-900 dark:text-slate-100 border-b border-neutral-100 dark:border-slate-800;
   }
   
   .table tr:hover {
-    @apply bg-neutral-50 dark:bg-neutral-800/50;
+    @apply bg-neutral-50 dark:bg-slate-800/50;
   }
   
   /* Responsive table wrapper */
@@ -286,6 +334,41 @@ html * {
   
   .alert-info {
     @apply alert bg-info-50 border-info-200 text-info-800;
+  }
+}
+
+/* Centered Container Top Padding - برای کانتینرهای وسط */
+.max-w-7xl.mx-auto,
+.max-w-\[1600px\].mx-auto,
+.max-w-6xl.mx-auto,
+.max-w-5xl.mx-auto,
+.max-w-4xl.mx-auto,
+.max-w-3xl.mx-auto,
+.max-w-2xl.mx-auto {
+  padding-top: 80px;
+}
+
+/* Global padding for all page containers */
+main > div:first-child,
+.min-h-screen > div:first-child {
+  padding-top: 80px;
+}
+
+/* Responsive adjustment for mobile */
+@media (max-width: 768px) {
+  .max-w-7xl.mx-auto,
+  .max-w-\[1600px\].mx-auto,
+  .max-w-6xl.mx-auto,
+  .max-w-5xl.mx-auto,
+  .max-w-4xl.mx-auto,
+  .max-w-3xl.mx-auto,
+  .max-w-2xl.mx-auto {
+    padding-top: 50px;
+  }
+  
+  main > div:first-child,
+  .min-h-screen > div:first-child {
+    padding-top: 50px;
   }
 }
 
@@ -422,6 +505,222 @@ html * {
   opacity: 0;
   transform: translateY(-10px);
   transition: opacity 300ms ease-in, transform 300ms ease-in;
+}
+
+/* Neumorphic Scrollbar Styles - استایل مدرن و نئومورفیسم */
+/* Light Mode Scrollbar */
+::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 12px;
+  box-shadow: inset 4px 4px 8px #d1d1d1, 
+              inset -4px -4px 8px #ffffff;
+  margin: 2px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(145deg, #e0e0e0, #f5f5f5);
+  border-radius: 12px;
+  box-shadow: 4px 4px 8px #d1d1d1,
+              -4px -4px 8px #ffffff,
+              inset 2px 2px 4px #c9c9c9,
+              inset -2px -2px 4px #f7f7f7;
+  border: 1px solid #e8e8e8;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(145deg, #d5d5d5, #eaeaea);
+  box-shadow: 4px 4px 8px #c5c5c5,
+              -4px -4px 8px #ffffff,
+              inset 2px 2px 4px #bebebe,
+              inset -2px -2px 4px #f0f0f0;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(145deg, #cccccc, #e0e0e0);
+  box-shadow: inset 4px 4px 8px #bebebe,
+              inset -4px -4px 8px #e8e8e8;
+}
+
+::-webkit-scrollbar-corner {
+  background: #f0f0f0;
+  border-radius: 12px;
+}
+
+/* Dark Mode Scrollbar */
+html.dark ::-webkit-scrollbar-track {
+  background: #1f2937;
+  box-shadow: inset 4px 4px 8px #111827, 
+              inset -4px -4px 8px #2d3748;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: linear-gradient(145deg, #374151, #4b5563);
+  box-shadow: 4px 4px 8px #111827,
+              -4px -4px 8px #2d3748,
+              inset 2px 2px 4px #1f2937,
+              inset -2px -2px 4px #4b5563;
+  border: 1px solid #374151;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(145deg, #4b5563, #6b7280);
+  box-shadow: 4px 4px 8px #111827,
+              -4px -4px 8px #2d3748,
+              inset 2px 2px 4px #374151,
+              inset -2px -2px 4px #6b7280;
+}
+
+html.dark ::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(145deg, #374151, #4b5563);
+  box-shadow: inset 4px 4px 8px #1f2937,
+              inset -4px -4px 8px #4b5563;
+}
+
+html.dark ::-webkit-scrollbar-corner {
+  background: #1f2937;
+}
+
+/* Firefox Scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #e0e0e0 #f0f0f0;
+}
+
+html.dark * {
+  scrollbar-color: #374151 #1f2937;
+}
+
+/* Custom Scrollbar Class for specific elements */
+.scrollbar-neumorphic {
+  scrollbar-width: thin;
+  scrollbar-color: #e0e0e0 #f0f0f0;
+}
+
+html.dark .scrollbar-neumorphic {
+  scrollbar-color: #374151 #1f2937;
+}
+
+.scrollbar-neumorphic::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+.scrollbar-neumorphic::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 12px;
+  box-shadow: inset 4px 4px 8px #d1d1d1, 
+              inset -4px -4px 8px #ffffff;
+  margin: 2px;
+}
+
+.scrollbar-neumorphic::-webkit-scrollbar-thumb {
+  background: linear-gradient(145deg, #e0e0e0, #f5f5f5);
+  border-radius: 12px;
+  box-shadow: 4px 4px 8px #d1d1d1,
+              -4px -4px 8px #ffffff,
+              inset 2px 2px 4px #c9c9c9,
+              inset -2px -2px 4px #f7f7f7;
+  border: 1px solid #e8e8e8;
+}
+
+.scrollbar-neumorphic::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(145deg, #d5d5d5, #eaeaea);
+  box-shadow: 4px 4px 8px #c5c5c5,
+              -4px -4px 8px #ffffff,
+              inset 2px 2px 4px #bebebe,
+              inset -2px -2px 4px #f0f0f0;
+}
+
+html.dark .scrollbar-neumorphic::-webkit-scrollbar-track {
+  background: #1f2937;
+  box-shadow: inset 4px 4px 8px #111827, 
+              inset -4px -4px 8px #2d3748;
+}
+
+html.dark .scrollbar-neumorphic::-webkit-scrollbar-thumb {
+  background: linear-gradient(145deg, #374151, #4b5563);
+  box-shadow: 4px 4px 8px #111827,
+              -4px -4px 8px #2d3748,
+              inset 2px 2px 4px #1f2937,
+              inset -2px -2px 4px #4b5563;
+  border: 1px solid #374151;
+}
+
+html.dark .scrollbar-neumorphic::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(145deg, #4b5563, #6b7280);
+  box-shadow: 4px 4px 8px #111827,
+              -4px -4px 8px #2d3748,
+              inset 2px 2px 4px #374151,
+              inset -2px -2px 4px #6b7280;
+}
+
+/* Dark Mode Sidebar Active Item */
+.dark .sidebar-active-item {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+  color: #93c5fd !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+/* Dark Mode Optimizations - بهبود کنتراست و خوانایی */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark .bg-white {
+  background-color: #1e293b !important; /* slate-800 */
+}
+
+html.dark .bg-neutral-50 {
+  background-color: #0f172a !important; /* slate-900 */
+}
+
+html.dark .bg-neutral-100 {
+  background-color: #1e293b !important; /* slate-800 */
+}
+
+html.dark .bg-neutral-200 {
+  background-color: #334155 !important; /* slate-700 */
+}
+
+html.dark .text-neutral-900 {
+  color: #f1f5f9 !important; /* slate-100 */
+}
+
+html.dark .text-neutral-800 {
+  color: #e2e8f0 !important; /* slate-200 */
+}
+
+html.dark .text-neutral-700 {
+  color: #cbd5e1 !important; /* slate-300 */
+}
+
+html.dark .text-neutral-600 {
+  color: #94a3b8 !important; /* slate-400 */
+}
+
+html.dark .text-neutral-500 {
+  color: #64748b !important; /* slate-500 */
+}
+
+html.dark .text-neutral-400 {
+  color: #475569 !important; /* slate-600 */
+}
+
+html.dark .border-neutral-200 {
+  border-color: #334155 !important; /* slate-700 */
+}
+
+html.dark .border-neutral-300 {
+  border-color: #475569 !important; /* slate-600 */
+}
+
+html.dark .border-neutral-800 {
+  border-color: #1e293b !important; /* slate-800 */
 }
 
 

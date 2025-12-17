@@ -24,6 +24,10 @@ router.get('/', authenticate, async (req, res) => {
       tags,
       customerModels,
       createdById,
+      dateFrom,
+      dateTo,
+      journey_stage,
+      coach_id,
     } = req.query;
 
     const tagIds = typeof tags === 'string' ? tags.split(',') : undefined;
@@ -40,6 +44,10 @@ router.get('/', authenticate, async (req, res) => {
       tagIds,
       customerModels: customerModelsArray,
       createdById: createdById as string | undefined,
+      dateFrom: dateFrom as string | undefined,
+      dateTo: dateTo as string | undefined,
+      journey_stage: journey_stage as string | undefined,
+      coach_id: coach_id as string | undefined,
     });
 
     res.json(customers);

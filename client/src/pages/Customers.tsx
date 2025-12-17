@@ -10,6 +10,7 @@ import { translateCustomerType, translateCustomerStatus } from '../utils/transla
 import { useToast } from '../contexts/ToastContext';
 import ConfirmDialog from '../components/ConfirmDialog';
 import Pagination from '../components/Pagination';
+import AdvancedFilter from '../components/AdvancedFilter';
 
 const Customers = () => {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ const Customers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [advancedFilters, setAdvancedFilters] = useState<any>({});
   const [showModal, setShowModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<any>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -85,13 +87,39 @@ const Customers = () => {
     }
   );
 
+  // Users list for filters (coach selector)
+  const { data: users } = useQuery(
+    'assignable-users',
+    async () => {
+      try {
+        const response = await api.get('/users/assignable');
+        return Array.isArray(response.data) ? response.data : [];
+      } catch {
+        return [];
+      }
+    },
+    {
+      staleTime: 5 * 60 * 1000,
+      cacheTime: 10 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    }
+  );
+
   const { data: customers, isLoading, error } = useQuery(
-    ['customers', debouncedSearchTerm, filterType, filterStatus],
+    ['customers', debouncedSearchTerm, filterType, filterStatus, advancedFilters],
     async () => {
       const params = new URLSearchParams();
       if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
       if (filterType) params.append('type', filterType);
       if (filterStatus) params.append('status', filterStatus);
+      
+      // Add advanced filters
+      if (advancedFilters.dateFrom) params.append('dateFrom', advancedFilters.dateFrom);
+      if (advancedFilters.dateTo) params.append('dateTo', advancedFilters.dateTo);
+      if (advancedFilters.journeyStage) params.append('journey_stage', advancedFilters.journeyStage);
+      if (advancedFilters.userId) params.append('coach_id', String(advancedFilters.userId));
+      if (advancedFilters.category) params.append('category', advancedFilters.category);
+      
       const response = await api.get(`/customers?${params.toString()}`);
       // Ensure we always return an array
       const data = response.data;
@@ -269,10 +297,10 @@ const Customers = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-primary-50/30 to-info-50/30 p-6">
+    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex justify-between items-center card">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary-600 to-info-600 bg-clip-text text-transparent">مدیریت مشتریان</h1>
+          <h1 className="page-heading-gradient">مدیریت مشتریان</h1>
         <div className="flex items-center gap-2">
           {selectedIds.length > 0 && (
             <button
@@ -364,7 +392,7 @@ const Customers = () => {
       {/* Filters - Only show for list tab */}
       {activeTab === 'list' && (
         <div className="card">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             <div className="relative">
               <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-400" size={20} />
               <input
@@ -404,11 +432,56 @@ const Customers = () => {
                 setSearchTerm('');
                 setFilterType('');
                 setFilterStatus('');
+                setAdvancedFilters({});
               }}
               className="btn btn-secondary"
             >
               پاک کردن فیلترها
             </button>
+          </div>
+          <div className="flex gap-2">
+            <AdvancedFilter
+              filters={advancedFilters}
+              onFiltersChange={setAdvancedFilters}
+              filterConfig={{
+                dateRange: true,
+                status: { label: 'وضعیت', options: [
+                  { value: 'active', label: 'فعال' },
+                  { value: 'inactive', label: 'غیرفعال' },
+                  { value: 'lead', label: 'لید' },
+                ]},
+                type: { label: 'نوع', options: [
+                  { value: 'coaching', label: 'کوچینگ' },
+                  { value: 'individual', label: 'شخص' },
+                  { value: 'company', label: 'شرکت' },
+                  { value: 'export', label: 'صادرات' },
+                  { value: 'import', label: 'واردات' },
+                ]},
+                user: users ? {
+                  label: 'کوچ',
+                  options: users.filter((u: any) => u.role === 'coach' || u.role === 'admin').map((u: any) => ({
+                    value: u.id,
+                    label: u.username || u.full_name || u.email,
+                  })),
+                } : undefined,
+                customFields: [
+                  {
+                    label: 'مرحله سفر',
+                    field: 'journeyStage',
+                    type: 'select',
+                    options: [
+                      { value: 'code_executed', label: 'کد مد نظر اجرا شد' },
+                      { value: 'list_sent_to_coaching', label: 'لیست دانش پذیرها به کوچینگ داده شد' },
+                      { value: 'initial_contact', label: 'ارتباط اولیه کوچ با دانش پذیر' },
+                      { value: 'product_selection_session', label: 'جلسه انتخاب محصول' },
+                      { value: 'key_actions', label: 'اقدامات کلیدی' },
+                      { value: 'coach_feedback', label: 'بازخورد از کوچ' },
+                      { value: 'completed', label: 'تکمیل شده' },
+                    ],
+                  },
+                ],
+              }}
+            />
           </div>
         </div>
       )}
@@ -431,7 +504,7 @@ const Customers = () => {
                       ) : isIndeterminate ? (
                         <div className="w-5 h-5 border-2 border-primary-600 bg-primary-100 rounded"></div>
                       ) : (
-                        <Square size={20} className="text-gray-400" />
+                        <Square size={20} className="text-neutral-400 dark:text-neutral-500" />
                       )}
                     </button>
                   </th>
@@ -463,7 +536,7 @@ const Customers = () => {
                           {customer.code}
                         </span>
                       ) : (
-                        <span className="text-gray-400">-</span>
+                        <span className="text-neutral-400 dark:text-neutral-500">-</span>
                       )}
                     </td>
                     <td>
@@ -631,9 +704,19 @@ const Customers = () => {
 const CustomerModal = ({ customer, onClose }: { customer: any; onClose: () => void }) => {
   const queryClient = useQueryClient();
   const toast = useToast();
+  const { data: users } = useQuery('assignable-users', async () => {
+    try {
+      const response = await api.get('/users/assignable');
+      return Array.isArray(response.data) ? response.data : [];
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      return [];
+    }
+  });
+
   const [formData, setFormData] = useState({
     name: customer?.name || '',
-    type: customer?.type || 'individual',
+    type: customer?.type || 'coaching',
     email: customer?.email || '',
     phone: customer?.phone || '',
     company_name: customer?.company_name || '',
@@ -652,6 +735,8 @@ const CustomerModal = ({ customer, onClose }: { customer: any; onClose: () => vo
     languages_added_date: customer?.languages_added_date || '',
     code: customer?.code || '',
     designer: customer?.designer || '',
+    journey_stage: customer?.journey_stage || 'code_executed',
+    coach_id: customer?.coach_id || '',
   });
 
   const mutation = useMutation(
@@ -706,16 +791,16 @@ const CustomerModal = ({ customer, onClose }: { customer: any; onClose: () => vo
             <div>
               <label className="label label-required">نوع</label>
               <select
-                value={formData.type}
+                value={formData.type || 'coaching'}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                 className="input"
                 required
               >
+                <option value="coaching">کوچینگ (پیش‌فرض)</option>
                 <option value="individual">شخص</option>
                 <option value="company">شرکت</option>
                 <option value="export">صادرات</option>
                 <option value="import">واردات</option>
-                <option value="coaching">کوچینگ</option>
               </select>
             </div>
             <div>
@@ -868,6 +953,37 @@ const CustomerModal = ({ customer, onClose }: { customer: any; onClose: () => vo
                 className="input"
               />
             </div>
+            <div>
+              <label className="label">کوچ</label>
+              <select
+                value={formData.coach_id || ''}
+                onChange={(e) => setFormData({ ...formData, coach_id: e.target.value ? parseInt(e.target.value) : null })}
+                className="input"
+              >
+                <option value="">انتخاب کوچ</option>
+                {users?.filter((u: any) => u.role === 'coach' || u.role === 'admin').map((user: any) => (
+                  <option key={user.id} value={user.id}>
+                    {user.username || user.full_name || user.email}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="label">مرحله سفر مشتری</label>
+              <select
+                value={formData.journey_stage || 'code_executed'}
+                onChange={(e) => setFormData({ ...formData, journey_stage: e.target.value })}
+                className="input"
+              >
+                <option value="code_executed">کد مد نظر اجرا شد</option>
+                <option value="list_sent_to_coaching">لیست دانش پذیرها به کوچینگ داده شد</option>
+                <option value="initial_contact">ارتباط اولیه کوچ با دانش پذیر</option>
+                <option value="product_selection_session">جلسه برای انتخاب محصول با کوچ</option>
+                <option value="key_actions">اقدامات کلیدی (ارتباط مداوم با کوچ)</option>
+                <option value="coach_feedback">بازخورد از کوچ برای دانش پذیر</option>
+                <option value="completed">تکمیل شده</option>
+              </select>
+            </div>
           </div>
           <div>
             <label className="label">آدرس</label>
@@ -916,14 +1032,14 @@ const CustomerProgramsList = ({ programs, customers, onEdit, onDelete }: any) =>
       case 'completed': return 'bg-blue-100 text-blue-700 border-blue-300';
       case 'cancelled': return 'bg-red-100 text-red-700 border-red-300';
       case 'on_hold': return 'bg-yellow-100 text-yellow-700 border-yellow-300';
-      default: return 'bg-gray-100 text-gray-700 border-gray-300';
+      default: return 'bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-neutral-600';
     }
   };
 
   return (
     <div className="space-y-4">
       {programsArray.map((program: any) => (
-        <div key={program.id} className="border rounded-lg p-4 hover:bg-gray-50">
+        <div key={program.id} className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-4 hover:bg-neutral-50 dark:hover:bg-neutral-800/50">
           <div className="flex justify-between items-start">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
@@ -934,7 +1050,7 @@ const CustomerProgramsList = ({ programs, customers, onEdit, onDelete }: any) =>
                    program.status === 'cancelled' ? 'لغو شده' : 'متوقف شده'}
                 </span>
               </div>
-              <div className="text-sm text-gray-600 mb-2">
+              <div className="text-sm text-neutral-600 dark:text-neutral-400 mb-2">
                 <span>مشتری: {getCustomerName(program.customer_id)}</span>
                 {program.start_date && (
                   <span className="mr-4">شروع: {toJalali(program.start_date)}</span>
@@ -944,7 +1060,7 @@ const CustomerProgramsList = ({ programs, customers, onEdit, onDelete }: any) =>
                 )}
               </div>
               {program.description && (
-                <p className="text-gray-700 mb-2">{program.description}</p>
+                <p className="text-neutral-700 dark:text-neutral-300 mb-2">{program.description}</p>
               )}
             </div>
             <div className="flex gap-2">
@@ -1003,7 +1119,7 @@ const CustomerTemplatesList = ({ templates, onEdit, onDelete, sortConfig, onSort
             {sortConfig?.field === 'name' ? (
               sortConfig.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
             ) : (
-              <ArrowUpDown size={14} className="text-gray-400" />
+              <ArrowUpDown size={14} className="text-neutral-400 dark:text-neutral-500" />
             )}
           </button>
           <button
@@ -1014,13 +1130,13 @@ const CustomerTemplatesList = ({ templates, onEdit, onDelete, sortConfig, onSort
             {sortConfig?.field === 'type' ? (
               sortConfig.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
             ) : (
-              <ArrowUpDown size={14} className="text-gray-400" />
+              <ArrowUpDown size={14} className="text-neutral-400 dark:text-neutral-500" />
             )}
           </button>
         </div>
       )}
       {templatesArray.map((template: any) => (
-        <div key={template.id} className="border rounded-lg p-4 hover:bg-gray-50">
+        <div key={template.id} className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-4 hover:bg-neutral-50 dark:hover:bg-neutral-800/50">
           <div className="flex justify-between items-start">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
@@ -1035,7 +1151,7 @@ const CustomerTemplatesList = ({ templates, onEdit, onDelete, sortConfig, onSort
                 )}
               </div>
               {template.content && (
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-neutral-600 dark:text-neutral-400">
                   <pre className="whitespace-pre-wrap">{JSON.stringify(typeof template.content === 'string' ? JSON.parse(template.content) : template.content, null, 2)}</pre>
                 </div>
               )}
@@ -1100,7 +1216,7 @@ const CustomerFeedbackList = ({ feedbacks, customers, onEdit, onDelete, sortConf
             {sortConfig?.field === 'customer_id' ? (
               sortConfig.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
             ) : (
-              <ArrowUpDown size={14} className="text-gray-400" />
+              <ArrowUpDown size={14} className="text-neutral-400 dark:text-neutral-500" />
             )}
           </button>
           <button
@@ -1111,13 +1227,13 @@ const CustomerFeedbackList = ({ feedbacks, customers, onEdit, onDelete, sortConf
             {sortConfig?.field === 'feedback_type' ? (
               sortConfig.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
             ) : (
-              <ArrowUpDown size={14} className="text-gray-400" />
+              <ArrowUpDown size={14} className="text-neutral-400 dark:text-neutral-500" />
             )}
           </button>
         </div>
       )}
       {feedbacksArray.map((feedback: any) => (
-        <div key={feedback.id} className="border rounded-lg p-4 hover:bg-gray-50">
+        <div key={feedback.id} className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-4 hover:bg-neutral-50 dark:hover:bg-neutral-800/50">
           <div className="flex justify-between items-start">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
@@ -1132,7 +1248,7 @@ const CustomerFeedbackList = ({ feedbacks, customers, onEdit, onDelete, sortConf
                 )}
               </div>
               {feedback.comments && (
-                <p className="text-gray-700 mb-2">{feedback.comments}</p>
+                <p className="text-neutral-700 dark:text-neutral-300 mb-2">{feedback.comments}</p>
               )}
             </div>
             <div className="flex gap-2">

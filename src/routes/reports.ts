@@ -246,6 +246,252 @@ router.get('/dashboard/kpis', authenticate, (req: AuthRequest, res: Response) =>
   });
 });
 
+// Customers Report
+router.get('/customers', authenticate, (req: AuthRequest, res: Response) => {
+  const { start_date, end_date, status, type } = req.query;
+  
+  let query = `
+    SELECT 
+      DATE(customers.created_at) as date,
+      COUNT(*) as count,
+      customers.status,
+      customers.type
+    FROM customers
+    WHERE 1=1
+  `;
+  const params: any[] = [];
+
+  if (start_date) {
+    query += ' AND DATE(customers.created_at) >= ?';
+    params.push(start_date);
+  }
+
+  if (end_date) {
+    query += ' AND DATE(customers.created_at) <= ?';
+    params.push(end_date);
+  }
+
+  if (status) {
+    query += ' AND customers.status = ?';
+    params.push(status);
+  }
+
+  if (type) {
+    query += ' AND customers.type = ?';
+    params.push(type);
+  }
+
+  query += ' GROUP BY DATE(customers.created_at), customers.status, customers.type ORDER BY date DESC';
+
+  db.all(query, params, (err, customers) => {
+    if (err) {
+      return res.status(500).json({ error: 'خطا در دریافت گزارش مشتریان' });
+    }
+    res.json(customers);
+  });
+});
+
+// Coaching Report
+router.get('/coaching', authenticate, (req: AuthRequest, res: Response) => {
+  const { start_date, end_date, status } = req.query;
+  
+  let query = `
+    SELECT 
+      DATE(coaching_sessions.session_date) as date,
+      COUNT(*) as count,
+      coaching_sessions.status,
+      AVG(coaching_sessions.duration) as avg_duration,
+      COUNT(DISTINCT coaching_sessions.customer_id) as unique_customers
+    FROM coaching_sessions
+    WHERE 1=1
+  `;
+  const params: any[] = [];
+
+  if (start_date) {
+    query += ' AND DATE(coaching_sessions.session_date) >= ?';
+    params.push(start_date);
+  }
+
+  if (end_date) {
+    query += ' AND DATE(coaching_sessions.session_date) <= ?';
+    params.push(end_date);
+  }
+
+  if (status) {
+    query += ' AND coaching_sessions.status = ?';
+    params.push(status);
+  }
+
+  query += ' GROUP BY DATE(coaching_sessions.session_date), coaching_sessions.status ORDER BY date DESC';
+
+  db.all(query, params, (err, coaching) => {
+    if (err) {
+      return res.status(500).json({ error: 'خطا در دریافت گزارش کوچینگ' });
+    }
+    res.json(coaching);
+  });
+});
+
+// Leads Report
+router.get('/leads', authenticate, (req: AuthRequest, res: Response) => {
+  const { start_date, end_date, status } = req.query;
+  
+  let query = `
+    SELECT 
+      DATE(leads.created_at) as date,
+      COUNT(*) as count,
+      leads.status,
+      leads.source
+    FROM leads
+    WHERE 1=1
+  `;
+  const params: any[] = [];
+
+  if (start_date) {
+    query += ' AND DATE(leads.created_at) >= ?';
+    params.push(start_date);
+  }
+
+  if (end_date) {
+    query += ' AND DATE(leads.created_at) <= ?';
+    params.push(end_date);
+  }
+
+  if (status) {
+    query += ' AND leads.status = ?';
+    params.push(status);
+  }
+
+  query += ' GROUP BY DATE(leads.created_at), leads.status, leads.source ORDER BY date DESC';
+
+  db.all(query, params, (err, leads) => {
+    if (err) {
+      return res.status(500).json({ error: 'خطا در دریافت گزارش لیدها' });
+    }
+    res.json(leads);
+  });
+});
+
+// Deals Report
+router.get('/deals', authenticate, (req: AuthRequest, res: Response) => {
+  const { start_date, end_date, status } = req.query;
+  
+  let query = `
+    SELECT 
+      DATE(deals.created_at) as date,
+      COUNT(*) as count,
+      SUM(deals.value) as total_value,
+      deals.status
+    FROM deals
+    WHERE 1=1
+  `;
+  const params: any[] = [];
+
+  if (start_date) {
+    query += ' AND DATE(deals.created_at) >= ?';
+    params.push(start_date);
+  }
+
+  if (end_date) {
+    query += ' AND DATE(deals.created_at) <= ?';
+    params.push(end_date);
+  }
+
+  if (status) {
+    query += ' AND deals.status = ?';
+    params.push(status);
+  }
+
+  query += ' GROUP BY DATE(deals.created_at), deals.status ORDER BY date DESC';
+
+  db.all(query, params, (err, deals) => {
+    if (err) {
+      return res.status(500).json({ error: 'خطا در دریافت گزارش معاملات' });
+    }
+    res.json(deals);
+  });
+});
+
+// Tasks Report
+router.get('/tasks', authenticate, (req: AuthRequest, res: Response) => {
+  const { start_date, end_date, status } = req.query;
+  
+  let query = `
+    SELECT 
+      DATE(tasks.created_at) as date,
+      COUNT(*) as count,
+      tasks.status,
+      tasks.priority
+    FROM tasks
+    WHERE 1=1
+  `;
+  const params: any[] = [];
+
+  if (start_date) {
+    query += ' AND DATE(tasks.created_at) >= ?';
+    params.push(start_date);
+  }
+
+  if (end_date) {
+    query += ' AND DATE(tasks.created_at) <= ?';
+    params.push(end_date);
+  }
+
+  if (status) {
+    query += ' AND tasks.status = ?';
+    params.push(status);
+  }
+
+  query += ' GROUP BY DATE(tasks.created_at), tasks.status, tasks.priority ORDER BY date DESC';
+
+  db.all(query, params, (err, tasks) => {
+    if (err) {
+      return res.status(500).json({ error: 'خطا در دریافت گزارش وظایف' });
+    }
+    res.json(tasks);
+  });
+});
+
+// Tickets Report
+router.get('/tickets', authenticate, (req: AuthRequest, res: Response) => {
+  const { start_date, end_date, status } = req.query;
+  
+  let query = `
+    SELECT 
+      DATE(tickets.created_at) as date,
+      COUNT(*) as count,
+      tickets.status,
+      tickets.priority
+    FROM tickets
+    WHERE 1=1
+  `;
+  const params: any[] = [];
+
+  if (start_date) {
+    query += ' AND DATE(tickets.created_at) >= ?';
+    params.push(start_date);
+  }
+
+  if (end_date) {
+    query += ' AND DATE(tickets.created_at) <= ?';
+    params.push(end_date);
+  }
+
+  if (status) {
+    query += ' AND tickets.status = ?';
+    params.push(status);
+  }
+
+  query += ' GROUP BY DATE(tickets.created_at), tickets.status, tickets.priority ORDER BY date DESC';
+
+  db.all(query, params, (err, tickets) => {
+    if (err) {
+      return res.status(500).json({ error: 'خطا در دریافت گزارش تیکت‌ها' });
+    }
+    res.json(tickets);
+  });
+});
+
 export default router;
 
 

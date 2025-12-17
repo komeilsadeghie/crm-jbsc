@@ -1,4 +1,4 @@
-const PDFDocument = require('pdfkit');
+import PDFDocument from 'pdfkit';
 import { db } from '../database/db';
 import { toJalali, toJalaliDateTime } from '../utils/dateHelper';
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel } from 'docx';
@@ -74,7 +74,12 @@ export const generateEstimatePDF = (estimate: EstimateData): Promise<Buffer> => 
     try {
       const doc = new PDFDocument({
         size: 'A4',
-        margins: { top: 50, bottom: 50, left: 50, right: 50 }
+        margins: { top: 50, bottom: 50, left: 50, right: 50 },
+        info: {
+          Title: `پیش‌فاکتور ${estimate.estimate_number}`,
+          Author: 'CRM هوشمند',
+          Subject: 'پیش‌فاکتور'
+        }
       });
 
       const buffers: Buffer[] = [];
@@ -85,28 +90,43 @@ export const generateEstimatePDF = (estimate: EstimateData): Promise<Buffer> => 
       });
       doc.on('error', reject);
 
-      // Set default font size
-      doc.fontSize(12);
+      // Get company settings
+      db.all('SELECT * FROM settings WHERE key IN ("company_name", "company_domain")', [], (err, settings: any) => {
+        if (err) {
+          return reject(err);
+        }
+        
+        const companyName = settings?.find((s: any) => s.key === 'company_name')?.value || 'CRM هوشمند';
+        
+        // Header with border
+        doc.rect(50, 50, 495, 80).stroke();
+        doc.fontSize(20).fillColor('black');
+        doc.text('پیش‌فاکتور', 480, 60, { align: 'right', width: 100 });
+        doc.fontSize(10).fillColor('gray');
+        doc.text(companyName, 480, 85, { align: 'right', width: 100 });
+        doc.fontSize(12).fillColor('black');
+        
+        // Estimate Info Box
+        const infoBoxY = 140;
+        doc.rect(50, infoBoxY, 240, 60).stroke();
+        doc.fontSize(10).text('اطلاعات پیش‌فاکتور', 55, infoBoxY + 5, { align: 'right' });
+        doc.fontSize(9);
+        doc.text(`شماره: ${estimate.estimate_number}`, 55, infoBoxY + 20, { align: 'right' });
+        doc.text(`تاریخ: ${toJalali(estimate.created_at)}`, 55, infoBoxY + 35, { align: 'right' });
+        if (estimate.valid_until) {
+          doc.text(`اعتبار تا: ${toJalali(estimate.valid_until)}`, 55, infoBoxY + 50, { align: 'right' });
+        }
 
-      // Header
-      doc.fontSize(24).text('پیش‌فاکتور', { align: 'right' });
-      doc.moveDown(0.5);
-      doc.fontSize(12);
-      doc.text(`شماره: ${estimate.estimate_number}`, { align: 'right' });
-      doc.text(`تاریخ: ${toJalali(estimate.created_at)}`, { align: 'right' });
-      if (estimate.valid_until) {
-        doc.text(`اعتبار تا: ${toJalali(estimate.valid_until)}`, { align: 'right' });
-      }
-      doc.moveDown();
+        // Customer Info Box
+        doc.rect(300, infoBoxY, 245, 60).stroke();
+        doc.fontSize(10).text('مشتری', 305, infoBoxY + 5, { align: 'right' });
+        doc.fontSize(9);
+        doc.text(estimate.account_name || '-', 305, infoBoxY + 20, { align: 'right', width: 240 });
+        
+        doc.y = infoBoxY + 70;
 
-      // Company Info
-      doc.fontSize(14).text('مشتری:', { align: 'right' });
-      doc.fontSize(12);
-      doc.text(estimate.account_name || '-', { align: 'right' });
-      doc.moveDown();
-
-      // Contract/Site Details
-      if (estimate.contract_type || estimate.domain_name) {
+        // Contract/Site Details
+        if (estimate.contract_type || estimate.domain_name) {
         doc.fontSize(14).text('جزئیات قرارداد/سایت:', { align: 'right' });
         doc.fontSize(12);
         
@@ -138,66 +158,83 @@ export const generateEstimatePDF = (estimate: EstimateData): Promise<Buffer> => 
         doc.moveDown();
       }
 
-      // Items Table
-      if (estimate.items && estimate.items.length > 0) {
-        doc.fontSize(14).text('آیتم‌ها:', { align: 'right' });
-        doc.moveDown(0.5);
+        // Items Table
+        if (estimate.items && estimate.items.length > 0) {
+          doc.moveDown(1);
+          const tableTop = doc.y;
+          const itemHeight = 25;
+          const colWidths = { name: 250, qty: 70, price: 90, total: 95 };
+          const startX = 50;
+          const endX = 545;
+          const headerHeight = 20;
 
-        // Table Header
-        const tableTop = doc.y;
-        const itemHeight = 20;
-        const colWidths = { name: 200, qty: 60, price: 80, total: 80 };
-        const startX = 50;
-        const endX = 545;
+          // Table Header with background
+          doc.rect(startX, tableTop, endX - startX, headerHeight).fillAndStroke('#f0f0f0', 'black');
+          doc.fontSize(10).fillColor('black');
+          doc.text('جمع', startX + colWidths.name + colWidths.qty + colWidths.price, tableTop + 5, { width: colWidths.total, align: 'right' });
+          doc.text('قیمت واحد', startX + colWidths.name + colWidths.qty, tableTop + 5, { width: colWidths.price, align: 'right' });
+          doc.text('تعداد', startX + colWidths.name, tableTop + 5, { width: colWidths.qty, align: 'right' });
+          doc.text('نام آیتم', startX, tableTop + 5, { width: colWidths.name, align: 'right' });
 
-        doc.fontSize(10);
-        doc.text('جمع', startX + colWidths.name + colWidths.qty + colWidths.price, tableTop, { width: colWidths.total, align: 'right' });
-        doc.text('قیمت واحد', startX + colWidths.name + colWidths.qty, tableTop, { width: colWidths.price, align: 'right' });
-        doc.text('تعداد', startX + colWidths.name, tableTop, { width: colWidths.qty, align: 'right' });
-        doc.text('نام آیتم', startX, tableTop, { width: colWidths.name, align: 'right' });
+          // Table Rows
+          let currentY = tableTop + headerHeight;
+          doc.fontSize(9);
+          
+          estimate.items.forEach((item: any, index: number) => {
+            // Alternate row colors
+            if (index % 2 === 0) {
+              doc.rect(startX, currentY, endX - startX, itemHeight).fill('#fafafa');
+            }
+            
+            // Draw borders
+            doc.rect(startX, currentY, endX - startX, itemHeight).stroke();
+            
+            doc.fillColor('black');
+            doc.text(item.item_name || '-', startX + 5, currentY + 8, { width: colWidths.name - 10, align: 'right' });
+            doc.text((item.quantity || 1).toString(), startX + colWidths.name + 5, currentY + 8, { width: colWidths.qty - 10, align: 'right' });
+            doc.text(formatNumber(item.unit_price || 0), startX + colWidths.name + colWidths.qty + 5, currentY + 8, { width: colWidths.price - 10, align: 'right' });
+            doc.text(formatNumber(item.total_amount || 0), startX + colWidths.name + colWidths.qty + colWidths.price + 5, currentY + 8, { width: colWidths.total - 10, align: 'right' });
+            currentY += itemHeight;
+          });
 
-        // Draw line
-        doc.moveTo(startX, tableTop + 15).lineTo(endX, tableTop + 15).stroke();
+          doc.y = currentY + 10;
+        }
 
-        // Table Rows
-        let currentY = tableTop + 20;
-        doc.fontSize(10);
-        
-        estimate.items.forEach((item: any) => {
-          doc.text(item.item_name || '-', startX, currentY, { width: colWidths.name, align: 'right' });
-          doc.text((item.quantity || 1).toString(), startX + colWidths.name, currentY, { width: colWidths.qty, align: 'right' });
-          doc.text(formatNumber(item.unit_price || 0), startX + colWidths.name + colWidths.qty, currentY, { width: colWidths.price, align: 'right' });
-          doc.text(formatNumber(item.total_amount || 0), startX + colWidths.name + colWidths.qty + colWidths.price, currentY, { width: colWidths.total, align: 'right' });
-          currentY += itemHeight;
-        });
+        // Total Box
+        const totalBoxY = doc.y;
+        const totalBoxWidth = 200;
+        const totalBoxX = 545 - totalBoxWidth;
+        doc.rect(totalBoxX, totalBoxY, totalBoxWidth, 30).fillAndStroke('#e8f4f8', 'black');
+        doc.fontSize(12).fillColor('black');
+        doc.text(`جمع کل: ${formatCurrency(estimate.amount, estimate.currency)}`, totalBoxX + 5, totalBoxY + 8, { align: 'right', width: totalBoxWidth - 10 });
 
-        doc.moveDown();
-      }
+        // Notes Box
+        if (estimate.notes) {
+          doc.y = totalBoxY + 40;
+          const notesBoxY = doc.y;
+          doc.rect(50, notesBoxY, 495, 60).stroke();
+          doc.fontSize(11).fillColor('black');
+          doc.text('یادداشت:', 55, notesBoxY + 5, { align: 'right' });
+          doc.fontSize(9);
+          // Split notes into lines if too long
+          const notesLines = estimate.notes.split('\n');
+          let notesY = notesBoxY + 20;
+          notesLines.forEach((line: string) => {
+            if (line.trim()) {
+              doc.text(line.trim(), 55, notesY, { align: 'right', width: 485 });
+              notesY += 12;
+            }
+          });
+        }
 
-      // Total
-      doc.moveDown();
-      doc.fontSize(14);
-      const totalText = `جمع کل: ${formatCurrency(estimate.amount, estimate.currency)}`;
-      doc.text(totalText, { align: 'right' });
+        // Footer
+        const footerY = doc.page.height - 40;
+        doc.fontSize(8).fillColor('gray');
+        doc.text('این پیش‌فاکتور به صورت خودکار تولید شده است.', 50, footerY, { align: 'center', width: 495 });
+        doc.text(`تولید شده در: ${toJalaliDateTime(new Date().toISOString())}`, 50, footerY + 12, { align: 'center', width: 495 });
 
-      // Notes
-      if (estimate.notes) {
-        doc.moveDown();
-        doc.fontSize(12).text('یادداشت:', { align: 'right' });
-        doc.fontSize(10);
-        // Split notes into lines if too long
-        const notesLines = estimate.notes.split('\n');
-        notesLines.forEach((line: string) => {
-          doc.text(line, { align: 'right' });
-        });
-      }
-
-      // Footer
-      doc.fontSize(8).fillColor('gray');
-      const footerY = doc.page.height - 30;
-      doc.text('این پیش‌فاکتور به صورت خودکار تولید شده است.', 50, footerY, { align: 'center' });
-
-      doc.end();
+        doc.end();
+      });
     } catch (error) {
       reject(error);
     }

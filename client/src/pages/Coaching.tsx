@@ -2,8 +2,10 @@ import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import { Plus, Target, CheckCircle, Clock, XCircle, TrendingUp, Calendar, BarChart3, Download, Search, Filter, AlertCircle, ChevronLeft, ChevronRight, Trash2, FileDown } from 'lucide-react';
+import { Plus, Target, CheckCircle, Clock, XCircle, TrendingUp, Calendar, BarChart3, Download, Search, Filter, AlertCircle, ChevronLeft, ChevronRight, Trash2, FileDown, Columns } from 'lucide-react';
 import { toPersianNumber } from '../utils/numberHelper';
+import KanbanBoard from '../components/KanbanBoard';
+import AdvancedFilter from '../components/AdvancedFilter';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { 
   toJalali, 
@@ -24,32 +26,63 @@ import JalaliDatePicker from '../components/JalaliDatePicker';
 
 const Coaching = () => {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'sessions' | 'goals' | 'exercises' | 'reports' | 'calendar' | 'programs' | 'templates' | 'feedback'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'kanban' | 'sessions' | 'goals' | 'exercises' | 'reports' | 'calendar' | 'programs' | 'templates' | 'feedback'>('dashboard');
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState<'session' | 'goal' | 'exercise' | 'report' | 'program' | 'template' | 'feedback'>('session');
   const [editingItem, setEditingItem] = useState<any>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [advancedFilters, setAdvancedFilters] = useState<any>({});
   const [clickedDate, setClickedDate] = useState<string | null>(null);
 
   const { data: customers } = useQuery('customers', async () => {
-    const response = await api.get('/customers?type=coaching');
+    // All customers default to coaching
+    const response = await api.get('/customers');
     const data = response.data;
     return Array.isArray(data) ? data : [];
   });
 
+  const { data: users } = useQuery('assignable-users', async () => {
+    try {
+      const response = await api.get('/users/assignable');
+      return Array.isArray(response.data) ? response.data : [];
+    } catch {
+      return [];
+    }
+  });
+
   const { data: sessions } = useQuery(
-    ['coaching-sessions', selectedCustomer],
+    ['coaching-sessions', selectedCustomer, advancedFilters],
     async () => {
-      const params = selectedCustomer ? `?customer_id=${selectedCustomer}` : '';
-      const response = await api.get(`/coaching/sessions${params}`);
+      const params = new URLSearchParams();
+      if (selectedCustomer) params.append('customer_id', String(selectedCustomer));
+      if (advancedFilters.status) params.append('status', advancedFilters.status);
+      if (advancedFilters.dateFrom) params.append('start_date', advancedFilters.dateFrom);
+      if (advancedFilters.dateTo) params.append('end_date', advancedFilters.dateTo);
+      if (advancedFilters.coachId) params.append('coach_id', String(advancedFilters.coachId));
+      
+      const response = await api.get(`/coaching/sessions?${params.toString()}`);
       const data = response.data;
       const sessionsArray = Array.isArray(data) ? data : [];
       console.log('Fetched coaching sessions:', sessionsArray.length, sessionsArray);
       return sessionsArray;
     },
     {
+      refetchOnWindowFocus: true,
+      staleTime: 0,
+    }
+  );
+
+  // Kanban data
+  const { data: kanbanData } = useQuery(
+    ['coaching-kanban'],
+    async () => {
+      const response = await api.get('/coaching/kanban');
+      return response.data || {};
+    },
+    {
+      enabled: activeTab === 'kanban',
       refetchOnWindowFocus: true,
       staleTime: 0,
     }
@@ -273,6 +306,7 @@ const Coaching = () => {
 
   const tabs = [
     { id: 'dashboard', label: 'داشبورد', icon: BarChart3 },
+    { id: 'kanban', label: 'برد کوچینگ', icon: Columns },
     { id: 'calendar', label: 'تقویم', icon: Calendar },
     { id: 'sessions', label: 'جلسات کوچینگ', icon: Clock },
     { id: 'goals', label: 'اهداف (KPI/OKR)', icon: Target },
@@ -284,14 +318,14 @@ const Coaching = () => {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-800">ماژول کوچینگ</h1>
-        <div className="flex items-center gap-4">
+    <div className="space-y-6 pt-[50px] pb-[50px]">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-neutral-100">ماژول کوچینگ</h1>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
           <select
             value={selectedCustomer || ''}
             onChange={(e) => setSelectedCustomer(e.target.value ? parseInt(e.target.value) : null)}
-            className="input w-64"
+            className="input w-full sm:w-64"
           >
             <option value="">همه مشتریان</option>
             {Array.isArray(customers) && customers.map((customer: any) => (
@@ -305,16 +339,17 @@ const Coaching = () => {
               setEditingItem(null);
               setShowModal(true);
             }}
-            className="btn btn-primary flex items-center gap-2"
+            className="btn btn-primary flex items-center justify-center gap-2 w-full sm:w-auto"
           >
             <Plus size={20} />
-            افزودن {tabs.find(t => t.id === activeTab)?.label}
+            <span className="hidden sm:inline">افزودن {tabs.find(t => t.id === activeTab)?.label}</span>
+            <span className="sm:hidden">افزودن</span>
           </button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b">
+      <div className="flex gap-2 border-b overflow-x-auto overflow-y-hidden scrollbar-hide -mx-3 sm:-mx-4 md:-mx-6 px-3 sm:px-4 md:px-6" style={{ WebkitOverflowScrolling: 'touch' }}>
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (
@@ -330,14 +365,14 @@ const Coaching = () => {
                 else if (tab.id === 'templates') setModalType('template');
                 else if (tab.id === 'feedback') setModalType('feedback');
               }}
-              className={`flex items-center gap-2 px-6 py-3 border-b-2 transition-colors ${
+              className={`flex items-center justify-start gap-2 px-3 sm:px-6 py-6 border-b-2 border-t-0 border-r-0 border-l-0 transition-colors whitespace-nowrap flex-shrink-0 rounded-[10px] ${
                 activeTab === tab.id
-                  ? 'border-primary-600 text-primary-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-800'
+                  ? 'border-primary-600 text-primary-600 bg-[#EDEDED]'
+                  : 'border-transparent text-gray-600 dark:text-neutral-400 hover:text-gray-800 dark:hover:text-neutral-200'
               }`}
             >
-              <Icon size={20} />
-              {tab.label}
+              <Icon size={18} className="sm:w-5 sm:h-5" />
+              <span className="text-sm sm:text-base">{tab.label}</span>
             </button>
           );
         })}
@@ -370,6 +405,37 @@ const Coaching = () => {
           />
         )}
 
+        {activeTab === 'kanban' && (
+          <div className="space-y-4">
+            <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
+              <h2 className="text-xl font-bold">برد کوچینگ - مدیریت جلسات</h2>
+              <button
+                onClick={() => {
+                  setEditingItem(null);
+                  setModalType('session');
+                  setShowModal(true);
+                }}
+                className="btn btn-primary flex items-center gap-2"
+              >
+                <Plus size={20} />
+                جلسه جدید
+              </button>
+            </div>
+            {kanbanData ? (
+              <KanbanBoard
+                sessions={kanbanData}
+                onEdit={(session) => {
+                  setEditingItem(session);
+                  setModalType('session');
+                  setShowModal(true);
+                }}
+              />
+            ) : (
+              <div className="text-center py-12 text-gray-500 dark:text-neutral-400">در حال بارگذاری...</div>
+            )}
+          </div>
+        )}
+
         {activeTab === 'calendar' && (
           <CalendarView
             sessions={sessions}
@@ -393,7 +459,7 @@ const Coaching = () => {
           <>
             <div className="mb-4 flex gap-4">
               <div className="relative flex-1">
-                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-neutral-500" size={20} />
                 <input
                   type="text"
                   placeholder="جستجو در جلسات..."
@@ -413,6 +479,26 @@ const Coaching = () => {
                 <option value="cancelled">لغو شده</option>
                 <option value="rescheduled">زمان‌بندی مجدد</option>
               </select>
+              <AdvancedFilter
+                filters={advancedFilters}
+                onFiltersChange={setAdvancedFilters}
+                filterConfig={{
+                  dateRange: true,
+                  status: { label: 'وضعیت جلسه', options: [
+                    { value: 'scheduled', label: 'زمان‌بندی شده' },
+                    { value: 'completed', label: 'تکمیل شده' },
+                    { value: 'cancelled', label: 'لغو شده' },
+                    { value: 'rescheduled', label: 'زمان‌بندی مجدد' },
+                  ]},
+                  user: users ? {
+                    label: 'کوچ',
+                    options: users.filter((u: any) => u.role === 'coach' || u.role === 'admin').map((u: any) => ({
+                      value: u.id,
+                      label: u.username || u.full_name || u.email,
+                    })),
+                  } : undefined,
+                }}
+              />
             </div>
             <SessionsList
               sessions={sessions}
@@ -589,17 +675,17 @@ const SessionsList = ({ sessions, customers, onEdit, onDelete, searchTerm, statu
                    session.status === 'cancelled' ? 'لغو شده' : 'زمان‌بندی مجدد'}
                 </span>
                 {session.session_type && (
-                  <span className="px-2 py-1 bg-white rounded text-xs">
+                  <span className="px-2 py-1 bg-white dark:bg-neutral-700 rounded text-xs text-neutral-900 dark:text-neutral-100">
                     {session.session_type === 'online' ? '🌐 آنلاین' : '👥 حضوری'}
                   </span>
                 )}
                 {session.rating && (
-                  <span className="px-2 py-1 bg-white rounded text-xs">
+                  <span className="px-2 py-1 bg-white dark:bg-neutral-700 rounded text-xs text-neutral-900 dark:text-neutral-100">
                     ⭐ {toPersianNumber(session.rating)}/۵
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-4 text-sm text-gray-700 mb-2">
+              <div className="flex items-center gap-4 text-sm text-gray-700 dark:text-neutral-300 mb-2">
                 <span>📅 {toJalali(session.session_date)}</span>
                 {session.duration && (
                   <span>⏱️ {session.duration} دقیقه</span>
@@ -707,10 +793,17 @@ const GoalsList = ({ goals, customers, onEdit, onDelete }: any) => {
                 <div className="flex items-center gap-3 mb-2">
                   <span className="font-bold text-lg">{goal.title}</span>
                   <span className={`px-2 py-1 rounded text-sm ${
-                    goal.type === 'kpi' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'
+                    goal.type === 'kpi' ? 'bg-purple-100 text-purple-700' : 
+                    goal.is_kr ? 'bg-blue-100 text-blue-700' : 
+                    'bg-indigo-100 text-indigo-700'
                   }`}>
-                    {goal.type.toUpperCase()}
+                    {goal.type === 'okr' ? (goal.is_kr ? 'KR (Key Result)' : 'OKR (Objective)') : 'KPI'}
                   </span>
+                  {goal.is_kr && goal.okr_id && (
+                    <span className="text-xs px-2 py-1 bg-gray-100 rounded text-gray-600">
+                      مرتبط با OKR
+                    </span>
+                  )}
                   <span className="text-sm text-gray-600">
                     {getCustomerName(goal.customer_id)}
                   </span>
@@ -1004,6 +1097,8 @@ const CoachingModal = ({ type, item, customers, goals, sessions, clickedDate: pr
         title: item?.title || '',
         description: item?.description || '',
         type: item?.type || 'kpi',
+        is_kr: item?.is_kr || false,
+        okr_id: item?.okr_id || null,
         target_value: item?.target_value || '',
         current_value: item?.current_value || 0,
         unit: item?.unit || '',
@@ -1161,9 +1256,9 @@ const CoachingModal = ({ type, item, customers, goals, sessions, clickedDate: pr
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b flex justify-between items-center">
-          <h2 className="text-xl font-bold">
+      <div className="bg-white dark:bg-neutral-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-neutral-200 dark:border-neutral-700 flex justify-between items-center">
+          <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-100">
             {item ? 'ویرایش' : 'افزودن'} {
               type === 'session' ? 'جلسه' : 
               type === 'goal' ? 'هدف' : 
@@ -1174,7 +1269,7 @@ const CoachingModal = ({ type, item, customers, goals, sessions, clickedDate: pr
               type === 'feedback' ? 'بازخورد' : ''
             }
           </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <button onClick={onClose} className="text-gray-500 dark:text-neutral-400 hover:text-gray-700 dark:hover:text-neutral-200">
             ✕
           </button>
         </div>
@@ -1362,14 +1457,51 @@ const CoachingModal = ({ type, item, customers, goals, sessions, clickedDate: pr
                   <label className="block text-sm font-medium mb-2">نوع *</label>
                   <select
                     value={formData.type}
-                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                    onChange={(e) => {
+                      const newType = e.target.value;
+                      setFormData({ 
+                        ...formData, 
+                        type: newType,
+                        is_kr: newType === 'okr' ? false : formData.is_kr, // Reset is_kr when changing to KPI
+                      });
+                    }}
                     className="input"
                     required
                   >
                     <option value="kpi">KPI</option>
-                    <option value="okr">OKR</option>
+                    <option value="okr">OKR (هدف)</option>
                   </select>
                 </div>
+                {formData.type === 'okr' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">نوع OKR</label>
+                      <select
+                        value={formData.is_kr ? 'kr' : 'objective'}
+                        onChange={(e) => setFormData({ ...formData, is_kr: e.target.value === 'kr' })}
+                        className="input"
+                      >
+                        <option value="objective">هدف (Objective)</option>
+                        <option value="kr">نتیجه کلیدی (Key Result)</option>
+                      </select>
+                    </div>
+                    {formData.is_kr && (
+                      <div>
+                        <label className="block text-sm font-medium mb-2">مرتبط با OKR (هدف)</label>
+                        <select
+                          value={formData.okr_id || ''}
+                          onChange={(e) => setFormData({ ...formData, okr_id: e.target.value ? parseInt(e.target.value) : null })}
+                          className="input"
+                        >
+                          <option value="">انتخاب OKR مرتبط</option>
+                          {goals?.filter((g: any) => g.type === 'okr' && !g.is_kr && g.id !== item?.id).map((goal: any) => (
+                            <option key={goal.id} value={goal.id}>{goal.title}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </>
+                )}
                 <div>
                   <label className="block text-sm font-medium mb-2">مقدار هدف</label>
                   <input

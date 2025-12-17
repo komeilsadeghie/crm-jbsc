@@ -110,7 +110,7 @@ const Tickets = () => {
             <div className="flex justify-between items-start mb-2">
               <div className="flex items-center gap-2">
                 {getStatusIcon(ticket.status)}
-                <span className="font-medium">{toPersianNumber(ticket.ticket_number)}</span>
+                <span className="font-medium text-center">{toPersianNumber(ticket.ticket_number)}</span>
               </div>
               <span className={getPriorityColor(ticket.priority)}>
                 {translatePriority(ticket.priority)}
@@ -358,28 +358,48 @@ const TicketDetailModal = ({ ticket, onClose }: any) => {
         )}
 
         <div className="space-y-4 mb-6">
-          <h3 className="font-bold text-neutral-800">مکالمات:</h3>
-          {ticketDetail.replies?.map((reply: any) => (
-            <div
-              key={reply.id}
-              className={`p-4 rounded-lg ${
-                reply.is_internal ? 'bg-warning-50 border border-warning-200' : 'bg-neutral-50'
-              }`}
-            >
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <span className="font-medium">
-                    {reply.user_full_name || reply.contact_name || 'نامشخص'}
-                  </span>
-                  {reply.is_internal && (
-                    <span className="text-xs text-yellow-700 mr-2">(داخلی)</span>
-                  )}
+          <h3 className="font-bold text-neutral-800 dark:text-neutral-200">مکالمات:</h3>
+          {ticketDetail.replies?.map((reply: any) => {
+            const isAdmin = reply.user_role === 'admin';
+            const isInternal = reply.is_internal;
+            return (
+              <div
+                key={reply.id}
+                className={`p-4 rounded-lg border-r-4 ${
+                  isInternal 
+                    ? 'bg-warning-50 dark:bg-warning-900/20 border-warning-400 dark:border-warning-600' 
+                    : isAdmin
+                    ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-400 dark:border-primary-600'
+                    : 'bg-neutral-50 dark:bg-neutral-800 border-neutral-300 dark:border-neutral-700'
+                }`}
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex items-center gap-2">
+                    {isAdmin && (
+                      <span className="text-primary-600 dark:text-primary-400" title="ادمین">
+                        👑
+                      </span>
+                    )}
+                    <span className="font-medium text-neutral-800 dark:text-neutral-200">
+                      {reply.user_full_name || reply.contact_name || 'نامشخص'}
+                    </span>
+                    {isInternal && (
+                      <span className="text-xs px-2 py-0.5 bg-warning-100 dark:bg-warning-900/30 text-warning-700 dark:text-warning-300 rounded">
+                        یادداشت داخلی
+                      </span>
+                    )}
+                    {isAdmin && !isInternal && (
+                      <span className="text-xs px-2 py-0.5 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded">
+                        ادمین
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs text-neutral-500 dark:text-neutral-400">{toJalali(reply.created_at)}</span>
                 </div>
-                <span className="text-xs text-gray-500">{toJalali(reply.created_at)}</span>
+                <p className="text-neutral-700 dark:text-neutral-300 whitespace-pre-wrap">{reply.message}</p>
               </div>
-              <p className="text-gray-700">{reply.message}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <form onSubmit={handleReply} className="border-t pt-4">
@@ -398,7 +418,7 @@ const TicketDetailModal = ({ ticket, onClose }: any) => {
             required
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg mb-4"
+            className="input mb-4"
             rows={4}
             placeholder="پاسخ خود را بنویسید..."
           />

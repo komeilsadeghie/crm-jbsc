@@ -211,11 +211,11 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
   }
 
   db.run(
-    `INSERT INTO customers (name, type, email, phone, company_name, address, website, score, status, category, notes, code, designer, gender, site_languages_count, service_type, delivery_deadline, site_costs, initial_delivery_date, languages_added_date, unique_id, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO customers (name, type, email, phone, company_name, address, website, score, status, category, notes, code, designer, gender, site_languages_count, service_type, delivery_deadline, site_costs, initial_delivery_date, languages_added_date, unique_id, journey_stage, coach_id, created_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       customer.name,
-      customer.type,
+      customer.type || 'coaching',
       customer.email || null,
       customer.phone || null,
       customer.company_name || null,
@@ -235,6 +235,8 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
       customer.initial_delivery_date || null,
       customer.languages_added_date || null,
       uniqueId,
+      customer.journey_stage || 'code_executed',
+      customer.coach_id || null,
       userId
     ],
     function(err) {
@@ -257,11 +259,12 @@ router.put('/:id', authenticate, (req: AuthRequest, res: Response) => {
       name = ?, type = ?, email = ?, phone = ?, company_name = ?, address = ?, 
       website = ?, score = ?, status = ?, category = ?, notes = ?, code = ?, designer = ?, 
       gender = ?, site_languages_count = ?, service_type = ?, delivery_deadline = ?, 
-      site_costs = ?, initial_delivery_date = ?, languages_added_date = ?, updated_at = CURRENT_TIMESTAMP
+      site_costs = ?, initial_delivery_date = ?, languages_added_date = ?, 
+      journey_stage = ?, coach_id = ?, updated_at = CURRENT_TIMESTAMP
      WHERE id = ?`,
     [
       customer.name,
-      customer.type,
+      customer.type || 'coaching',
       customer.email || null,
       customer.phone || null,
       customer.company_name || null,
@@ -280,6 +283,8 @@ router.put('/:id', authenticate, (req: AuthRequest, res: Response) => {
       customer.site_costs || null,
       customer.initial_delivery_date || null,
       customer.languages_added_date || null,
+      customer.journey_stage || 'code_executed',
+      customer.coach_id || null,
       id
     ],
     function(err) {

@@ -154,7 +154,10 @@ const Header = () => {
   };
 
   return (
-    <header className="fixed top-0 right-0 left-0 lg:right-64 h-14 sm:h-16 bg-white dark:bg-neutral-900 shadow-medium border-b border-neutral-200 dark:border-neutral-800 z-40" dir="rtl">
+    <header
+      className="fixed top-0 left-0 right-0 h-14 sm:h-16 bg-white dark:bg-neutral-900 shadow-medium border-b border-neutral-200 dark:border-neutral-800 z-40"
+      dir="rtl"
+    >
       <div className="h-full px-3 sm:px-4 lg:px-6 flex items-center justify-between">
         {/* Left side - can be used for breadcrumbs or title */}
         <div className="flex-1"></div>
@@ -209,7 +212,7 @@ const Header = () => {
                   )}
                 </div>
 
-                <div className="max-h-96 overflow-y-auto">
+                <div className="max-h-96 overflow-y-auto scrollbar-thin">
                   {pendingTickets.length === 0 ? (
                     <div className="p-8 text-center text-neutral-500">
                       <Ticket size={48} className="mx-auto mb-3 text-neutral-300" />
@@ -335,7 +338,7 @@ const Header = () => {
                   )}
                 </div>
 
-                <div className="max-h-96 overflow-y-auto">
+                <div className="max-h-96 overflow-y-auto scrollbar-thin">
                   {pendingTasks.length === 0 ? (
                     <div className="p-8 text-center text-neutral-500">
                       <Bell size={48} className="mx-auto mb-3 text-neutral-300" />

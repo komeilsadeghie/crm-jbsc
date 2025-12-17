@@ -196,18 +196,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 transition-colors">
+    <div className="h-screen bg-neutral-50 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 transition-colors flex flex-col overflow-hidden">
       {/* Header */}
       <Header />
 
       {/* Mobile sidebar toggle */}
-      <div className="lg:hidden fixed top-16 left-0 right-0 z-30 bg-white dark:bg-neutral-900 shadow-medium p-3 sm:p-4 flex items-center justify-between border-b border-neutral-200 dark:border-neutral-800 transition-colors">
-        <button 
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="text-neutral-700 hover:text-neutral-900 p-2 rounded-lg hover:bg-neutral-100 transition-colors"
-        >
-          {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+      <div className="lg:hidden fixed top-14 sm:top-16 left-0 right-0 z-30 bg-white dark:bg-neutral-900 shadow-medium p-3 sm:p-4 flex items-center justify-between border-b border-neutral-200 dark:border-neutral-800 transition-colors">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           {mainLogo && getLogoUrl(mainLogo) ? (
             <img 
@@ -222,22 +216,29 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               className="h-6 sm:h-8 w-auto object-contain"
             />
           ) : null}
-          <h1 className="text-base sm:text-xl font-bold text-primary-600 truncate">{companyName}</h1>
+          <h1 className="text-base sm:text-xl font-bold page-heading-gradient truncate">{companyName}</h1>
         </div>
+        <button 
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="text-neutral-700 hover:text-neutral-900 p-2 rounded-lg hover:bg-neutral-100 transition-colors"
+        >
+          {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
       </div>
 
-      <div className="flex">
+      <div className="flex flex-1 overflow-hidden pt-14 sm:pt-16 lg:pt-0">
         {/* Sidebar */}
         <aside
           className={`${
-            sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-          } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white dark:bg-neutral-900 shadow-medium border-r border-neutral-200 dark:border-neutral-800 transition-all duration-300`}
+            sidebarOpen ? 'translate-x-0' : 'translate-x-full'
+          } lg:translate-x-0 fixed lg:static top-14 sm:top-16 lg:top-0 bottom-0 lg:bottom-auto right-0 z-40 w-64 flex-shrink-0 bg-white dark:bg-neutral-900 shadow-medium border-l border-neutral-200 dark:border-neutral-800 transition-all duration-300`}
         >
           {/* Overlay for mobile */}
           {sidebarOpen && (
             <div 
               className="lg:hidden fixed inset-0 bg-black/50 z-30 animate-fade-in"
               onClick={() => setSidebarOpen(false)}
+              style={{ top: '3.5rem' }}
             />
           )}
           <div className="h-full flex flex-col relative z-40 bg-white dark:bg-neutral-900 transition-colors">
@@ -257,7 +258,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                       className="h-8 sm:h-10 w-auto object-contain"
                     />
                   ) : null}
-                  <h2 className="text-lg sm:text-2xl font-bold text-primary-600 hidden lg:block">{companyName}</h2>
+                  <h2 className="text-lg sm:text-2xl font-bold page-heading-gradient hidden lg:block">{companyName}</h2>
                 </div>
               </div>
             </div>
@@ -267,7 +268,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <div className="p-4 border-b border-neutral-200 dark:border-neutral-800 relative">
                 <button
                   onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors group"
+                  className="w-full flex items-center flex-row justify-start gap-3 p-3 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors group"
                 >
                   <div className="flex-shrink-0">
                     {user.avatarUrl ? (
@@ -277,7 +278,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                         className="w-10 h-10 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-neutral-800 flex items-center justify-center border border-primary-500/20">
                         <UserCircle2 size={24} className="text-primary-600 dark:text-primary-400" />
                       </div>
                     )}
@@ -292,25 +293,25 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   </div>
                   <ChevronDown 
                     size={16} 
-                    className={`flex-shrink-0 text-neutral-400 transition-transform ${profileMenuOpen ? 'rotate-180' : ''}`} 
+                    className={`flex-shrink-0 text-neutral-400 transition-transform ${profileMenuOpen ? 'rotate-180' : ''} rotate-180`} 
                   />
                 </button>
 
                 {/* Profile Dropdown Menu */}
                 {profileMenuOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-2 mx-4 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 z-50 overflow-hidden">
+                  <div className="absolute top-full left-0 right-0 mt-2 mx-4 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 z-50 overflow-hidden" dir="rtl">
                     <Link
                       to="/profile"
                       onClick={() => {
                         setProfileMenuOpen(false);
                         setSidebarOpen(false);
                       }}
-                      className={`flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors ${
-                        location.pathname === '/profile' ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400' : 'text-neutral-700 dark:text-neutral-300'
+                      className={`flex items-center flex-row justify-start gap-3 px-4 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors relative ${
+                        location.pathname === '/profile' ? 'bg-primary-50 dark:sidebar-active-item text-primary-700 dark:text-primary-400' : 'text-neutral-700 dark:text-neutral-200'
                       }`}
                     >
                       <UserCircle2 size={18} />
-                      <span className="text-sm">پروفایل من</span>
+                      <span className="text-sm text-right">پروفایل من</span>
                     </Link>
                     <Link
                       to="/profile/timesheets"
@@ -318,12 +319,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                         setProfileMenuOpen(false);
                         setSidebarOpen(false);
                       }}
-                      className={`flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors ${
-                        location.pathname === '/profile/timesheets' ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400' : 'text-neutral-700 dark:text-neutral-300'
+                      className={`flex items-center flex-row justify-start gap-3 px-4 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors relative ${
+                        location.pathname === '/profile/timesheets' ? 'bg-primary-50 dark:sidebar-active-item text-primary-700 dark:text-primary-400' : 'text-neutral-700 dark:text-neutral-200'
                       }`}
                     >
                       <Clock size={18} />
-                      <span className="text-sm">تایم‌شیت‌های من</span>
+                      <span className="text-sm text-right">تایم‌شیت‌های من</span>
                     </Link>
                     <Link
                       to="/profile/edit"
@@ -331,18 +332,18 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                         setProfileMenuOpen(false);
                         setSidebarOpen(false);
                       }}
-                      className={`flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors ${
-                        location.pathname === '/profile/edit' ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400' : 'text-neutral-700 dark:text-neutral-300'
+                      className={`flex items-center flex-row justify-start gap-3 px-4 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors relative ${
+                        location.pathname === '/profile/edit' ? 'bg-primary-50 dark:sidebar-active-item text-primary-700 dark:text-primary-400' : 'text-neutral-700 dark:text-neutral-200'
                       }`}
                     >
                       <Edit size={18} />
-                      <span className="text-sm">ویرایش پروفایل</span>
+                      <span className="text-sm text-right">ویرایش پروفایل</span>
                     </Link>
                     <div className="border-t border-neutral-200 dark:border-neutral-700">
-                      <div className="flex items-center gap-3 px-4 py-3 text-neutral-700 dark:text-neutral-300">
+                      <div className="flex items-center flex-row justify-start gap-3 px-4 py-3 text-neutral-700 dark:text-neutral-200">
                         <Globe size={18} />
-                        <span className="text-sm">زبان</span>
-                        <ChevronRight size={16} className="mr-auto" />
+                        <span className="text-sm text-right">زبان</span>
+                        <ChevronRight size={16} className="ml-auto rotate-180" />
                       </div>
                     </div>
                     <div className="border-t border-neutral-200 dark:border-neutral-700">
@@ -351,10 +352,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                           setProfileMenuOpen(false);
                           logout();
                         }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-danger-600 dark:text-danger-400 hover:bg-danger-50 dark:hover:bg-danger-900/20 transition-colors"
+                        className="w-full flex items-center flex-row justify-start gap-3 px-4 py-3 text-danger-600 dark:text-danger-400 hover:bg-danger-50 dark:hover:bg-neutral-800 transition-colors"
                       >
                         <LogOut size={18} />
-                        <span className="text-sm">خروج</span>
+                        <span className="text-sm text-right">خروج</span>
                       </button>
                     </div>
                   </div>
@@ -362,7 +363,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </div>
             )}
             
-            <nav className="flex-1 p-2 sm:p-4 space-y-3 sm:space-4 overflow-y-auto">
+            <nav className="flex-1 p-2 sm:p-4 space-y-3 sm:space-4 overflow-y-auto scrollbar-neumorphic">
               {Object.entries(menuGroups).map(([groupKey, items]) => {
                 if (items.length === 0) return null;
                 
@@ -378,17 +379,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                             key={item.path}
                             to={item.path}
                             onClick={() => setSidebarOpen(false)}
-                            className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg transition-all duration-200 text-sm sm:text-base group/item animate-slide-right ${
+                            className={`flex items-center flex-row-reverse justify-end gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg transition-all duration-200 text-sm sm:text-base group/item animate-slide-right relative ${
                               isActive
-                                ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 font-semibold border-r-2 border-primary-600 dark:border-primary-500'
-                                : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 hover:text-primary-600 dark:hover:text-primary-400'
+                                ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-semibold border-r-2 border-primary-600 dark:border-primary-400'
+                                : 'text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800 hover:text-primary-600 dark:hover:text-primary-300'
                             }`}
                           >
                             <Icon 
                               size={18} 
                               className={`sm:w-5 sm:h-5 flex-shrink-0 transition-transform ${isActive ? 'scale-110' : 'group-hover/item:scale-110'}`} 
                             />
-                            <span className="truncate">{item.label}</span>
+                            <span className="truncate text-right">{item.label}</span>
                           </Link>
                         );
                       })}
@@ -404,17 +405,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <div key={groupKey} className="space-y-1 sm:space-y-2">
                     <button
                       onClick={() => toggleGroup(groupKey)}
-                      className={`w-full flex items-center justify-between px-3 sm:px-4 py-2 rounded-lg transition-all duration-200 text-xs font-semibold uppercase tracking-wider group/header ${
+                      className={`w-full flex items-center flex-row-reverse justify-end gap-2 px-3 sm:px-4 py-2 rounded-lg transition-all duration-200 text-xs font-semibold uppercase tracking-wider group/header relative ${
                         hasActiveItem
-                          ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20'
-                          : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800'
+                          ? 'text-primary-600 dark:text-primary-300 bg-primary-50 dark:bg-primary-900/30'
+                          : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800'
                       }`}
                     >
-                      <span>{groupLabels[groupKey]}</span>
+                      <span className="text-right">{groupLabels[groupKey]}</span>
                       {isExpanded ? (
                         <ChevronDown size={16} className="transition-transform" />
                       ) : (
-                        <ChevronRight size={16} className="transition-transform" />
+                        <ChevronRight size={16} className="transition-transform rotate-180" />
                       )}
                     </button>
                     {isExpanded && (
@@ -427,17 +428,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                               key={item.path}
                               to={item.path}
                               onClick={() => setSidebarOpen(false)}
-                              className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg transition-all duration-200 text-sm sm:text-base group/item animate-slide-right ${
+                              className={`flex items-center flex-row-reverse justify-end gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg transition-all duration-200 text-sm sm:text-base group/item animate-slide-right relative ${
                                 isActive
-                                  ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 font-semibold border-r-2 border-primary-600 dark:border-primary-500'
-                                  : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 hover:text-primary-600 dark:hover:text-primary-400'
+                                  ? 'bg-primary-50 dark:sidebar-active-item text-primary-700 dark:text-primary-400 font-semibold border-r-2 border-primary-600 dark:border-primary-500'
+                                  : 'text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800 hover:text-primary-600 dark:hover:text-primary-400'
                               }`}
                             >
                               <Icon 
                                 size={18} 
                                 className={`sm:w-5 sm:h-5 flex-shrink-0 transition-transform ${isActive ? 'scale-110' : 'group-hover/item:scale-110'}`} 
                               />
-                              <span className="truncate">{item.label}</span>
+                              <span className="truncate text-right">{item.label}</span>
                             </Link>
                           );
                         })}
@@ -452,8 +453,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 lg:mr-64 pt-32 lg:pt-16 bg-neutral-50 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 min-h-screen transition-colors">
-          <div className="p-3 sm:p-4 md:p-6">{children}</div>
+        <main className="flex-1 w-full lg:w-[calc(100%-16rem)] bg-neutral-50 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 h-full overflow-y-auto overflow-x-hidden scrollbar-neumorphic transition-colors">
+          <div className="w-full max-w-full p-3 sm:p-4 md:p-6 min-h-full box-border">{children}</div>
         </main>
       </div>
     </div>
