@@ -15,14 +15,6 @@ import { migrateTasksEnhancedTable } from './database/migrate-tasks-enhanced';
 import { migratePaymentGatewaysTable } from './database/migrate-payment-gateways';
 import { migrateSurveysTable } from './database/migrate-surveys';
 import { migrateMediaImportFields } from './database/migrate-media-import';
-import { migrateProjectPayments } from './database/migrate-project-payments';
-import { migrateCustomerExcelFields } from './database/migrate-customer-excel-fields';
-import { migrateCoachingEnhanced } from './database/migrate-coaching-enhanced';
-import { migrateKnowledgeBaseEnhanced } from './database/migrate-knowledge-base-enhanced';
-import { migrateCustomerJourney } from './database/migrate-customer-journey';
-import { migrateGoalsEnhanced } from './database/migrate-goals-enhanced';
-import { migrateProjectLabels } from './database/migrate-project-labels';
-import { migrateUsersVoipExtension } from './database/migrate-users-voip';
 import { fixUniqueIdColumn } from './database/fix-unique-id';
 
 // Load ENV
@@ -104,22 +96,23 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
         console.error("❌ Could not fix unique_id column:", fixError);
       }
     }
+    
     // Optional migrations (files may not exist in some deployments)
-try {
-  if (process.env.RUN_MIGRATIONS === "true") {
-    console.log("🔄 Running optional migrations...");
+    try {
+      if (process.env.RUN_MIGRATIONS === "true") {
+        console.log("🔄 Running optional migrations...");
 
-    await (await import("./database/migrate-knowledge-base-enhanced")).migrateKnowledgeBaseEnhanced();
-    await (await import("./database/migrate-customer-journey")).migrateCustomerJourney();
-    await (await import("./database/migrate-goals-enhanced")).migrateGoalsEnhanced();
-    await (await import("./database/migrate-project-labels")).migrateProjectLabels();
-    await (await import("./database/migrate-users-voip")).migrateUsersVoipExtension();
-  } else {
-    console.log("ℹ️ Optional migrations skipped (set RUN_MIGRATIONS=true to run).");
-  }
-} catch (e) {
-  console.warn("⚠️ Optional migrations not available or failed; continuing without them.", e);
-}
+        await (await import("./database/migrate-knowledge-base-enhanced")).migrateKnowledgeBaseEnhanced();
+        await (await import("./database/migrate-customer-journey")).migrateCustomerJourney();
+        await (await import("./database/migrate-goals-enhanced")).migrateGoalsEnhanced();
+        await (await import("./database/migrate-project-labels")).migrateProjectLabels();
+        await (await import("./database/migrate-users-voip")).migrateUsersVoipExtension();
+      } else {
+        console.log("ℹ️ Optional migrations skipped (set RUN_MIGRATIONS=true to run).");
+      }
+    } catch (e) {
+      console.warn("⚠️ Optional migrations not available or failed; continuing without them.", e);
+    }
 
     console.log("✅ Database initialized successfully!");
   } catch (err) {
