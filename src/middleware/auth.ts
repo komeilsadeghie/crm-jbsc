@@ -14,6 +14,8 @@ interface TokenPayload {
 export interface AuthRequest extends Request {
   user?: TokenPayload;
   contact?: any; // Contact object for client portal
+  file?: Express.Multer.File; // File from multer middleware
+  files?: Express.Multer.File[] | { [fieldname: string]: Express.Multer.File[] }; // Files from multer middleware
 }
 
 export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
