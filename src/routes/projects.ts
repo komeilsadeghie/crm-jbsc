@@ -156,7 +156,7 @@ router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
                   }
 
                   res.json({
-                    ...project,
+                    ...(project as any),
                     milestones: milestones || [],
                     discussions: discussions || [],
                     files: files || [],
@@ -173,7 +173,7 @@ router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
                 }
 
                 res.json({
-                  ...project,
+                  ...(project as any),
                   milestones: milestones || [],
                   discussions: discussions || [],
                   files: files || [],

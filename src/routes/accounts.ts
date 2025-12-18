@@ -112,7 +112,7 @@ router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
         }
 
         res.json({
-          ...account,
+          ...(account as any),
           contacts,
           deals
         });

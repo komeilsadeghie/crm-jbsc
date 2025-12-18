@@ -96,7 +96,7 @@ router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
       }
 
       res.json({
-        ...ticket,
+        ...(ticket as any),
         replies
       });
     });
