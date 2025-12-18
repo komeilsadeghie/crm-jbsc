@@ -795,11 +795,12 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
           }
         }
 
-        // Create project if createProjects is true and balance > 0 or serviceCost exists
-        if (createProjects && accountId && (balanceValue > 0 || serviceCost)) {
+        // Create project if createProjects is true (for all customers)
+        if (createProjects && accountId) {
           try {
-            const costValue = String(serviceCost || balanceValue).replace(/,/g, '');
-            const budget = Number(costValue) || null;
+            // Use serviceCost or balanceValue as budget, or null if neither exists
+            const costValue = serviceCost || balanceValue;
+            const budget = costValue ? Number(String(costValue).replace(/,/g, '')) : null;
 
             // Determine project status based on dates and balance
             // If balance > 0, project is still active (not completed)
@@ -849,7 +850,7 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
             const settlements = JSON.stringify(settlementsObj);
 
             const projectName = `طراحی سایت ${companyName || customerName}`;
-            const projectDescription = `پروژه طراحی وب‌سایت برای ${customerName}\n${website ? `وب‌سایت: ${website}\n` : ''}${productName ? `محصول: ${productName}\n` : ''}${customerCode ? `کد: ${customerCode}\n` : ''}${designerColumn ? `طراح: ${designerColumn}\n` : ''}${siteLanguagesCount ? `تعداد زبان‌ها: ${siteLanguagesCount}\n` : ''}${serviceType ? `نوع خدمات: ${serviceType}\n` : ''}مانده پرداخت: ${new Intl.NumberFormat('fa-IR').format(balanceValue)} تومان`;
+            const projectDescription = `پروژه طراحی وب‌سایت برای ${customerName}${website ? `\nوب‌سایت: ${website}` : ''}${productName ? `\nمحصول: ${productName}` : ''}${customerCode ? `\nکد: ${customerCode}` : ''}${designerColumn ? `\nطراح: ${designerColumn}` : ''}${siteLanguagesCount ? `\nتعداد زبان‌ها: ${siteLanguagesCount}` : ''}${serviceType ? `\nنوع خدمات: ${serviceType}` : ''}${balanceValue > 0 ? `\nمانده پرداخت: ${new Intl.NumberFormat('fa-IR').format(balanceValue)} تومان` : ''}`;
 
             // Check if project already exists for this account
             const existingProject = await dbGet(

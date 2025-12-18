@@ -1069,7 +1069,7 @@ const ImportCustomersSection = ({ onSuccess }: { onSuccess: (data?: any) => void
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [createDeals, setCreateDeals] = useState(true);
-  const [createProjects, setCreateProjects] = useState(false);
+  const [createProjects, setCreateProjects] = useState(true);
 
   const previewMutation = useMutation(
     async (file: File) => {
@@ -1672,7 +1672,7 @@ const ImportCustomersSection = ({ onSuccess }: { onSuccess: (data?: any) => void
                     className="w-4 h-4"
                   />
                   <label htmlFor="createProjects" className="text-sm font-medium">
-                    ایجاد پروژه برای مشتریانی که هزینه سرویس یا مانده حساب دارند
+                    ایجاد پروژه برای تمام مشتریان وارد شده
                   </label>
                 </div>
 
