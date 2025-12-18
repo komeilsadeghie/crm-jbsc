@@ -192,7 +192,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   // Auto-expand group if current route belongs to it
   useEffect(() => {
     const currentGroup = Object.entries(menuGroups).find(([_, items]) =>
-      items.some(item => item.path === location.pathname)
+      (items as MenuItem[]).some(item => item.path === location.pathname)
     )?.[0];
     
     if (currentGroup && currentGroup !== 'main') {
@@ -380,13 +380,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             
             <nav className="flex-1 p-2 sm:p-4 space-y-3 sm:space-4 overflow-y-auto scrollbar-neumorphic">
               {Object.entries(menuGroups).map(([groupKey, items]) => {
-                if (items.length === 0) return null;
+                const menuItems = items as MenuItem[];
+                if (menuItems.length === 0) return null;
                 
                 // For main group (dashboard), don't show as collapsible
                 if (groupKey === 'main') {
                   return (
                     <div key={groupKey} className="space-y-1 sm:space-y-2">
-                      {items.map((item) => {
+                      {menuItems.map((item) => {
                         const Icon = item.icon;
                         const isActive = location.pathname === item.path;
                         return (
@@ -435,7 +436,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     </button>
                     {isExpanded && (
                       <div className="space-y-1 sm:space-y-2 pr-2 sm:pr-4">
-                        {items.map((item) => {
+                        {menuItems.map((item) => {
                           const Icon = item.icon;
                           const isActive = location.pathname === item.path;
                           return (
