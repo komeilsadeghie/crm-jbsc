@@ -241,7 +241,14 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
     ],
     function(err) {
       if (err) {
-        return res.status(500).json({ error: 'خطا در ثبت مشتری' });
+        console.error('❌ Error creating customer:', err);
+        console.error('❌ SQL Error:', err.message);
+        console.error('❌ Customer data:', customer);
+        return res.status(500).json({ 
+          error: 'خطا در ثبت مشتری',
+          details: process.env.NODE_ENV === 'development' ? err.message : undefined,
+          sqlError: process.env.NODE_ENV === 'development' ? err.toString() : undefined
+        });
       }
       res.status(201).json({ id: this.lastID, message: 'مشتری با موفقیت ثبت شد' });
     }

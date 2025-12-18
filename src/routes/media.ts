@@ -652,36 +652,42 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
           successCount++;
         } else {
           // Create new customer
-          const customerResult = await dbRun(
-            `INSERT INTO customers (name, type, email, phone, company_name, address, website, score, status, category, notes, code, designer, gender, site_languages_count, service_type, delivery_deadline, site_costs, initial_delivery_date, languages_added_date, unique_id, created_by)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-              customerName,
-              customerType,
-              normalizeValue(mappedRow.email),
-              normalizeValue(phone),
-              normalizeValue(companyName),
-              normalizeValue(mappedRow.address),
-              normalizeValue(website),
-              Number(mappedRow.score) || 0,
-              customerStatus,
-              'بخش مدیا > طراحی سایت',
-              normalizeValue(productName ? `محصول: ${productName}` : mappedRow.notes || mappedRow['توضیحات']),
-              customerCode,
-              normalizeValue(designerColumn),
-              normalizeValue(gender),
-              siteLanguagesCount ? Number(siteLanguagesCount) : null,
-              normalizeValue(serviceType),
-              deliveryDeadline || null,
-              siteCosts ? parseFloat(String(siteCosts).replace(/,/g, '')) : null,
-              initialDeliveryDate || null,
-              languagesAddedDate || null,
-              uniqueId,
-              req.user?.id,
-            ]
-          );
-          customerId = customerResult.lastID!;
-          successCount++;
+          try {
+            const customerResult = await dbRun(
+              `INSERT INTO customers (name, type, email, phone, company_name, address, website, score, status, category, notes, code, designer, gender, site_languages_count, service_type, delivery_deadline, site_costs, initial_delivery_date, languages_added_date, unique_id, created_by)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              [
+                customerName,
+                customerType,
+                normalizeValue(mappedRow.email),
+                normalizeValue(phone),
+                normalizeValue(companyName),
+                normalizeValue(mappedRow.address),
+                normalizeValue(website),
+                Number(mappedRow.score) || 0,
+                customerStatus,
+                'بخش مدیا > طراحی سایت',
+                normalizeValue(productName ? `محصول: ${productName}` : mappedRow.notes || mappedRow['توضیحات']),
+                customerCode,
+                normalizeValue(designerColumn),
+                normalizeValue(gender),
+                siteLanguagesCount ? Number(siteLanguagesCount) : null,
+                normalizeValue(serviceType),
+                deliveryDeadline || null,
+                siteCosts ? parseFloat(String(siteCosts).replace(/,/g, '')) : null,
+                initialDeliveryDate || null,
+                languagesAddedDate || null,
+                uniqueId,
+                req.user?.id,
+              ]
+            );
+            customerId = customerResult.lastID!;
+            successCount++;
+          } catch (insertError: any) {
+            console.error(`❌ Error inserting customer in row ${index + 2}:`, insertError);
+            console.error(`❌ SQL Error:`, insertError.message);
+            throw insertError; // Re-throw to be caught by outer catch
+          }
         }
 
         // Parse balance value
@@ -929,8 +935,28 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
           }
         }
       } catch (error: any) {
-        console.error(`Error processing row ${index + 2}:`, error);
-        errors.push({ row: index + 2, error: error.message || String(error) });
+        console.error(`❌ Error processing row ${index + 2}:`, error);
+        console.error(`❌ Error message:`, error.message);
+        console.error(`❌ Error stack:`, error.stack);
+        
+        // Check if it's a SQL error about missing column
+        const errorMessage = error.message || String(error);
+        let userFriendlyError = errorMessage;
+        
+        if (errorMessage.includes('no column named')) {
+          const columnMatch = errorMessage.match(/no column named (\w+)/i);
+          if (columnMatch) {
+            userFriendlyError = `ستون "${columnMatch[1]}" در دیتابیس وجود ندارد. لطفاً migration را اجرا کنید: npm run migrate:customer-fields`;
+          }
+        } else if (errorMessage.includes('SQLITE_ERROR')) {
+          // Extract more details from SQLite errors
+          const sqliteMatch = errorMessage.match(/SQLITE_ERROR: (.+)/i);
+          if (sqliteMatch) {
+            userFriendlyError = sqliteMatch[1];
+          }
+        }
+        
+        errors.push({ row: index + 2, error: userFriendlyError });
       }
     }
 

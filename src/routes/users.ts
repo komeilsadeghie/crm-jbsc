@@ -127,8 +127,13 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
         ],
         function(err) {
           if (err) {
-            console.error('Error creating user:', err);
-            return res.status(500).json({ error: 'خطا در ایجاد کاربر' });
+            console.error('❌ Error creating user:', err);
+            console.error('❌ SQL Error:', err.message);
+            return res.status(500).json({ 
+              error: 'خطا در ایجاد کاربر',
+              details: process.env.NODE_ENV === 'development' ? err.message : undefined,
+              sqlError: process.env.NODE_ENV === 'development' ? err.toString() : undefined
+            });
           }
           res.status(201).json({ id: this.lastID, message: 'کاربر با موفقیت ایجاد شد' });
         }
