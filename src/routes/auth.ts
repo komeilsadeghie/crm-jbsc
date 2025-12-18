@@ -130,9 +130,13 @@ router.post('/register', async (req: Request, res: Response) => {
       message: 'کاربر با موفقیت ثبت شد',
       id: result.lastID,
     });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'خطا در ثبت نام' });
+  } catch (error: any) {
+    console.error('Error registering user:', error);
+    console.error('Error details:', error.message);
+    res.status(500).json({ 
+      error: 'خطا در ثبت نام',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 

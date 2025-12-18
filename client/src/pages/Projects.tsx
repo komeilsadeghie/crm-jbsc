@@ -132,65 +132,67 @@ const Projects = () => {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex justify-between items-center glass-card">
-          <h1 className="page-heading-gradient">پروژه‌ها</h1>
-        <button
-          onClick={() => {
-            setEditingProject(null);
-            setShowModal(true);
-          }}
-          className="btn btn-primary flex items-center gap-2"
-        >
-          <Plus size={20} />
-          پروژه جدید
-        </button>
-      </div>
-
-      {/* Filter */}
-      <div className="glass-card">
-        <div className="flex items-center gap-4">
-          <label className="text-sm font-medium">فیلتر وضعیت:</label>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="input"
+    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 p-4 sm:p-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 flex flex-col h-[calc(100vh-2rem)] sm:h-[calc(100vh-3rem)]">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 glass-card flex-shrink-0">
+          <h1 className="page-heading-gradient text-xl sm:text-2xl">پروژه‌ها</h1>
+          <button
+            onClick={() => {
+              setEditingProject(null);
+              setShowModal(true);
+            }}
+            className="btn btn-primary flex items-center gap-2 w-full sm:w-auto"
           >
-            <option value="">همه وضعیت‌ها</option>
-            <option value="completed">✅ تکمیل شده</option>
-            <option value="customer_following">🔵 مشتری در حال پیگیری</option>
-            <option value="in_progress">🔵 در حال رسیدگی</option>
-            <option value="cooperation_ended">🔴 اتمام همکاری</option>
-            <option value="on_hold">🟠 هولد شده</option>
-            <option value="planning">در حال برنامه‌ریزی</option>
-            <option value="active">انجام شده</option>
-            <option value="cancelled">لغو شده</option>
-          </select>
-          {filterStatus && (
-            <button
-              onClick={() => setFilterStatus('')}
-              className="btn btn-secondary text-sm"
-            >
-              پاک کردن فیلتر
-            </button>
-          )}
+            <Plus size={20} />
+            <span className="hidden sm:inline">پروژه جدید</span>
+            <span className="sm:hidden">جدید</span>
+          </button>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Filter */}
+        <div className="glass-card flex-shrink-0">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+            <label className="text-sm font-medium whitespace-nowrap">فیلتر وضعیت:</label>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="input flex-1"
+            >
+              <option value="">همه وضعیت‌ها</option>
+              <option value="completed">✅ تکمیل شده</option>
+              <option value="customer_following">🔵 مشتری در حال پیگیری</option>
+              <option value="in_progress">🔵 در حال رسیدگی</option>
+              <option value="cooperation_ended">🔴 اتمام همکاری</option>
+              <option value="on_hold">🟠 هولد شده</option>
+              <option value="planning">در حال برنامه‌ریزی</option>
+              <option value="active">انجام شده</option>
+              <option value="cancelled">لغو شده</option>
+            </select>
+            {filterStatus && (
+              <button
+                onClick={() => setFilterStatus('')}
+                className="btn btn-secondary text-sm whitespace-nowrap"
+              >
+                پاک کردن فیلتر
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto overflow-x-hidden pr-2 -mr-2 min-h-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
         {paginatedProjects?.map((project: any) => (
           <div
             key={project.id}
             onClick={() => navigate(`/projects/${project.id}`)}
-            className={`card-hover cursor-pointer ${getStatusBorderColor(project.status)}`}
+            className={`card-hover cursor-pointer ${getStatusBorderColor(project.status)} p-3 sm:p-4`}
           >
-            <div className="flex justify-between items-start mb-3">
-              <div className="flex items-center gap-2">
-                <FolderOpen className="text-primary-600" size={24} />
-                <h3 className="font-bold text-lg">{project.name}</h3>
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-3 mb-3">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <FolderOpen className="text-primary-600 flex-shrink-0" size={20} className="sm:w-6 sm:h-6" />
+                <h3 className="font-bold text-base sm:text-lg break-words">{project.name}</h3>
               </div>
-              <div className="flex flex-col items-end gap-1">
+              <div className="flex flex-col items-end gap-1 flex-shrink-0">
                 <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(project.status)}`}>
                   {getStatusLabel(project.status)}
                 </span>
@@ -214,46 +216,46 @@ const Projects = () => {
               </div>
             </div>
             {project.description && (
-              <p className="text-sm text-neutral-600 dark:text-neutral-300 mb-3 line-clamp-2">{project.description}</p>
+              <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-300 mb-3 line-clamp-2 break-words">{project.description}</p>
             )}
-            <div className="space-y-2 text-sm text-neutral-600 dark:text-neutral-300">
+            <div className="space-y-2 text-xs sm:text-sm text-neutral-600 dark:text-neutral-300">
               {project.account_name && (
                 <div className="flex items-center gap-2">
-                  <Users size={16} />
-                  {project.account_name}
+                  <Users size={14} className="sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span className="truncate">{project.account_name}</span>
                 </div>
               )}
               {project.start_date && (
                 <div className="flex items-center gap-2">
-                  <Calendar size={16} />
-                  شروع: {toJalali(project.start_date)}
+                  <Calendar size={14} className="sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span className="whitespace-nowrap">شروع: {toJalali(project.start_date)}</span>
                 </div>
               )}
               {project.end_date && (
                 <div className="flex items-center gap-2">
-                  <Calendar size={16} />
-                  پایان: {toJalali(project.end_date)}
+                  <Calendar size={14} className="sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span className="whitespace-nowrap">پایان: {toJalali(project.end_date)}</span>
                 </div>
               )}
               {project.budget && (
                 <div className="flex items-center gap-2">
-                  <DollarSign size={16} />
-                  بودجه: {toPersianNumber(new Intl.NumberFormat('fa-IR').format(project.budget))}
+                  <DollarSign size={14} className="sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span className="truncate">بودجه: {toPersianNumber(new Intl.NumberFormat('fa-IR').format(project.budget))}</span>
                 </div>
               )}
             </div>
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex flex-col sm:flex-row gap-2">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setEditingProject(project);
                   setShowModal(true);
                 }}
-                className="flex items-center gap-2 px-3 py-1.5 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-900/50 rounded-lg transition-colors text-sm font-medium"
+                className="flex items-center justify-center gap-2 px-3 py-1.5 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-900/50 rounded-lg transition-colors text-xs sm:text-sm font-medium"
                 title="ویرایش"
               >
-                <Edit size={16} />
-                ویرایش
+                <Edit size={14} className="sm:w-4 sm:h-4" />
+                <span>ویرایش</span>
               </button>
               <button
                 onClick={(e) => {
@@ -262,33 +264,34 @@ const Projects = () => {
                     deleteMutation.mutate(project.id);
                   }
                 }}
-                className="flex items-center gap-2 px-3 py-1.5 bg-danger-50 dark:bg-danger-900/30 text-danger-600 dark:text-danger-400 hover:bg-danger-100 dark:hover:bg-danger-900/50 rounded-lg transition-colors text-sm font-medium"
+                className="flex items-center justify-center gap-2 px-3 py-1.5 bg-danger-50 dark:bg-danger-900/30 text-danger-600 dark:text-danger-400 hover:bg-danger-100 dark:hover:bg-danger-900/50 rounded-lg transition-colors text-xs sm:text-sm font-medium"
                 title="حذف"
               >
-                <Trash2 size={16} />
-                حذف
+                <Trash2 size={14} className="sm:w-4 sm:h-4" />
+                <span>حذف</span>
               </button>
             </div>
           </div>
-        ))}
-      </div>
-
-      {/* Pagination */}
-      {totalItems > 0 && (
-        <div className="pt-4 border-t border-neutral-200 dark:border-neutral-700">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            itemsPerPage={itemsPerPage}
-            totalItems={totalItems}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={(newItemsPerPage) => {
-              setItemsPerPage(newItemsPerPage);
-              setCurrentPage(1);
-            }}
-          />
+            ))}
+          </div>
         </div>
-      )}
+
+        {/* Pagination */}
+        {totalItems > 0 && (
+          <div className="pt-4 border-t border-neutral-200 dark:border-neutral-700 flex-shrink-0">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              itemsPerPage={itemsPerPage}
+              totalItems={totalItems}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={(newItemsPerPage) => {
+                setItemsPerPage(newItemsPerPage);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
+        )}
 
       {showModal && (
         <ProjectModal

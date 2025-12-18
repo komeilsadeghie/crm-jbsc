@@ -111,23 +111,38 @@ router.post('/sessions', authenticate, async (req: AuthRequest, res: Response) =
         const customer = await dbGet('SELECT name FROM customers WHERE id = ?', [session.customer_id]);
         const customerName = customer?.name || 'مشتری';
         
+        // Generate unique ID for calendar event
+        const eventId = `coaching_${result.lastID}_${Date.now()}`;
+        
+        // Validate user_id exists before inserting
+        let createdById: number | null = null;
+        if (req.user?.id && Number.isInteger(Number(req.user.id))) {
+          const userId = Number(req.user.id);
+          const userExists = await dbGet(`SELECT id FROM users WHERE id = ?`, [userId]);
+          if (userExists) {
+            createdById = userId;
+          }
+        }
+        
         await dbRun(
-          `INSERT INTO calendar_events (title, start_at, end_at, description, relation_type, relation_id, color, created_by)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO calendar_events (id, title, start_at, end_at, description, relation_type, relation_id, customer_id, created_by)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
+            eventId,
             `جلسه کوچینگ: ${customerName}`,
             session.session_date,
             session.session_date, // Same date for end
             session.notes || `جلسه کوچینگ با ${customerName}`,
-            'COACHING_SESSION',
+            'CUSTOMER',
             result.lastID?.toString(),
-            session.color || '#6366F1',
-            req.user?.id
+            session.customer_id,
+            createdById
           ]
         );
-        console.log('Created calendar event for coaching session:', result.lastID);
       } catch (calendarError: any) {
-        console.error('Error creating calendar event for coaching session:', calendarError);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error creating calendar event for coaching session:', calendarError);
+        }
         // Don't fail the session creation if calendar event fails
       }
     }
@@ -175,9 +190,12 @@ router.put('/sessions/:id', authenticate, async (req: AuthRequest, res: Response
 
     // Update calendar event if it exists
     try {
+      // Look for calendar event by relation_id matching the session id, or by customer_id
       const existingCalendarEvent = await dbGet(
-        'SELECT id FROM calendar_events WHERE relation_type = ? AND relation_id = ?',
-        ['COACHING_SESSION', id.toString()]
+        `SELECT id FROM calendar_events 
+         WHERE (relation_type = 'CUSTOMER' AND relation_id = ?) 
+         OR (customer_id = ? AND title LIKE 'جلسه کوچینگ:%')`,
+        [id.toString(), session.customer_id]
       );
 
       if (existingCalendarEvent) {
@@ -186,42 +204,54 @@ router.put('/sessions/:id', authenticate, async (req: AuthRequest, res: Response
         
         await dbRun(
           `UPDATE calendar_events SET 
-            title = ?, start_at = ?, end_at = ?, description = ?, color = ?
-           WHERE relation_type = ? AND relation_id = ?`,
+            title = ?, start_at = ?, end_at = ?, description = ?
+           WHERE id = ?`,
           [
             `جلسه کوچینگ: ${customerName}`,
             session.session_date,
             session.session_date,
             session.notes || `جلسه کوچینگ با ${customerName}`,
-            session.color || '#6366F1',
-            'COACHING_SESSION',
-            id.toString()
+            existingCalendarEvent.id
           ]
         );
-        console.log('Updated calendar event for coaching session:', id);
       } else if (session.session_date) {
         // Create calendar event if it doesn't exist
         const customer = await dbGet('SELECT name FROM customers WHERE id = ?', [session.customer_id]);
         const customerName = customer?.name || 'مشتری';
         
+        // Generate unique ID for calendar event
+        const eventId = `coaching_${id}_${Date.now()}`;
+        
+        // Validate user_id exists before inserting
+        let createdById: number | null = null;
+        if (req.user?.id && Number.isInteger(Number(req.user.id))) {
+          const userId = Number(req.user.id);
+          const userExists = await dbGet(`SELECT id FROM users WHERE id = ?`, [userId]);
+          if (userExists) {
+            createdById = userId;
+          }
+        }
+        
         await dbRun(
-          `INSERT INTO calendar_events (title, start_at, end_at, description, relation_type, relation_id, color, created_by)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO calendar_events (id, title, start_at, end_at, description, relation_type, relation_id, customer_id, created_by)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
+            eventId,
             `جلسه کوچینگ: ${customerName}`,
             session.session_date,
             session.session_date,
             session.notes || `جلسه کوچینگ با ${customerName}`,
-            'COACHING_SESSION',
+            'CUSTOMER',
             id.toString(),
-            session.color || '#6366F1',
-            req.user?.id
+            session.customer_id,
+            createdById
           ]
         );
-        console.log('Created calendar event for coaching session:', id);
       }
     } catch (calendarError: any) {
-      console.error('Error updating calendar event for coaching session:', calendarError);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error updating calendar event for coaching session:', calendarError);
+      }
       // Don't fail the session update if calendar event fails
     }
 
@@ -237,14 +267,18 @@ router.delete('/sessions/:id', authenticate, async (req: AuthRequest, res: Respo
   try {
     const { id } = req.params;
 
-    // Delete associated calendar event if exists
+    // Delete associated calendar event if exists (by relation_id or by finding coaching session events)
     try {
       await dbRun(
-        'DELETE FROM calendar_events WHERE relation_type = ? AND relation_id = ?',
-        ['COACHING_SESSION', id.toString()]
+        `DELETE FROM calendar_events 
+         WHERE (relation_type = 'CUSTOMER' AND relation_id = ?)
+         OR (title LIKE 'جلسه کوچینگ:%' AND relation_id = ?)`,
+        [id.toString(), id.toString()]
       );
     } catch (calendarError: any) {
-      console.error('Error deleting calendar event for coaching session:', calendarError);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error deleting calendar event for coaching session:', calendarError);
+      }
       // Continue with session deletion even if calendar event deletion fails
     }
 
@@ -272,7 +306,7 @@ router.get('/kanban', authenticate, async (req: AuthRequest, res: Response) => {
              c.id as customer_id,
              u.username as coach_username
       FROM coaching_sessions cs
-      JOIN customers c ON cs.customer_id = c.id
+      LEFT JOIN customers c ON cs.customer_id = c.id
       LEFT JOIN users u ON cs.coach_id = u.id
       ORDER BY cs.kanban_column, cs.position, cs.session_date
     `, []);
@@ -288,19 +322,21 @@ router.get('/kanban', authenticate, async (req: AuthRequest, res: Response) => {
       'completed': []
     };
 
-    sessions.forEach((session: any) => {
-      const column = session.kanban_column || 'scheduled';
-      if (kanbanData[column]) {
-        kanbanData[column].push(session);
-      } else {
-        kanbanData['code_executed'].push(session);
-      }
-    });
+    if (Array.isArray(sessions)) {
+      sessions.forEach((session: any) => {
+        const column = session.kanban_column || 'code_executed';
+        if (kanbanData[column]) {
+          kanbanData[column].push(session);
+        } else {
+          kanbanData['code_executed'].push(session);
+        }
+      });
+    }
 
     res.json(kanbanData);
   } catch (error: any) {
     console.error('Error fetching kanban sessions:', error);
-    res.status(500).json({ error: 'خطا در دریافت جلسات' });
+    res.status(500).json({ error: 'خطا در دریافت جلسات: ' + (error.message || 'خطای نامشخص') });
   }
 });
 
@@ -679,7 +715,7 @@ router.get('/sessions/upcoming', authenticate, async (req: AuthRequest, res: Res
     const sessions = await dbAll(
       `SELECT cs.*, c.name as customer_name 
        FROM coaching_sessions cs
-       JOIN customers c ON cs.customer_id = c.id
+       LEFT JOIN customers c ON cs.customer_id = c.id
        WHERE cs.status = 'scheduled' 
        AND cs.session_date >= date('now')
        AND cs.session_date <= date('now', '+' || ? || ' days')

@@ -379,7 +379,7 @@ const Coaching = () => {
       </div>
 
       {/* Content */}
-      <div className="card">
+      <div className="card min-h-0 flex flex-col">
         {activeTab === 'dashboard' && (
           <DashboardView
             stats={dashboardStats}
@@ -645,23 +645,25 @@ const SessionsList = ({ sessions, customers, onEdit, onDelete, searchTerm, statu
   };
 
   return (
-    <div className="space-y-4">
-      {sessionsArray.map((session: any) => {
+    <div className="w-full h-full flex flex-col">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden pr-2 -mr-2" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+        <div className="space-y-4 pb-4">
+          {sessionsArray.map((session: any) => {
         const customColor = session.color;
         const statusColorClass = customColor ? '' : getStatusColor(session.status);
         return (
         <div 
           key={session.id} 
-          className={`border-2 rounded-lg p-4 hover:shadow-md transition-all ${statusColorClass}`}
+          className={`border-2 rounded-lg p-3 sm:p-4 hover:shadow-md transition-all ${statusColorClass}`}
           style={customColor ? {
             backgroundColor: `${customColor}20`,
             borderColor: customColor
           } : {}}
         >
-          <div className="flex justify-between items-start">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2 flex-wrap">
-                <span className="font-bold text-lg">{getCustomerName(session.customer_id)}</span>
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4">
+            <div className="flex-1 w-full min-w-0">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2 flex-wrap">
+                <span className="font-bold text-base sm:text-lg break-words">{getCustomerName(session.customer_id)}</span>
                 <span 
                   className={`px-3 py-1 rounded-full text-sm font-medium border ${statusColorClass}`}
                   style={customColor ? {
@@ -685,8 +687,8 @@ const SessionsList = ({ sessions, customers, onEdit, onDelete, searchTerm, statu
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-4 text-sm text-gray-700 dark:text-neutral-300 mb-2">
-                <span>📅 {toJalali(session.session_date)}</span>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs sm:text-sm text-gray-700 dark:text-neutral-300 mb-2">
+                <span className="whitespace-nowrap">📅 {toJalali(session.session_date)}</span>
                 {session.duration && (
                   <span>⏱️ {session.duration} دقیقه</span>
                 )}
@@ -878,58 +880,63 @@ const ExercisesList = ({ exercises, goals, customers, onEdit, onDelete }: any) =
   };
 
   return (
-    <div className="space-y-4">
-      {exercisesArray.map((exercise: any) => (
-        <div key={exercise.id} className="border rounded-lg p-4 hover:bg-gray-50">
-          <div className="flex justify-between items-start">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <span className="font-medium">{exercise.title}</span>
-                <span className={`px-2 py-1 rounded text-sm ${getStatusColor(exercise.status)}`}>
-                  {exercise.status}
-                </span>
-              </div>
-              <div className="text-sm text-gray-600 mb-2">
-                <span>مشتری: {getCustomerName(exercise.customer_id)}</span>
-                {exercise.goal_id && (
-                  <span className="mr-4">هدف: {getGoalTitle(exercise.goal_id)}</span>
-                )}
-                {exercise.due_date && (
-                  <span>مهلت: {toJalali(exercise.due_date)}</span>
-                )}
-              </div>
-              {exercise.description && (
-                <p className="text-gray-700 mb-2">{exercise.description}</p>
-              )}
-              {exercise.instructions && (
-                <div className="mt-2 p-3 bg-gray-50 rounded">
-                  <p className="text-sm font-medium mb-1">دستورالعمل:</p>
-                  <p className="text-sm text-gray-700">{exercise.instructions}</p>
+    <div className="w-full h-full flex flex-col">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden pr-2 -mr-2" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+        <div className="space-y-4 pb-4">
+          {exercisesArray.map((exercise: any) => (
+            <div key={exercise.id} className="border rounded-lg p-3 sm:p-4 hover:bg-gray-50 transition-colors">
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4">
+                <div className="flex-1 w-full min-w-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                    <span className="font-medium text-base sm:text-lg break-words">{exercise.title}</span>
+                    <span className={`px-2 py-1 rounded text-xs sm:text-sm whitespace-nowrap ${getStatusColor(exercise.status)}`}>
+                      {exercise.status}
+                    </span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs sm:text-sm text-gray-600 mb-2">
+                    <span className="whitespace-nowrap">مشتری: {getCustomerName(exercise.customer_id)}</span>
+                    {exercise.goal_id && (
+                      <span className="whitespace-nowrap">هدف: {getGoalTitle(exercise.goal_id)}</span>
+                    )}
+                    {exercise.due_date && (
+                      <span className="whitespace-nowrap">مهلت: {toJalali(exercise.due_date)}</span>
+                    )}
+                  </div>
+                  {exercise.description && (
+                    <p className="text-sm sm:text-base text-gray-700 mb-2 break-words">{exercise.description}</p>
+                  )}
+                  {exercise.instructions && (
+                    <div className="mt-2 p-2 sm:p-3 bg-gray-50 rounded">
+                      <p className="text-xs sm:text-sm font-medium mb-1">دستورالعمل:</p>
+                      <p className="text-xs sm:text-sm text-gray-700 break-words whitespace-pre-wrap">{exercise.instructions}</p>
+                    </div>
+                  )}
                 </div>
-              )}
+                <div className="flex gap-2 self-end sm:self-start flex-shrink-0">
+                  <button
+                    onClick={() => onEdit(exercise)}
+                    className="p-2 text-primary-600 hover:bg-primary-50 rounded transition-colors text-xs sm:text-sm whitespace-nowrap"
+                    title="ویرایش"
+                  >
+                    <span className="hidden sm:inline">✏️ ویرایش</span>
+                    <span className="sm:hidden">✏️</span>
+                  </button>
+                  <button
+                    onClick={() => onDelete('exercise', exercise.id)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                    title="حذف"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => onEdit(exercise)}
-                className="p-2 text-primary-600 hover:bg-primary-50 rounded transition-colors"
-                title="ویرایش"
-              >
-                ✏️ ویرایش
-              </button>
-              <button
-                onClick={() => onDelete('exercise', exercise.id)}
-                className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
-                title="حذف"
-              >
-                <Trash2 size={18} />
-              </button>
-            </div>
-          </div>
+          ))}
+          {exercisesArray.length === 0 && (
+            <div className="text-center py-12 text-gray-500">تمرینی ثبت نشده است</div>
+          )}
         </div>
-      ))}
-      {exercisesArray.length === 0 && (
-        <div className="text-center py-12 text-gray-500">تمرینی ثبت نشده است</div>
-      )}
+      </div>
     </div>
   );
 };

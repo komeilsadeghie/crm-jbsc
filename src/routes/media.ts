@@ -441,19 +441,35 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
       // Extract customer data - use only system field names after mapping
       let customerName = mappedRow.name;
       
-      // If not found in mapped data, try direct column access as fallback
-      if (!customerName || String(customerName).trim() === '') {
-        const nameColumns = ['نام و نام خانوادگی', 'name', 'Name', 'NAME', 'نام'];
-        for (const col of nameColumns) {
-          if (row[col] && String(row[col]).trim() !== '') {
-            customerName = String(row[col]).trim();
-            break;
+      // If not found in mapped data, try to get from the Excel column that was mapped to 'name'
+      if (!customerName || String(customerName).trim() === '' || customerName === 'nan' || customerName === 'NaN') {
+        // Find which Excel column is mapped to 'name'
+        const nameMappedColumn = Object.keys(mapping).find(key => mapping[key] === 'name');
+        if (nameMappedColumn && row[nameMappedColumn] && String(row[nameMappedColumn]).trim() !== '' && row[nameMappedColumn] !== 'nan' && row[nameMappedColumn] !== 'NaN') {
+          customerName = String(row[nameMappedColumn]).trim();
+        } else {
+          // Fallback: try common column names
+          const nameColumns = ['نام و نام خانوادگی', 'name', 'Name', 'NAME', 'نام'];
+          for (const col of nameColumns) {
+            if (row[col] && String(row[col]).trim() !== '' && row[col] !== 'nan' && row[col] !== 'NaN') {
+              customerName = String(row[col]).trim();
+              break;
+            }
           }
         }
       }
       
+      // Clean up customer name - remove 'nan' values
+      if (customerName && (String(customerName).toLowerCase() === 'nan' || String(customerName).trim() === '')) {
+        customerName = null;
+      }
+      
       // Extract fields using system field names only (already mapped from Excel columns)
-      const phone = mappedRow.phone;
+      // Clean up phone - handle 'nan' values
+      let phone = mappedRow.phone;
+      if (phone && (String(phone).toLowerCase() === 'nan' || String(phone).trim() === '')) {
+        phone = null;
+      }
       const website = mappedRow.website || mappedRow.company_name;
       const activityType = mappedRow.type || 'export';
       const productName = mappedRow.product_name;
@@ -489,14 +505,13 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
       }
 
       if (!customerName || String(customerName).trim() === '') {
-        // Only log error details in development or for first few rows
-        if (process.env.NODE_ENV === 'development' || index < 3) {
-          console.error(`❌ Row ${index + 2}: No customer name found!`);
-          console.error(`  - Mapped fields:`, Object.keys(mappedRow));
-        }
+        // Find which Excel column is mapped to 'name' for better error message
+        const nameMappedColumn = Object.keys(mapping).find(key => mapping[key] === 'name');
+        const columnName = nameMappedColumn || 'نام و نام خانوادگی';
+        
         errors.push({
           row: index + 2,
-          error: `نام مشتری الزامی است. لطفاً ستون "نام و نام خانوادگی" را به فیلد "name" نگاشت کنید.`,
+          error: `نام مشتری در ستون "${columnName}" خالی است یا یافت نشد. لطفاً مقدار این ستون را در ردیف ${index + 2} بررسی کنید.`,
         });
         continue;
       }
@@ -779,8 +794,8 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
           }
         }
 
-        // Create project if balance > 0 (there's remaining payment)
-        if (accountId && balanceValue > 0) {
+        // Create project if balance > 0 or serviceCost exists (there's remaining payment or service provided)
+        if (accountId && (balanceValue > 0 || serviceCost)) {
           try {
             const costValue = String(serviceCost || balanceValue).replace(/,/g, '');
             const budget = Number(costValue) || null;
