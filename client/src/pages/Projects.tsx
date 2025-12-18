@@ -189,7 +189,7 @@ const Projects = () => {
           >
             <div className="flex flex-col sm:flex-row justify-between items-start gap-3 mb-3">
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                <FolderOpen className="text-primary-600 flex-shrink-0" size={20} className="sm:w-6 sm:h-6" />
+                <FolderOpen className="text-primary-600 flex-shrink-0 sm:w-6 sm:h-6" size={20} />
                 <h3 className="font-bold text-base sm:text-lg break-words">{project.name}</h3>
               </div>
               <div className="flex flex-col items-end gap-1 flex-shrink-0">
