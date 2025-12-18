@@ -38,7 +38,15 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
 // In dev allow localhost(s), in prod only allow ALLOWED_ORIGINS
 const devFallbackOrigins = ['http://localhost:3000', 'http://localhost:3001'];
 
-app.use(
+// CORS middleware - only apply to API routes, not static files
+app.use((req, res, next) => {
+  // Skip CORS for static assets
+  if (req.path.startsWith('/assets/') || 
+      req.path.match(/\.(js|css|json|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|html)$/i)) {
+    return next();
+  }
+  
+  // Apply CORS to API routes
   cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (curl, Postman, server-to-server)
@@ -59,8 +67,8 @@ app.use(
       return callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
-  })
-);
+  })(req, res, next);
+});
 
 // Increase body parser limit to 50MB for Excel file uploads
 app.use(express.json({ limit: '50mb' }));
@@ -248,21 +256,47 @@ app.get('/api/health', (req, res) => {
 if (process.env.NODE_ENV === 'production') {
   const fs = require('fs');
 
-  // IMPORTANT: use process.cwd() so path works after TypeScript build
-  const clientDistPath = path.join(process.cwd(), 'client', 'dist');
+  // Try multiple possible paths for client/dist
+  const possiblePaths = [
+    path.join(process.cwd(), 'client', 'dist'), // Standard path
+    path.join(__dirname, '..', 'client', 'dist'), // Alternative path
+  ];
 
-  if (fs.existsSync(clientDistPath)) {
-    // Serve static files from client/dist
-    app.use(express.static(clientDistPath));
+  let clientDistPath = null;
+  for (const testPath of possiblePaths) {
+    if (fs.existsSync(testPath)) {
+      clientDistPath = testPath;
+      break;
+    }
+  }
 
-    // SPA fallback for all non-API routes (must be last)
+  if (clientDistPath) {
+    console.log('✅ Serving client build from:', clientDistPath);
+    
+    // Serve static files from client/dist (must be before SPA fallback)
+    // Use root path '/' to serve all static files directly
+    app.use('/', express.static(clientDistPath, {
+      maxAge: '1y',
+      etag: true,
+      lastModified: true,
+    }));
+
+    // SPA fallback for HTML routes only (must be last, after static)
+    // Only catch routes that don't match static files
     app.get('*', (req, res, next) => {
       // Skip API routes
       if (req.path.startsWith('/api')) {
         return next();
       }
+      
+      // Skip static asset requests - express.static should handle these
+      // If we reach here for assets, they don't exist - return 404
+      if (req.path.startsWith('/assets/') || 
+          req.path.match(/\.(js|css|json|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/i)) {
+        return res.status(404).json({ error: 'File not found' });
+      }
 
-      // Serve index.html for all other routes (SPA routing)
+      // For all other routes, serve index.html (SPA routing)
       const indexPath = path.join(clientDistPath, 'index.html');
       if (fs.existsSync(indexPath)) {
         return res.sendFile(path.resolve(indexPath));
@@ -271,7 +305,8 @@ if (process.env.NODE_ENV === 'production') {
       return res.status(404).json({ error: 'Client build not found' });
     });
   } else {
-    console.warn('⚠️ Client dist directory not found. Skipping static file serving.');
+    console.warn('⚠️ Client dist directory not found. Searched paths:');
+    possiblePaths.forEach(p => console.warn('  -', p));
     // In production, if dist is missing, provide a basic response
     app.get('/', (req, res) => {
       res.status(500).json({ error: 'Client build not found. Please run npm run build.' });
@@ -286,6 +321,11 @@ if (process.env.NODE_ENV === 'production') {
 
 // -------------------- Global error handler --------------------
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  // Skip error handling for static assets
+  if (req.path.startsWith('/assets/') || req.path.endsWith('.js') || req.path.endsWith('.css')) {
+    return next(err);
+  }
+  
   if (err?.message?.includes('CORS')) {
     return res.status(403).json({ error: 'CORS blocked' });
   }
