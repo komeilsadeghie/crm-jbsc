@@ -143,7 +143,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       });
       
       // گروه‌بندی منوها
-      const groups: Record<string, typeof filtered> = {
+      type MenuItem = typeof filtered[0];
+      const groups: Record<string, MenuItem[]> = {
         main: [],
         sales: [],
         project: [],
