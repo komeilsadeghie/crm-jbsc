@@ -41,10 +41,17 @@ npm run build
 
 #### مشکل: Build در 33% گیر می‌کند
 
+**علت:** معمولاً به دلیل timeout در نصب client dependencies یا build client است.
+
 **راه‌حل‌ها:**
-1. بررسی کنید که همه فایل‌های migration در git هستند
-2. بررسی کنید که `node_modules` در `.gitignore` است
-3. بررسی کنید که `dist/` و `client/dist/` در `.gitignore` هستند
+1. ✅ `postinstall` script اضافه شده که client dependencies را نصب می‌کند
+2. ✅ استفاده از `npm ci` به جای `npm install` برای سرعت بیشتر
+3. ✅ استفاده از `esbuild` به جای `terser` برای minify سریع‌تر
+4. ✅ اضافه شدن `.npmrc` برای بهینه‌سازی نصب
+5. ✅ استفاده از `--skipLibCheck` برای TypeScript برای سرعت بیشتر
+6. بررسی کنید که همه فایل‌های migration در git هستند
+7. بررسی کنید که `node_modules` در `.gitignore` است
+8. بررسی کنید که `dist/` و `client/dist/` در `.gitignore` هستند
 
 #### مشکل: خطای TypeScript
 

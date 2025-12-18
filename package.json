@@ -7,9 +7,10 @@
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "nodemon --exec ts-node src/server.ts",
     "dev:client": "cd client && npm run dev",
+    "postinstall": "cd client && npm ci --prefer-offline --no-audit",
     "build": "npm run build:server && npm run build:client",
-    "build:server": "tsc",
-    "build:client": "cd client && npm run build",
+    "build:server": "tsc --skipLibCheck",
+    "build:client": "cd client && npm ci --prefer-offline --no-audit && npm run build",
     "start": "node dist/server.js",
     "init:db": "ts-node src/database/init.ts",
     "kill-port": "powershell -ExecutionPolicy Bypass -File kill-port.ps1"

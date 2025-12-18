@@ -30,13 +30,7 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
     sourcemap: false, // غیرفعال کردن sourcemap برای کاهش حجم
-    minify: 'terser', // استفاده از terser برای minify بهتر
-    terserOptions: {
-      compress: {
-        drop_console: true, // حذف console.log ها در production
-        drop_debugger: true,
-      },
-    },
+    minify: 'esbuild', // استفاده از esbuild برای سرعت بیشتر (بهتر از terser برای ParsPack)
     rollupOptions: {
       output: {
         // تقسیم کد به chunk های کوچکتر
