@@ -322,10 +322,11 @@ router.patch('/assets/:id/approve', authenticate, (req: AuthRequest, res: Respon
 // ========== Import Customers from Excel ==========
 router.post('/import/customers', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const { file, mapping, createDeals } = req.body as { 
+    const { file, mapping, createDeals, createProjects } = req.body as { 
       file: string; 
       mapping: Record<string, string>;
       createDeals?: boolean;
+      createProjects?: boolean;
     };
 
     if (!file) {
@@ -794,8 +795,8 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
           }
         }
 
-        // Create project if balance > 0 or serviceCost exists (there's remaining payment or service provided)
-        if (accountId && (balanceValue > 0 || serviceCost)) {
+        // Create project if createProjects is true and balance > 0 or serviceCost exists
+        if (createProjects && accountId && (balanceValue > 0 || serviceCost)) {
           try {
             const costValue = String(serviceCost || balanceValue).replace(/,/g, '');
             const budget = Number(costValue) || null;

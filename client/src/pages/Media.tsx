@@ -1069,6 +1069,7 @@ const ImportCustomersSection = ({ onSuccess }: { onSuccess: (data?: any) => void
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [createDeals, setCreateDeals] = useState(true);
+  const [createProjects, setCreateProjects] = useState(false);
 
   const previewMutation = useMutation(
     async (file: File) => {
@@ -1343,6 +1344,7 @@ const ImportCustomersSection = ({ onSuccess }: { onSuccess: (data?: any) => void
         file: base64File,
         mapping,
         createDeals,
+        createProjects,
       });
       return response.data;
     },
@@ -1658,6 +1660,19 @@ const ImportCustomersSection = ({ onSuccess }: { onSuccess: (data?: any) => void
                   />
                   <label htmlFor="createDeals" className="text-sm font-medium">
                     ایجاد معامله (Deal) برای مشتریانی که هزینه سرویس دارند
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="createProjects"
+                    checked={createProjects}
+                    onChange={(e) => setCreateProjects(e.target.checked)}
+                    className="w-4 h-4"
+                  />
+                  <label htmlFor="createProjects" className="text-sm font-medium">
+                    ایجاد پروژه برای مشتریانی که هزینه سرویس یا مانده حساب دارند
                   </label>
                 </div>
 
