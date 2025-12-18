@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Helper script to run vite build in production environment
 import { spawn } from 'child_process';
+import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import { dirname, join, resolve } from 'path';
 import { existsSync } from 'fs';
@@ -8,24 +9,51 @@ import { existsSync } from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectRoot = resolve(__dirname, '..');
+const require = createRequire(import.meta.url);
 
-// Try different possible paths for vite
-const possiblePaths = [
-  join(projectRoot, 'node_modules', 'vite', 'bin', 'vite.js'),
-  join(projectRoot, 'node_modules', '.bin', 'vite'),
-  join(projectRoot, 'node_modules', 'vite', 'dist', 'node', 'cli.js'),
-];
-
+// Try different methods to find vite
 let vitePath = null;
-for (const path of possiblePaths) {
-  if (existsSync(path)) {
-    vitePath = path;
-    break;
+
+// Method 1: Try require.resolve (works in most cases)
+try {
+  vitePath = require.resolve('vite/bin/vite.js');
+} catch (e) {
+  // Method 2: Try manual paths relative to project root
+  const projectPaths = [
+    join(projectRoot, 'node_modules', 'vite', 'bin', 'vite.js'),
+    join(projectRoot, 'node_modules', '.bin', 'vite'),
+    join(projectRoot, 'node_modules', 'vite', 'dist', 'node', 'cli.js'),
+  ];
+
+  for (const path of projectPaths) {
+    if (existsSync(path)) {
+      vitePath = path;
+      break;
+    }
+  }
+  
+  // Method 3: Try with process.cwd() if projectRoot didn't work
+  if (!vitePath) {
+    const cwd = process.cwd();
+    const cwdPaths = [
+      join(cwd, 'node_modules', 'vite', 'bin', 'vite.js'),
+      join(cwd, 'node_modules', '.bin', 'vite'),
+      join(cwd, 'node_modules', 'vite', 'dist', 'node', 'cli.js'),
+    ];
+    
+    for (const path of cwdPaths) {
+      if (existsSync(path)) {
+        vitePath = path;
+        break;
+      }
+    }
   }
 }
 
 if (!vitePath) {
   console.error('Error: Could not find vite executable');
+  console.error('Project root:', projectRoot);
+  console.error('Current working directory:', process.cwd());
   process.exit(1);
 }
 
@@ -47,4 +75,3 @@ vite.on('error', (error) => {
 vite.on('exit', (code) => {
   process.exit(code || 0);
 });
-
