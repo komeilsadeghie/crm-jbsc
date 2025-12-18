@@ -24,7 +24,7 @@ export const SettingsProvider = () => {
     if (faviconPath) {
       const faviconUrl = faviconPath.startsWith('http') 
         ? faviconPath 
-        : `http://localhost:3001${faviconPath}`;
+        : faviconPath; // Use relative path in production
       
       // Remove existing favicon links
       const existingLinks = document.querySelectorAll('link[rel*="icon"]');

@@ -73,7 +73,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const getLogoUrl = (logoPath: string | undefined) => {
     if (!logoPath) return null;
-    return logoPath.startsWith('http') ? logoPath : `http://localhost:3001${logoPath}`;
+    // Use relative path in production (same domain)
+    return logoPath.startsWith('http') ? logoPath : logoPath;
   };
 
   type MenuItem = {

@@ -819,8 +819,8 @@ const GeneralSettings = () => {
   const getLogoUrl = (type: string) => {
     const logoPath = settings?.[`logo_${type}`];
     if (logoPath) {
-      // Use proxy path for development, or full URL for production
-      return logoPath.startsWith('http') ? logoPath : `http://localhost:3001${logoPath}`;
+      // Use relative path (same domain in production)
+      return logoPath.startsWith('http') ? logoPath : logoPath;
     }
     return null;
   };

@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "npm run build:tsc && npm run build:vite",
     "build:tsc": "tsc --skipLibCheck",
-    "build:vite": "node scripts/build-vite.js build",
+    "build:vite": "npm run vite-build",
     "vite-build": "vite build",
     "preview": "vite preview"
   },

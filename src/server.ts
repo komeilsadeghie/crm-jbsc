@@ -239,6 +239,11 @@ app.use('/api/notifications', notificationsRoutes);
 // Serve static files for uploads
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
+// -------------------- Health check (before client serving) --------------------
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'CRM API is running' });
+});
+
 // -------------------- Serve client build in production --------------------
 if (process.env.NODE_ENV === 'production') {
   const fs = require('fs');
@@ -247,30 +252,37 @@ if (process.env.NODE_ENV === 'production') {
   const clientDistPath = path.join(process.cwd(), 'client', 'dist');
 
   if (fs.existsSync(clientDistPath)) {
+    // Serve static files from client/dist
     app.use(express.static(clientDistPath));
 
-    // SPA fallback for non-API routes
+    // SPA fallback for all non-API routes (must be last)
     app.get('*', (req, res, next) => {
-      if (req.path.startsWith('/api')) return next();
+      // Skip API routes
+      if (req.path.startsWith('/api')) {
+        return next();
+      }
 
+      // Serve index.html for all other routes (SPA routing)
       const indexPath = path.join(clientDistPath, 'index.html');
-      if (fs.existsSync(indexPath)) return res.sendFile(indexPath);
+      if (fs.existsSync(indexPath)) {
+        return res.sendFile(path.resolve(indexPath));
+      }
 
       return res.status(404).json({ error: 'Client build not found' });
     });
   } else {
     console.warn('⚠️ Client dist directory not found. Skipping static file serving.');
+    // In production, if dist is missing, provide a basic response
+    app.get('/', (req, res) => {
+      res.status(500).json({ error: 'Client build not found. Please run npm run build.' });
+    });
   }
+} else {
+  // Development mode - simple health check
+  app.get('/', (req, res) => {
+    res.send('OK - Development Mode');
+  });
 }
-
-// -------------------- Health check --------------------
-app.get('/', (req, res) => {
-  res.send('OK');
-});
-
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'CRM API is running' });
-});
 
 // -------------------- Global error handler --------------------
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
