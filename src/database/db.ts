@@ -90,7 +90,7 @@ export const initDatabase = () => {
           created_by INTEGER,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (created_by) REFERENCES users(id)
+          FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
         )
       `);
 
@@ -262,8 +262,8 @@ export const initDatabase = () => {
           created_by INTEGER,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (assigned_to) REFERENCES users(id),
-          FOREIGN KEY (created_by) REFERENCES users(id)
+          FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL,
+          FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
         )
       `);
 

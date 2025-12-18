@@ -147,6 +147,11 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
   const lead: any = req.body;
   const userId = req.user?.id;
 
+  // بررسی معتبر بودن userId
+  if (!userId) {
+    return res.status(401).json({ error: 'کاربر احراز هویت نشده است' });
+  }
+
   db.run(
     `INSERT INTO leads (
       first_name, last_name, email, phone, whatsapp, company_name, source, tags,
@@ -170,7 +175,7 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
       lead.budget_range || null,
       lead.decision_maker_role || null,
       lead.notes || null,
-      lead.assigned_to || null,
+      (lead.assigned_to && Number.isInteger(Number(lead.assigned_to))) ? Number(lead.assigned_to) : null,
       userId
     ],
     function(err) {
@@ -307,7 +312,7 @@ router.put('/:id', authenticate, (req: AuthRequest, res: Response) => {
       lead.budget_range || null,
       lead.decision_maker_role || null,
       lead.notes || null,
-      lead.assigned_to || null,
+      (lead.assigned_to && Number.isInteger(Number(lead.assigned_to))) ? Number(lead.assigned_to) : null,
       id
     ],
     function(err) {

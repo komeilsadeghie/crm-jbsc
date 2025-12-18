@@ -678,7 +678,7 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
                 initialDeliveryDate || null,
                 languagesAddedDate || null,
                 uniqueId,
-                req.user?.id,
+                (req.user?.id && Number.isInteger(Number(req.user.id))) ? Number(req.user.id) : null,
               ]
             );
             customerId = customerResult.lastID!;
