@@ -21,11 +21,23 @@ import { fixUniqueIdColumn } from './database/fix-unique-id';
 dotenv.config();
 
 const app = express();
-const PORT = parseInt(process.env.PORT || '3001', 10);
+const PORT = parseInt(process.env.PORT || '3000', 10);
 
 // Middleware
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:3000', 'http://localhost:3001'];
+
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001'],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 // Increase body parser limit to 50MB for Excel file uploads
@@ -216,6 +228,33 @@ app.use('/api/notifications', notificationsRoutes);
 
 // Serve static files for uploads
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Serve client build files in production
+if (process.env.NODE_ENV === 'production') {
+  const clientDistPath = path.join(__dirname, '../../client/dist');
+  
+  // Check if client dist exists before serving
+  const fs = require('fs');
+  if (fs.existsSync(clientDistPath)) {
+    app.use(express.static(clientDistPath));
+    
+    // Serve index.html for all non-API routes (SPA routing)
+    app.get('*', (req, res, next) => {
+      // Skip API routes
+      if (req.path.startsWith('/api')) {
+        return next();
+      }
+      const indexPath = path.join(clientDistPath, 'index.html');
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        res.status(404).json({ error: 'Client build not found' });
+      }
+    });
+  } else {
+    console.warn('⚠️  Client dist directory not found. Skipping static file serving.');
+  }
+}
 
 // Health check
 app.get('/api/health', (req, res) => {
