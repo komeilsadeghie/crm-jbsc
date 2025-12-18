@@ -322,7 +322,6 @@ router.patch('/assets/:id/approve', authenticate, (req: AuthRequest, res: Respon
 // ========== Import Customers from Excel ==========
 router.post('/import/customers', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    console.log('Import customers request received');
     const { file, mapping, createDeals } = req.body as { 
       file: string; 
       mapping: Record<string, string>;
@@ -330,31 +329,19 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
     };
 
     if (!file) {
-      console.log('No file in request');
       return res.status(400).json({ error: 'فایل Excel ارسال نشده است' });
     }
 
     if (!mapping || Object.keys(mapping).length === 0) {
-      console.log('No mapping in request');
       return res.status(400).json({ error: 'نگاشت ستون‌ها ارسال نشده است' });
     }
-    
-    console.log('File length:', file.length, 'Mapping keys:', Object.keys(mapping).length);
-    console.log('Mapping details:', JSON.stringify(mapping, null, 2));
     
     // Validate that required fields are mapped
     const requiredFields = ['name'];
     const mappedFields = Object.values(mapping);
     const missingFields = requiredFields.filter(field => !mappedFields.includes(field));
     
-    console.log('=== VALIDATION CHECK ===');
-    console.log('Required fields:', requiredFields);
-    console.log('Mapping object:', JSON.stringify(mapping, null, 2));
-    console.log('Mapped fields (values):', mappedFields);
-    console.log('Missing fields:', missingFields);
-    
     if (missingFields.length > 0) {
-      console.log('❌ VALIDATION FAILED: Missing required field mappings');
       return res.status(400).json({ 
         error: `ستون "نام و نام خانوادگی" باید به فیلد "name" نگاشت شود. لطفاً در بخش نگاشت ستون‌ها، ستون "نام و نام خانوادگی" را انتخاب کنید.`,
         missingFields,
@@ -362,42 +349,25 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
         mappedFields: mappedFields
       });
     }
-    
-    console.log('✅ VALIDATION PASSED: All required fields are mapped');
 
-    console.log('=== FILE PROCESSING ===');
-    console.log('Decoding base64 file...');
     const buffer = Buffer.from(file, 'base64');
-    console.log('Buffer length:', buffer.length);
     
     if (buffer.length === 0) {
-      console.error('❌ ERROR: Empty buffer after decoding');
       return res.status(400).json({ error: 'فایل Excel خالی است یا به درستی decode نشده است' });
     }
     
-    console.log('Reading Excel file...');
     const workbook = xlsx.read(buffer, { type: 'buffer' });
     const firstSheetName = workbook.SheetNames[0];
-    console.log('First sheet name:', firstSheetName);
     const sheet = workbook.Sheets[firstSheetName];
     
     if (!sheet) {
-      console.error('❌ ERROR: Sheet not found');
       return res.status(400).json({ error: 'هیچ sheet در فایل Excel یافت نشد' });
     }
     
     const jsonRows = xlsx.utils.sheet_to_json<Record<string, any>>(sheet, { defval: '' });
-    console.log(`✅ Excel file parsed: ${jsonRows.length} rows found`);
     
     if (jsonRows.length === 0) {
-      console.error('❌ ERROR: No rows found in Excel');
       return res.status(400).json({ error: 'هیچ داده‌ای در فایل Excel یافت نشد' });
-    }
-    
-    // Log first row to see available columns
-    if (jsonRows.length > 0) {
-      console.log('First row columns:', Object.keys(jsonRows[0]));
-      console.log('First row sample (first 500 chars):', JSON.stringify(jsonRows[0], null, 2).substring(0, 500));
     }
 
     const errors: Array<{ row: number; error: string }> = [];
@@ -452,65 +422,57 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
     for (let index = 0; index < jsonRows.length; index++) {
       const row = jsonRows[index];
       
-      // Map columns using mapping
+      // Map columns using mapping - after mapping, only use system field names
       const mappedRow: Record<string, any> = {};
       Object.entries(mapping).forEach(([excelColumn, systemField]) => {
         // Check if the Excel column exists in the row
         if (row.hasOwnProperty(excelColumn)) {
           mappedRow[systemField] = row[excelColumn];
-        } else {
-          console.warn(`Row ${index + 2}: Column "${excelColumn}" not found. Available columns:`, Object.keys(row));
         }
       });
       
-      if (index === 0) {
+      // Log only first row for debugging
+      if (index === 0 && process.env.NODE_ENV === 'development') {
         console.log('First row - Original Excel columns:', Object.keys(row));
         console.log('First row - Mapping config:', mapping);
         console.log('First row - Mapped data:', mappedRow);
       }
 
-      // Extract customer data - try multiple possible field names
-      let customerName = mappedRow.name || mappedRow['نام و نام خانوادگی'];
+      // Extract customer data - use only system field names after mapping
+      let customerName = mappedRow.name;
       
-      console.log(`Row ${index + 2}: Looking for customer name...`);
-      console.log(`  - mappedRow.name:`, mappedRow.name);
-      console.log(`  - mappedRow['نام و نام خانوادگی']:`, mappedRow['نام و نام خانوادگی']);
-      console.log(`  - Available mapped fields:`, Object.keys(mappedRow));
-      
-      // If not found in mapped data, try direct column access
+      // If not found in mapped data, try direct column access as fallback
       if (!customerName || String(customerName).trim() === '') {
-        console.log(`  - Name not found in mapped data, trying direct column access...`);
         const nameColumns = ['نام و نام خانوادگی', 'name', 'Name', 'NAME', 'نام'];
         for (const col of nameColumns) {
           if (row[col] && String(row[col]).trim() !== '') {
             customerName = String(row[col]).trim();
-            console.log(`  - Found name in column "${col}":`, customerName);
             break;
           }
         }
-      } else {
-        console.log(`  - Found name from mapping:`, customerName);
       }
       
-      const phone = mappedRow.phone || mappedRow['تلفن همراه'] || mappedRow['شماره تلفن'];
-      const website = mappedRow.website || mappedRow['اسم سایت ( نام دامنه )'] || mappedRow['وب‌سایت / دامنه'] || mappedRow.company_name;
-      const activityType = mappedRow.type || mappedRow['نوع فعالیت'] || 'export';
-      const productName = mappedRow.product_name || mappedRow['نام محصول'];
-      const serviceCost = mappedRow.service_cost || mappedRow['هزینه خدمات (مبلغ)'] || mappedRow['هزینه سرویس'];
-      const balance = mappedRow.balance || mappedRow['مانده'];
-      const websiteStartDate = mappedRow.website_start_date || mappedRow['تاریخ شروع سایت'];
-      const websiteDeliveryDate = mappedRow.website_delivery_date || mappedRow['تاریخ تحویل سایت'];
-      const codeColumn = mappedRow.code || mappedRow['Code'] || row['Code'] || row['CODE'] || row['کد'];
-      const designerColumn = mappedRow.designer || mappedRow['طراح'] || row['Designer'] || row['DESIGNER'] || row['طراح'];
+      // Extract fields using system field names only (already mapped from Excel columns)
+      const phone = mappedRow.phone;
+      const website = mappedRow.website || mappedRow.company_name;
+      const activityType = mappedRow.type || 'export';
+      const productName = mappedRow.product_name;
+      const serviceCost = mappedRow.service_cost;
+      const balance = mappedRow.balance;
+      const websiteStartDate = mappedRow.website_start_date;
+      const websiteDeliveryDate = mappedRow.website_delivery_date;
+      // For code and designer, check both mapped and direct row access as fallback
+      const codeColumn = mappedRow.code || row['Code'] || row['CODE'] || row['کد'];
+      const designerColumn = mappedRow.designer || row['Designer'] || row['DESIGNER'] || row['طراح'];
       
-      // New Excel fields
-      const gender = mappedRow.gender || mappedRow['جنسیت'];
-      const siteLanguagesCount = mappedRow.site_languages_count || mappedRow['تعداد زبان های سایت ها'];
-      const serviceType = mappedRow.service_type || mappedRow['نوع خدمات'];
-      const deliveryDeadline = mappedRow.delivery_deadline || mappedRow['ددلاین تحویل'];
-      const siteCosts = mappedRow.site_costs || mappedRow['هزینه ها برای سایت ها'];
-      const initialDeliveryDate = mappedRow.initial_delivery_date || mappedRow['تاریخ اتمام و تحویل اولیه سایت'];
-      const languagesAddedDate = mappedRow.languages_added_date || mappedRow['تاریخ اضافه کردن زبان های سایت'];
+      // New Excel fields - use system field names only
+      const gender = mappedRow.gender;
+      const siteLanguagesCount = mappedRow.site_languages_count;
+      const serviceType = mappedRow.service_type;
+      const deliveryDeadline = mappedRow.delivery_deadline;
+      const siteCosts = mappedRow.site_costs;
+      const initialDeliveryDate = mappedRow.initial_delivery_date;
+      const languagesAddedDate = mappedRow.languages_added_date;
       
       // Extract code from CODE column (e.g., E-C3-403 -> 3)
       let customerCode: number | null = null;
@@ -527,20 +489,17 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
       }
 
       if (!customerName || String(customerName).trim() === '') {
-        console.error(`❌ Row ${index + 2}: No customer name found!`);
-        console.error(`  - Mapped fields:`, Object.keys(mappedRow));
-        console.error(`  - Mapped values:`, mappedRow);
-        console.error(`  - Available Excel columns:`, Object.keys(row));
-        console.error(`  - Mapping config:`, JSON.stringify(mapping, null, 2));
-        console.error(`  - Row data sample:`, JSON.stringify(row, null, 2).substring(0, 1000));
+        // Only log error details in development or for first few rows
+        if (process.env.NODE_ENV === 'development' || index < 3) {
+          console.error(`❌ Row ${index + 2}: No customer name found!`);
+          console.error(`  - Mapped fields:`, Object.keys(mappedRow));
+        }
         errors.push({
           row: index + 2,
           error: `نام مشتری الزامی است. لطفاً ستون "نام و نام خانوادگی" را به فیلد "name" نگاشت کنید.`,
         });
         continue;
       }
-      
-      console.log(`✅ Row ${index + 2}: Customer name found: "${customerName}"`);
 
       try {
         // Determine customer type from activity type
@@ -635,7 +594,7 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
               Number(mappedRow.score) || 0,
               customerStatus,
               'بخش مدیا > طراحی سایت',
-              normalizeValue(productName ? `محصول: ${productName}` : mappedRow.notes || mappedRow['توضیحات']),
+              normalizeValue(productName ? `محصول: ${productName}` : mappedRow.notes),
               customerCode,
               normalizeValue(designerColumn),
               normalizeValue(gender),
@@ -653,6 +612,16 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
         } else {
           // Create new customer
           try {
+            // Validate user_id exists before inserting to avoid foreign key constraint error
+            let createdById: number | null = null;
+            if (req.user?.id && Number.isInteger(Number(req.user.id))) {
+              const userId = Number(req.user.id);
+              const userExists = await dbGet(`SELECT id FROM users WHERE id = ?`, [userId]);
+              if (userExists) {
+                createdById = userId;
+              }
+            }
+
             const customerResult = await dbRun(
               `INSERT INTO customers (name, type, email, phone, company_name, address, website, score, status, category, notes, code, designer, gender, site_languages_count, service_type, delivery_deadline, site_costs, initial_delivery_date, languages_added_date, unique_id, created_by)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -667,7 +636,7 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
                 Number(mappedRow.score) || 0,
                 customerStatus,
                 'بخش مدیا > طراحی سایت',
-                normalizeValue(productName ? `محصول: ${productName}` : mappedRow.notes || mappedRow['توضیحات']),
+                normalizeValue(productName ? `محصول: ${productName}` : mappedRow.notes),
                 customerCode,
                 normalizeValue(designerColumn),
                 normalizeValue(gender),
@@ -678,14 +647,24 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
                 initialDeliveryDate || null,
                 languagesAddedDate || null,
                 uniqueId,
-                (req.user?.id && Number.isInteger(Number(req.user.id))) ? Number(req.user.id) : null,
+                createdById,
               ]
             );
             customerId = customerResult.lastID!;
             successCount++;
           } catch (insertError: any) {
-            console.error(`❌ Error inserting customer in row ${index + 2}:`, insertError);
-            console.error(`❌ SQL Error:`, insertError.message);
+            // Only log detailed error in development or for first few errors
+            if (process.env.NODE_ENV === 'development' || errors.length < 5) {
+              console.error(`❌ Error inserting customer in row ${index + 2}:`, insertError.message);
+            }
+            // Check if it's a foreign key constraint error
+            if (insertError.code === 'SQLITE_CONSTRAINT' && insertError.message?.includes('FOREIGN KEY')) {
+              errors.push({
+                row: index + 2,
+                error: `خطا در محدودیت کلید خارجی: ${insertError.message}`,
+              });
+              continue;
+            }
             throw insertError; // Re-throw to be caught by outer catch
           }
         }
@@ -766,9 +745,17 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
                 );
                 dealId = existingDeal.id;
                 dealsCreated++;
-                console.log(`Updated existing deal ${dealId} for account ${accountId}`);
               } else {
-                // Create new deal
+                // Create new deal - validate user_id exists
+                let dealCreatedBy: number | null = null;
+                if (req.user?.id && Number.isInteger(Number(req.user.id))) {
+                  const userId = Number(req.user.id);
+                  const userExists = await dbGet(`SELECT id FROM users WHERE id = ?`, [userId]);
+                  if (userExists) {
+                    dealCreatedBy = userId;
+                  }
+                }
+
                 const dealResult = await dbRun(
                   `INSERT INTO deals (title, account_id, stage, budget, services, notes, created_by)
                    VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -779,12 +766,11 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
                     budget,
                     'طراحی سایت',
                     `وارد شده از Excel - محصول: ${productName || 'نامشخص'}`,
-                    req.user?.id,
+                    dealCreatedBy,
                   ]
                 );
                 dealId = dealResult.lastID || null;
                 dealsCreated++;
-                console.log(`Created new deal ${dealId} for account ${accountId}`);
               }
             }
           } catch (dealError: any) {
@@ -815,20 +801,20 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
             const startDate = websiteStartDate ? convertJalaliToGregorian(String(websiteStartDate)) : null;
             const endDate = websiteDeliveryDate ? convertJalaliToGregorian(String(websiteDeliveryDate)) : null;
 
-            // Extract payment stages from mapping
-            const paymentStage1 = mappedRow['payment_stage_1'] || mappedRow['واریزی اول'] || mappedRow['پرداخت مرحله 1'] || mappedRow['مرحله 1'] || null;
-            const paymentStage1Date = mappedRow['payment_stage_1_date'] || mappedRow['تاریخ واریز اول'] || mappedRow['تاریخ پرداخت مرحله 1'] || mappedRow['تاریخ مرحله 1'] || null;
-            const paymentStage2 = mappedRow['payment_stage_2'] || mappedRow['واریزی دوم'] || mappedRow['پرداخت مرحله 2'] || mappedRow['مرحله 2'] || null;
-            const paymentStage2Date = mappedRow['payment_stage_2_date'] || mappedRow['تاریخ واریز دوم'] || mappedRow['تاریخ پرداخت مرحله 2'] || mappedRow['تاریخ مرحله 2'] || null;
-            const paymentStage3 = mappedRow['payment_stage_3'] || mappedRow['واریزی سوم'] || mappedRow['پرداخت مرحله 3'] || mappedRow['مرحله 3'] || null;
-            const paymentStage3Date = mappedRow['payment_stage_3_date'] || mappedRow['تاریخ واریز سوم'] || mappedRow['تاریخ پرداخت مرحله 3'] || mappedRow['تاریخ مرحله 3'] || null;
-            const paymentStage4 = mappedRow['payment_stage_4'] || mappedRow['واریزی چهارم'] || mappedRow['پرداخت مرحله 4'] || mappedRow['مرحله 4'] || null;
-            const paymentStage4Date = mappedRow['payment_stage_4_date'] || mappedRow['تاریخ واریز چهارم'] || mappedRow['تاریخ پرداخت مرحله 4'] || mappedRow['تاریخ مرحله 4'] || null;
+            // Extract payment stages from mapped fields (use system field names only)
+            const paymentStage1 = mappedRow['payment_stage_1'] || null;
+            const paymentStage1Date = mappedRow['payment_stage_1_date'] || null;
+            const paymentStage2 = mappedRow['payment_stage_2'] || null;
+            const paymentStage2Date = mappedRow['payment_stage_2_date'] || null;
+            const paymentStage3 = mappedRow['payment_stage_3'] || null;
+            const paymentStage3Date = mappedRow['payment_stage_3_date'] || null;
+            const paymentStage4 = mappedRow['payment_stage_4'] || null;
+            const paymentStage4Date = mappedRow['payment_stage_4_date'] || null;
             
-            // Extract settlements
-            const settlementKamil = mappedRow['settlement_kamil'] || mappedRow['تسویه کمیل'] || null;
-            const settlementAsdan = mappedRow['settlement_asdan'] || mappedRow['تسویه اسدان'] || null;
-            const settlementSoleimani = mappedRow['settlement_soleimani'] || mappedRow['تسویه سلیمانی'] || null;
+            // Extract settlements (use system field names only)
+            const settlementKamil = mappedRow['settlement_kamil'] || null;
+            const settlementAsdan = mappedRow['settlement_asdan'] || null;
+            const settlementSoleimani = mappedRow['settlement_soleimani'] || null;
             
             // Create settlements JSON
             const settlementsObj: any = {
@@ -856,6 +842,16 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
             );
 
             if (existingProject) {
+              // Validate user_id exists before updating
+              let projectManagerId: number | null = null;
+              if (req.user?.id && Number.isInteger(Number(req.user.id))) {
+                const userId = Number(req.user.id);
+                const userExists = await dbGet(`SELECT id FROM users WHERE id = ?`, [userId]);
+                if (userExists) {
+                  projectManagerId = userId;
+                }
+              }
+
               // Update existing project
               await dbRun(
                 `UPDATE projects SET 
@@ -875,7 +871,7 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
                   startDate,
                   endDate || deliveryDeadline || null,
                   budget,
-                  req.user?.id,
+                  projectManagerId,
                   settlements,
                   paymentStage1 ? parseFloat(String(paymentStage1).replace(/,/g, '')) : null,
                   paymentStage1Date || null,
@@ -892,8 +888,19 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
                 ]
               );
               projectsCreated++;
-              console.log(`Updated existing project ${existingProject.id} for account ${accountId}`);
             } else {
+              // Validate user_id exists before creating project
+              let projectManagerId: number | null = null;
+              let projectCreatedBy: number | null = null;
+              if (req.user?.id && Number.isInteger(Number(req.user.id))) {
+                const userId = Number(req.user.id);
+                const userExists = await dbGet(`SELECT id FROM users WHERE id = ?`, [userId]);
+                if (userExists) {
+                  projectManagerId = userId;
+                  projectCreatedBy = userId;
+                }
+              }
+
               // Create new project
               await dbRun(
                 `INSERT INTO projects (account_id, deal_id, name, description, status, start_date, end_date, budget, manager_id, settlements, 
@@ -910,7 +917,7 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
                   startDate,
                   endDate || deliveryDeadline || null,
                   budget,
-                  req.user?.id, // Set current user as manager
+                  projectManagerId,
                   settlements,
                   paymentStage1 ? parseFloat(String(paymentStage1).replace(/,/g, '')) : null,
                   paymentStage1Date || null,
@@ -923,11 +930,10 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
                   settlementKamil || null,
                   settlementAsdan || null,
                   settlementSoleimani || null,
-                  req.user?.id,
+                  projectCreatedBy,
                 ]
               );
               projectsCreated++;
-              console.log(`Created new project for account ${accountId}`);
             }
           } catch (projectError: any) {
             // Log but don't fail the import
@@ -935,15 +941,18 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
           }
         }
       } catch (error: any) {
-        console.error(`❌ Error processing row ${index + 2}:`, error);
-        console.error(`❌ Error message:`, error.message);
-        console.error(`❌ Error stack:`, error.stack);
+        // Only log detailed errors in development or for first few errors
+        if (process.env.NODE_ENV === 'development' || errors.length < 5) {
+          console.error(`❌ Error processing row ${index + 2}:`, error.message);
+        }
         
-        // Check if it's a SQL error about missing column
+        // Check if it's a SQL error about missing column or foreign key constraint
         const errorMessage = error.message || String(error);
         let userFriendlyError = errorMessage;
         
-        if (errorMessage.includes('no column named')) {
+        if (error.code === 'SQLITE_CONSTRAINT' && errorMessage.includes('FOREIGN KEY')) {
+          userFriendlyError = `خطا در محدودیت کلید خارجی. لطفاً مطمئن شوید که تمام ارجاعات معتبر هستند.`;
+        } else if (errorMessage.includes('no column named')) {
           const columnMatch = errorMessage.match(/no column named (\w+)/i);
           if (columnMatch) {
             userFriendlyError = `ستون "${columnMatch[1]}" در دیتابیس وجود ندارد. لطفاً migration را اجرا کنید: npm run migrate:customer-fields`;
@@ -960,7 +969,10 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
       }
     }
 
-    console.log('Import completed:', { successCount, dealsCreated, projectsCreated, errorsCount: errors.length });
+    // Only log completion summary, not detailed logs for every row
+    if (process.env.NODE_ENV === 'development' || errors.length > 0) {
+      console.log('Import completed:', { successCount, dealsCreated, projectsCreated, errorsCount: errors.length });
+    }
     
     res.json({
       successCount,
@@ -978,52 +990,34 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
 // ========== Preview Excel File (Get Column Names) ==========
 router.post('/import/preview', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    console.log('Preview request received');
     const { file } = req.body as { file: string };
 
     if (!file) {
-      console.log('No file in request body');
       return res.status(400).json({ error: 'فایل Excel ارسال نشده است' });
     }
 
     if (typeof file !== 'string') {
-      console.log('File is not a string, type:', typeof file);
       return res.status(400).json({ error: 'فرمت فایل نامعتبر است' });
     }
-
-    console.log('File received, length:', file.length);
 
     try {
       // Decode base64
       let buffer: Buffer;
       try {
         buffer = Buffer.from(file, 'base64');
-        console.log('Buffer created, length:', buffer.length);
         if (buffer.length === 0) {
           return res.status(400).json({ error: 'فایل خالی است یا base64 معتبر نیست' });
         }
-        
-        // Check if it's a valid Excel file by checking magic bytes
-        const magicBytes = buffer.slice(0, 8);
-        const isXLSX = magicBytes[0] === 0x50 && magicBytes[1] === 0x4B; // PK (ZIP signature)
-        const isXLS = magicBytes.slice(0, 8).toString('hex').startsWith('d0cf11e0a1b11ae1'); // OLE2 signature
-        
-        console.log('File type check - isXLSX:', isXLSX, 'isXLS:', isXLS, 'magic bytes:', magicBytes.toString('hex'));
-        
-        // Try to read anyway even if magic bytes don't match (some Excel files might have different headers)
-        // if (!isXLSX && !isXLS) {
-        //   console.log('Invalid file format, magic bytes:', magicBytes.toString('hex'));
-        //   return res.status(400).json({ error: 'فایل انتخاب شده یک فایل Excel معتبر نیست' });
-        // }
       } catch (decodeError: any) {
-        console.error('Base64 decode error:', decodeError);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Base64 decode error:', decodeError);
+        }
         return res.status(400).json({ error: 'خطا در decode کردن فایل: ' + (decodeError.message || 'فرمت base64 نامعتبر') });
       }
 
       // Read Excel file
       let workbook: xlsx.WorkBook;
       try {
-        console.log('Attempting to read Excel file...');
         workbook = xlsx.read(buffer, { 
           type: 'buffer',
           cellDates: false,
@@ -1031,61 +1025,51 @@ router.post('/import/preview', authenticate, async (req: AuthRequest, res: Respo
           cellStyles: false,
           sheetStubs: false
         });
-        console.log('Excel file read successfully, sheets:', workbook.SheetNames?.length || 0);
       } catch (readError: any) {
-        console.error('Excel read error:', readError);
-        console.error('Error details:', {
-          message: readError.message,
-          stack: readError.stack,
-          name: readError.name
-        });
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Excel read error:', readError);
+        }
         return res.status(400).json({ error: 'خطا در خواندن فایل Excel: ' + (readError.message || 'فایل Excel معتبر نیست') });
       }
       
       if (!workbook || !workbook.SheetNames || workbook.SheetNames.length === 0) {
-        console.log('No sheets found in workbook');
         return res.status(400).json({ error: 'فایل Excel معتبر نیست یا خالی است' });
       }
 
       const firstSheetName = workbook.SheetNames[0];
-      console.log('First sheet name:', firstSheetName);
       const sheet = workbook.Sheets[firstSheetName];
       
       if (!sheet) {
-        console.log('Sheet not found:', firstSheetName);
         return res.status(400).json({ error: 'نمی‌توان صفحه اول Excel را خواند' });
       }
 
       // Convert to JSON
       let jsonData: any[];
       try {
-        console.log('Converting sheet to JSON...');
         jsonData = xlsx.utils.sheet_to_json(sheet, { 
           defval: '', 
           header: 1,
           raw: false,
           blankrows: false
         });
-        console.log('JSON conversion successful, rows:', jsonData.length);
       } catch (jsonError: any) {
-        console.error('JSON conversion error:', jsonError);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('JSON conversion error:', jsonError);
+        }
         return res.status(400).json({ error: 'خطا در تبدیل داده‌ها: ' + (jsonError.message || 'داده‌ها قابل تبدیل نیستند') });
       }
 
       if (!jsonData || !Array.isArray(jsonData) || jsonData.length === 0) {
-        console.log('No data in JSON array');
         return res.status(400).json({ error: 'فایل Excel خالی است' });
       }
 
       // Get first row as headers
       const firstRow = jsonData[0];
       if (!firstRow || !Array.isArray(firstRow)) {
-        console.log('First row is not an array:', typeof firstRow);
         return res.status(400).json({ error: 'ستون‌های فایل Excel نامعتبر است' });
       }
 
       const headers = firstRow as any[];
-      console.log('Headers found:', headers.length);
       
       // Filter out empty headers and convert to string
       const validHeaders = headers
@@ -1099,16 +1083,11 @@ router.post('/import/preview', authenticate, async (req: AuthRequest, res: Respo
         .filter((h: string) => h && h.trim() !== '');
 
       if (validHeaders.length === 0) {
-        console.log('No valid headers found');
         return res.status(400).json({ error: 'هیچ ستونی در فایل Excel یافت نشد' });
       }
 
-      console.log('Valid headers:', validHeaders.length);
-
       // Get first few rows as preview
       const preview = jsonData.slice(0, Math.min(6, jsonData.length));
-
-      console.log('Preview data prepared, sending response...');
       res.json({
         headers: validHeaders,
         preview,
