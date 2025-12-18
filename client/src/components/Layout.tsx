@@ -415,7 +415,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 
                 // For other groups, show as collapsible
                 const isExpanded = expandedGroups[groupKey] || false;
-                const hasActiveItem = items.some(item => location.pathname === item.path);
+                const hasActiveItem = menuItems.some(item => location.pathname === item.path);
                 
                 return (
                   <div key={groupKey} className="space-y-1 sm:space-y-2">
