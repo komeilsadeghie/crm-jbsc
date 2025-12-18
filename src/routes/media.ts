@@ -328,6 +328,11 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
       createDeals?: boolean;
       createProjects?: boolean;
     };
+    
+    // Log createProjects value for debugging
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Import request params:', { createDeals, createProjects });
+    }
 
     if (!file) {
       return res.status(400).json({ error: 'فایل Excel ارسال نشده است' });
@@ -729,7 +734,13 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
             accountId = accountResult.lastID || null;
           } catch (accountError: any) {
             console.error(`Error creating account for customer ${customerId}:`, accountError);
+            // Log but don't fail - continue without accountId
           }
+        }
+        
+        // Log if accountId is still null (for debugging)
+        if (!accountId && process.env.NODE_ENV === 'development') {
+          console.warn(`⚠️ No accountId created for customer ${customerId} (${customerName})`);
         }
 
         // Create or update deal if createDeals is true and we have service cost
