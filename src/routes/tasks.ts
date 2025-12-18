@@ -903,58 +903,185 @@ router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
   });
 });
 
+// ========== Kanban Columns Management ==========
+
+// Get all kanban columns
+router.get('/kanban/columns', authenticate, (req: AuthRequest, res: Response) => {
+  db.all(
+    'SELECT * FROM task_kanban_columns WHERE is_active = 1 ORDER BY position ASC',
+    [],
+    (err, columns) => {
+      if (err) {
+        return res.status(500).json({ error: 'خطا در دریافت ستون‌های کانبان' });
+      }
+      res.json(columns || []);
+    }
+  );
+});
+
+// Create kanban column
+router.post('/kanban/columns', authenticate, (req: AuthRequest, res: Response) => {
+  const { column_id, title, color, position } = req.body;
+
+  if (!column_id || !title) {
+    return res.status(400).json({ error: 'شناسه و عنوان ستون الزامی است' });
+  }
+
+  db.run(
+    `INSERT INTO task_kanban_columns (column_id, title, color, position, is_active)
+     VALUES (?, ?, ?, ?, ?)`,
+    [column_id, title, color || '#E5E7EB', position || 0, 1],
+    function(err) {
+      if (err) {
+        if (err.message.includes('UNIQUE')) {
+          return res.status(400).json({ error: 'ستون با این شناسه قبلاً وجود دارد' });
+        }
+        return res.status(500).json({ error: 'خطا در ایجاد ستون' });
+      }
+      res.status(201).json({ id: this.lastID, message: 'ستون با موفقیت ایجاد شد' });
+    }
+  );
+});
+
+// Update kanban column
+router.put('/kanban/columns/:id', authenticate, (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+  const { title, color, position } = req.body;
+
+  const updates: string[] = [];
+  const params: any[] = [];
+
+  if (title !== undefined) {
+    updates.push('title = ?');
+    params.push(title);
+  }
+  if (color !== undefined) {
+    updates.push('color = ?');
+    params.push(color);
+  }
+  if (position !== undefined) {
+    updates.push('position = ?');
+    params.push(position);
+  }
+
+  if (updates.length === 0) {
+    return res.status(400).json({ error: 'هیچ فیلدی برای به‌روزرسانی ارسال نشده' });
+  }
+
+  updates.push('updated_at = CURRENT_TIMESTAMP');
+  params.push(id);
+
+  db.run(
+    `UPDATE task_kanban_columns SET ${updates.join(', ')} WHERE id = ?`,
+    params,
+    function(err) {
+      if (err) {
+        return res.status(500).json({ error: 'خطا در به‌روزرسانی ستون' });
+      }
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'ستون یافت نشد' });
+      }
+      res.json({ message: 'ستون با موفقیت به‌روزرسانی شد' });
+    }
+  );
+});
+
+// Delete kanban column
+router.delete('/kanban/columns/:id', authenticate, (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+
+  db.run(
+    'UPDATE task_kanban_columns SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [id],
+    function(err) {
+      if (err) {
+        return res.status(500).json({ error: 'خطا در حذف ستون' });
+      }
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'ستون یافت نشد' });
+      }
+      res.json({ message: 'ستون با موفقیت حذف شد' });
+    }
+  );
+});
+
 // Kanban view
 router.get('/kanban/board', authenticate, (req: AuthRequest, res: Response) => {
   const { project_id, account_id } = req.query;
 
-  let query = `
-    SELECT t.*, 
-           a.name as account_name,
-           p.name as project_name,
-           u.full_name as assigned_to_name
-    FROM tasks t
-    LEFT JOIN accounts a ON t.account_id = a.id
-    LEFT JOIN projects p ON t.project_id = p.id
-    LEFT JOIN users u ON t.assigned_to = u.id
-    WHERE 1=1
-  `;
-  const params: any[] = [];
-
-  if (project_id) {
-    query += ' AND t.project_id = ?';
-    params.push(project_id);
-  }
-
-  if (account_id) {
-    query += ' AND t.account_id = ?';
-    params.push(account_id);
-  }
-
-  query += ' ORDER BY t.position ASC, t.created_at DESC';
-
-  db.all(query, params, (err, tasks: any[]) => {
-    if (err) {
-      return res.status(500).json({ error: 'خطا در دریافت تسک‌ها' });
-    }
-
-    // Group by kanban_column
-    const board: Record<string, any[]> = {
-      todo: [],
-      in_progress: [],
-      review: [],
-      done: []
-    };
-
-    tasks.forEach(task => {
-      const column = task.kanban_column || 'todo';
-      if (!board[column]) {
-        board[column] = [];
+  // Get active columns
+  db.all(
+    'SELECT * FROM task_kanban_columns WHERE is_active = 1 ORDER BY position ASC',
+    [],
+    (err, columns: any[]) => {
+      if (err) {
+        return res.status(500).json({ error: 'خطا در دریافت ستون‌های کانبان' });
       }
-      board[column].push(task);
-    });
 
-    res.json(board);
-  });
+      // If no columns, use defaults
+      const columnList = columns.length > 0 
+        ? columns 
+        : [
+            { column_id: 'todo', title: 'انجام نشده', color: '#FEE2E2' },
+            { column_id: 'in_progress', title: 'در حال انجام', color: '#DBEAFE' },
+            { column_id: 'review', title: 'در حال بررسی', color: '#FEF3C7' },
+            { column_id: 'done', title: 'انجام شده', color: '#D1FAE5' },
+          ];
+
+      let query = `
+        SELECT t.*, 
+               a.name as account_name,
+               p.name as project_name,
+               u.full_name as assigned_to_name
+        FROM tasks t
+        LEFT JOIN accounts a ON t.account_id = a.id
+        LEFT JOIN projects p ON t.project_id = p.id
+        LEFT JOIN users u ON t.assigned_to = u.id
+        WHERE 1=1
+      `;
+      const params: any[] = [];
+
+      if (project_id) {
+        query += ' AND t.project_id = ?';
+        params.push(project_id);
+      }
+
+      if (account_id) {
+        query += ' AND t.account_id = ?';
+        params.push(account_id);
+      }
+
+      query += ' ORDER BY t.position ASC, t.created_at DESC';
+
+      db.all(query, params, (err, tasks: any[]) => {
+        if (err) {
+          return res.status(500).json({ error: 'خطا در دریافت تسک‌ها' });
+        }
+
+        // Initialize board with all columns
+        const board: Record<string, any[]> = {};
+        columnList.forEach((col: any) => {
+          board[col.column_id] = [];
+        });
+
+        // Group tasks by kanban_column
+        tasks.forEach(task => {
+          const column = task.kanban_column || 'todo';
+          if (board[column]) {
+            board[column].push(task);
+          } else {
+            // If column doesn't exist, add to first column
+            const firstColumn = columnList[0];
+            if (firstColumn) {
+              board[firstColumn.column_id].push(task);
+            }
+          }
+        });
+
+        res.json({ columns: columnList, tasks: board });
+      });
+    }
+  );
 });
 
 // Update task position (for Kanban drag & drop)

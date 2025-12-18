@@ -883,7 +883,17 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
             }
             const settlements = JSON.stringify(settlementsObj);
 
-            const projectName = `طراحی سایت ${companyName || customerName}`;
+            // Use website domain as project name if available, otherwise use company/customer name
+            let projectName = '';
+            if (website && String(website).trim() !== '' && website !== 'nan') {
+              // Extract domain name from website URL
+              const websiteStr = String(website).trim();
+              const domainMatch = websiteStr.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+              projectName = domainMatch || websiteStr;
+            } else {
+              projectName = `طراحی سایت ${companyName || customerName}`;
+            }
+            
             const projectDescription = `پروژه طراحی وب‌سایت برای ${customerName}${website ? `\nوب‌سایت: ${website}` : ''}${productName ? `\nمحصول: ${productName}` : ''}${customerCode ? `\nکد: ${customerCode}` : ''}${designerColumn ? `\nطراح: ${designerColumn}` : ''}${siteLanguagesCount ? `\nتعداد زبان‌ها: ${siteLanguagesCount}` : ''}${serviceType ? `\nنوع خدمات: ${serviceType}` : ''}${balanceValue > 0 ? `\nمانده پرداخت: ${new Intl.NumberFormat('fa-IR').format(balanceValue)} تومان` : ''}`;
 
             // Check if project already exists for this account

@@ -87,123 +87,136 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
     return res.status(400).json({ error: 'فیلدهای الزامی را پر کنید' });
   }
 
-  // Check if username or email already exists
-  db.get('SELECT id FROM users WHERE username = ? OR email = ?', [username.toLowerCase(), email.toLowerCase()], async (err, existing) => {
-    if (err) {
-      return res.status(500).json({ error: 'خطا در بررسی کاربر موجود' });
-    }
+  try {
+    // Check if username or email already exists using Promise
+    const dbGet = (query: string, params: any[]): Promise<any> => {
+      return new Promise((resolve, reject) => {
+        db.get(query, params, (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        });
+      });
+    };
+
+    const dbRun = (query: string, params: any[]): Promise<{ lastID?: number; changes: number }> => {
+      return new Promise((resolve, reject) => {
+        db.run(query, params, function(err) {
+          if (err) reject(err);
+          else resolve({ lastID: this.lastID, changes: this.changes });
+        });
+      });
+    };
+
+    const existing = await dbGet(
+      'SELECT id FROM users WHERE username = ? OR email = ?',
+      [username.toLowerCase(), email.toLowerCase()]
+    );
+
     if (existing) {
       return res.status(400).json({ error: 'نام کاربری یا ایمیل تکراری است' });
     }
 
-    try {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      
-      // Use basic fields that always exist, and add optional fields only if they exist in table
-      // First insert with basic fields
-      db.run(
-        `INSERT INTO users (
-          username, email, password, role, full_name, phone
-        ) VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          username.toLowerCase(), 
-          email.toLowerCase(), 
-          hashedPassword, 
-          role || 'user',
-          full_name || null,
-          phone || null,
-        ],
-        async function(err) {
-          if (err) {
-            console.error('❌ Error creating user:', err);
-            console.error('❌ SQL Error:', err.message);
-            return res.status(500).json({ 
-              error: 'خطا در ایجاد کاربر',
-              details: process.env.NODE_ENV === 'development' ? err.message : undefined,
-              sqlError: process.env.NODE_ENV === 'development' ? err.toString() : undefined
-            });
-          }
-          
-          const userId = this.lastID;
-          
-          // Update additional fields if they were provided (these columns may not exist in older schemas)
-          const updateFields: string[] = [];
-          const updateValues: any[] = [];
-          
-          if (first_name !== undefined) {
-            updateFields.push('first_name = ?');
-            updateValues.push(first_name || null);
-          }
-          if (last_name !== undefined) {
-            updateFields.push('last_name = ?');
-            updateValues.push(last_name || null);
-          }
-          if (hourly_rate !== undefined) {
-            updateFields.push('hourly_rate = ?');
-            updateValues.push(hourly_rate || 0);
-          }
-          if (facebook !== undefined) {
-            updateFields.push('facebook = ?');
-            updateValues.push(facebook || null);
-          }
-          if (linkedin !== undefined) {
-            updateFields.push('linkedin = ?');
-            updateValues.push(linkedin || null);
-          }
-          if (skype !== undefined) {
-            updateFields.push('skype = ?');
-            updateValues.push(skype || null);
-          }
-          if (email_signature !== undefined) {
-            updateFields.push('email_signature = ?');
-            updateValues.push(email_signature || null);
-          }
-          if (default_language !== undefined) {
-            updateFields.push('default_language = ?');
-            updateValues.push(default_language || 'fa');
-          }
-          if (direction !== undefined) {
-            updateFields.push('direction = ?');
-            updateValues.push(direction || 'rtl');
-          }
-          if (is_admin !== undefined) {
-            updateFields.push('is_admin = ?');
-            updateValues.push(is_admin ? 1 : 0);
-          }
-          if (is_staff !== undefined) {
-            updateFields.push('is_staff = ?');
-            updateValues.push(is_staff ? 1 : 0);
-          }
-          if (voip_extension !== undefined) {
-            updateFields.push('voip_extension = ?');
-            updateValues.push(voip_extension || null);
-          }
-          
-          // Only update if there are fields to update
-          if (updateFields.length > 0) {
-            updateValues.push(userId);
-            db.run(
-              `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`,
-              updateValues,
-              (updateErr) => {
-                if (updateErr) {
-                  // Log error but don't fail - these are optional fields
-                  if (process.env.NODE_ENV === 'development') {
-                    console.warn('⚠️ Could not update additional user fields:', updateErr.message);
-                  }
-                }
-              }
-            );
-          }
-          
-          res.status(201).json({ id: userId, message: 'کاربر با موفقیت ایجاد شد' });
-        }
-      );
-    } catch (error) {
-      console.error('Error hashing password:', error);
-      return res.status(500).json({ error: 'خطا در ایجاد کاربر' });
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Insert with basic fields using Promise
+    const result = await dbRun(
+      `INSERT INTO users (
+        username, email, password, role, full_name, phone
+      ) VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        username.toLowerCase(), 
+        email.toLowerCase(), 
+        hashedPassword, 
+        role || 'user',
+        full_name || null,
+        phone || null,
+      ]
+    );
+    
+    const userId = result.lastID;
+    
+    if (!userId) {
+      return res.status(500).json({ error: 'خطا در ایجاد کاربر: شناسه کاربر ایجاد نشد' });
     }
-  });
+    
+    // Update additional fields if they were provided (these columns may not exist in older schemas)
+    const updateFields: string[] = [];
+    const updateValues: any[] = [];
+    
+    if (first_name !== undefined) {
+      updateFields.push('first_name = ?');
+      updateValues.push(first_name || null);
+    }
+    if (last_name !== undefined) {
+      updateFields.push('last_name = ?');
+      updateValues.push(last_name || null);
+    }
+    if (hourly_rate !== undefined) {
+      updateFields.push('hourly_rate = ?');
+      updateValues.push(hourly_rate || 0);
+    }
+    if (facebook !== undefined) {
+      updateFields.push('facebook = ?');
+      updateValues.push(facebook || null);
+    }
+    if (linkedin !== undefined) {
+      updateFields.push('linkedin = ?');
+      updateValues.push(linkedin || null);
+    }
+    if (skype !== undefined) {
+      updateFields.push('skype = ?');
+      updateValues.push(skype || null);
+    }
+    if (email_signature !== undefined) {
+      updateFields.push('email_signature = ?');
+      updateValues.push(email_signature || null);
+    }
+    if (default_language !== undefined) {
+      updateFields.push('default_language = ?');
+      updateValues.push(default_language || 'fa');
+    }
+    if (direction !== undefined) {
+      updateFields.push('direction = ?');
+      updateValues.push(direction || 'rtl');
+    }
+    if (is_admin !== undefined) {
+      updateFields.push('is_admin = ?');
+      updateValues.push(is_admin ? 1 : 0);
+    }
+    if (is_staff !== undefined) {
+      updateFields.push('is_staff = ?');
+      updateValues.push(is_staff ? 1 : 0);
+    }
+    if (voip_extension !== undefined) {
+      updateFields.push('voip_extension = ?');
+      updateValues.push(voip_extension || null);
+    }
+    
+    // Only update if there are fields to update - wait for completion
+    if (updateFields.length > 0) {
+      updateValues.push(userId);
+      try {
+        await dbRun(
+          `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`,
+          updateValues
+        );
+      } catch (updateErr: any) {
+        // Log error but don't fail - these are optional fields
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('⚠️ Could not update additional user fields:', updateErr.message);
+        }
+      }
+    }
+    
+    res.status(201).json({ id: userId, message: 'کاربر با موفقیت ایجاد شد' });
+  } catch (error: any) {
+    console.error('Error creating user:', error);
+    console.error('Error details:', error.message);
+    res.status(500).json({ 
+      error: 'خطا در ایجاد کاربر',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
 });
 
 // Update user

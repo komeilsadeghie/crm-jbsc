@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import api from '../services/api';
-import { Plus, CheckSquare, Clock, List, Kanban, GanttChart, Calendar, Filter, Tag, FolderOpen, Trash2, Edit } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { Plus, CheckSquare, Clock, List, Kanban, GanttChart, Calendar, Filter, Tag, FolderOpen, Trash2, Edit, Edit2, X } from 'lucide-react';
 import { toJalali } from '../utils/dateHelper';
 import { toPersianNumber } from '../utils/numberHelper';
 import { translateTaskStatus, translatePriority } from '../utils/translations';
@@ -23,7 +24,7 @@ const Tasks = () => {
     return response.data || [];
   });
 
-  const { data: kanbanBoard, isLoading } = useQuery(
+  const { data: kanbanData, isLoading } = useQuery(
     ['tasks-kanban', projectFilter],
     async () => {
       const params = projectFilter ? `?project_id=${projectFilter}` : '';
@@ -31,6 +32,22 @@ const Tasks = () => {
       return response.data;
     }
   );
+
+  const { data: kanbanColumns } = useQuery(
+    'tasks-kanban-columns',
+    async () => {
+      const response = await api.get('/tasks/kanban/columns');
+      return response.data || [];
+    }
+  );
+
+  const kanbanBoard = kanbanData?.tasks || {};
+  const columns = kanbanData?.columns || kanbanColumns || [
+    { column_id: 'todo', title: 'انجام نشده', color: '#FEE2E2' },
+    { column_id: 'in_progress', title: 'در حال انجام', color: '#DBEAFE' },
+    { column_id: 'review', title: 'در حال بررسی', color: '#FEF3C7' },
+    { column_id: 'done', title: 'انجام شده', color: '#D1FAE5' },
+  ];
 
   const { data: tasksList } = useQuery(
     ['tasks-list', projectFilter],
@@ -224,12 +241,53 @@ const Tasks = () => {
     e.dataTransfer.effectAllowed = 'move';
   };
 
-  const columns = [
-    { id: 'todo', label: 'انجام نشده', color: 'bg-neutral-100' },
-    { id: 'in_progress', label: 'در حال انجام', color: 'bg-info-100' },
-    { id: 'review', label: 'در حال بررسی', color: 'bg-warning-100' },
-    { id: 'done', label: 'انجام شده', color: 'bg-success-100' },
-  ];
+  const [editingColumn, setEditingColumn] = useState<{ id: number; title: string } | null>(null);
+  const [showAddColumn, setShowAddColumn] = useState(false);
+  const [newColumnTitle, setNewColumnTitle] = useState('');
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+
+  const createColumnMutation = useMutation(
+    (data: any) => api.post('/tasks/kanban/columns', data),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries('tasks-kanban');
+        setShowAddColumn(false);
+        setNewColumnTitle('');
+        alert('ستون با موفقیت اضافه شد');
+      },
+      onError: (error: any) => {
+        alert('خطا: ' + (error.response?.data?.error || error.message));
+      },
+    }
+  );
+
+  const updateColumnMutation = useMutation(
+    ({ id, data }: { id: number; data: any }) => api.put(`/tasks/kanban/columns/${id}`, data),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries('tasks-kanban');
+        setEditingColumn(null);
+        alert('ستون با موفقیت به‌روزرسانی شد');
+      },
+      onError: (error: any) => {
+        alert('خطا: ' + (error.response?.data?.error || error.message));
+      },
+    }
+  );
+
+  const deleteColumnMutation = useMutation(
+    (id: number) => api.delete(`/tasks/kanban/columns/${id}`),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries('tasks-kanban');
+        alert('ستون با موفقیت حذف شد');
+      },
+      onError: (error: any) => {
+        alert('خطا: ' + (error.response?.data?.error || error.message));
+      },
+    }
+  );
 
   if (isLoading) {
     return <div className="p-6">در حال بارگذاری...</div>;
@@ -279,91 +337,203 @@ const Tasks = () => {
       </div>
 
       {viewMode === 'kanban' ? (
-        <div className="grid grid-cols-4 gap-4">
-          {columns.map((column) => {
-            const tasks = Array.isArray(kanbanBoard?.[column.id]) ? kanbanBoard[column.id] : [];
-            return (
-              <div
-                key={column.id}
-                className="card p-4 min-h-[500px]"
-                onDrop={(e) => handleDrop(e, column.id)}
-                onDragOver={handleDragOver}
-                onDragEnter={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  e.currentTarget.classList.add('border-primary-400', 'border-2', 'bg-primary-50/30');
-                }}
-                onDragLeave={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  // Only remove class if we're actually leaving the column, not entering a child
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const x = e.clientX;
-                  const y = e.clientY;
-                  if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
-                    e.currentTarget.classList.remove('border-primary-400', 'border-2', 'bg-primary-50/30');
-                  }
-                }}
-              >
-                <h3 className="font-bold mb-4 text-neutral-700">
-                  {column.label} ({toPersianNumber(tasks.length)})
-                </h3>
-                <div className="space-y-2">
-                  {tasks.map((task: any) => (
-                    <div
-                      key={task.id}
-                      data-task-id={task.id}
-                      draggable={true}
-                      onDragStart={(e) => handleDragStart(e, task)}
-                      onDragEnd={(e) => {
-                        e.currentTarget.style.opacity = '1';
-                      }}
-                      onClick={() => setSelectedTask(task)}
-                      className={`${getTaskCardColor(task.status)} border-2 rounded-lg p-3 cursor-move hover:shadow-md transition-all duration-200 group relative`}
-                      style={{ opacity: 1 }}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium mb-1 text-neutral-800">{task.title}</div>
-                          {task.project_name && (
-                            <div className="mb-1">
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-white/60 text-blue-700 rounded text-xs border border-blue-200">
-                                <FolderOpen size={10} />
-                                {task.project_name}
-                              </span>
-                            </div>
-                          )}
-                          {task.due_date && (
-                            <div className="text-xs text-neutral-500 flex items-center gap-1 mt-1">
-                              <Calendar size={12} />
-                              {toJalali(task.due_date)}
-                            </div>
-                          )}
-                          {task.assigned_to_name && (
-                            <div className="text-xs text-neutral-600 mt-1">
-                              👤 {task.assigned_to_name}
-                            </div>
-                          )}
-                        </div>
-                        <button
-                          onClick={(e) => handleDelete(e, task.id)}
-                          className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-100 text-red-600 transition-all duration-200"
-                          title="حذف تسک"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+        <div className="overflow-x-auto pb-4">
+          <div className="flex gap-4 min-w-max" style={{ minHeight: '600px' }}>
+            {columns.map((column: any) => {
+              const columnId = column.column_id || column.id;
+              const tasks = Array.isArray(kanbanBoard?.[columnId]) ? kanbanBoard[columnId] : [];
+              const columnColor = column.color || '#E5E7EB';
+              
+              return (
+                <div
+                  key={columnId}
+                  className="flex-shrink-0 w-80 rounded-lg p-4"
+                  style={{ backgroundColor: columnColor }}
+                  onDrop={(e) => handleDrop(e, columnId)}
+                  onDragOver={handleDragOver}
+                >
+                  <div className="flex items-center justify-between mb-4 sticky top-0 bg-white/80 dark:bg-neutral-800/80 backdrop-blur p-2 rounded">
+                    {editingColumn?.id === column.id ? (
+                      <div className="flex items-center gap-2 flex-1">
+                        <input
+                          type="text"
+                          value={editingColumn.title}
+                          onChange={(e) => setEditingColumn({ ...editingColumn, title: e.target.value })}
+                          className="flex-1 px-2 py-1 text-sm border rounded dark:bg-neutral-700 dark:text-neutral-100"
+                          onBlur={() => {
+                            if (editingColumn.title.trim() && column.id) {
+                              updateColumnMutation.mutate({
+                                id: column.id,
+                                data: { title: editingColumn.title.trim() }
+                              });
+                            }
+                            setEditingColumn(null);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.currentTarget.blur();
+                            } else if (e.key === 'Escape') {
+                              setEditingColumn(null);
+                            }
+                          }}
+                          autoFocus
+                        />
                       </div>
-                    </div>
-                  ))}
-                  {tasks.length === 0 && (
-                    <div className="text-center text-neutral-400 text-sm py-8">
-                      خالی
-                    </div>
-                  )}
+                    ) : (
+                      <>
+                        <h3 className="font-bold text-lg text-center flex-1 text-neutral-900 dark:text-neutral-100">
+                          {column.title || column.label} ({toPersianNumber(tasks.length)})
+                        </h3>
+                        {isAdmin && column.id && (
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => setEditingColumn({ id: column.id, title: column.title || column.label })}
+                              className="p-1 hover:bg-white/50 rounded transition-colors"
+                              title="ویرایش نام"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                            {columns.length > 1 && (
+                              <button
+                                onClick={() => {
+                                  if (confirm('آیا مطمئن هستید که می‌خواهید این ستون را حذف کنید؟')) {
+                                    deleteColumnMutation.mutate(column.id);
+                                  }
+                                }}
+                                className="p-1 hover:bg-red-100 rounded transition-colors text-red-600"
+                                title="حذف ستون"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  <div className="space-y-3">
+                    {tasks.map((task: any) => (
+                      <div
+                        key={task.id}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, task)}
+                        onDragEnd={(e) => {
+                          e.currentTarget.style.opacity = '1';
+                        }}
+                        onClick={() => setSelectedTask(task)}
+                        className="bg-white dark:bg-neutral-800 rounded-lg p-4 shadow-md cursor-move hover:shadow-lg transition-shadow cursor-pointer"
+                      >
+                        <div className="font-medium text-gray-800 dark:text-neutral-100 mb-2">
+                          {task.title}
+                        </div>
+                        {task.project_name && (
+                          <div className="mb-2">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs border border-blue-200">
+                              <FolderOpen size={10} />
+                              {task.project_name}
+                            </span>
+                          </div>
+                        )}
+                        {task.due_date && (
+                          <div className="text-sm text-gray-600 dark:text-neutral-300 mb-1">
+                            📅 {toJalali(task.due_date)}
+                          </div>
+                        )}
+                        {task.assigned_to_name && (
+                          <div className="text-sm text-gray-600 dark:text-neutral-300 mb-1">
+                            👤 {task.assigned_to_name}
+                          </div>
+                        )}
+                        {task.description && (
+                          <div className="text-xs text-gray-500 dark:text-neutral-400 mt-2 line-clamp-2">
+                            {task.description}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    {tasks.length === 0 && (
+                      <div className="text-center text-gray-400 py-8 text-sm">
+                        خالی
+                      </div>
+                    )}
+                  </div>
                 </div>
+              );
+            })}
+            {isAdmin && (
+              <div className="flex-shrink-0 w-80">
+                {showAddColumn ? (
+                  <div className="bg-white dark:bg-neutral-800 rounded-lg p-4 border-2 border-dashed border-neutral-300 dark:border-neutral-600">
+                    <input
+                      type="text"
+                      value={newColumnTitle}
+                      onChange={(e) => setNewColumnTitle(e.target.value)}
+                      placeholder="نام ستون جدید"
+                      className="w-full px-3 py-2 mb-2 border rounded dark:bg-neutral-700 dark:text-neutral-100"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && newColumnTitle.trim()) {
+                          const columnId = `column_${Date.now()}`;
+                          createColumnMutation.mutate({
+                            column_id: columnId,
+                            title: newColumnTitle.trim(),
+                            color: '#E5E7EB',
+                            position: columns.length
+                          });
+                        } else if (e.key === 'Escape') {
+                          setShowAddColumn(false);
+                          setNewColumnTitle('');
+                        }
+                      }}
+                      autoFocus
+                    />
+                    <input
+                      type="color"
+                      defaultValue="#E5E7EB"
+                      onChange={(e) => {
+                        // You can add color picker logic here
+                      }}
+                      className="w-full mb-2"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          if (newColumnTitle.trim()) {
+                            const columnId = `column_${Date.now()}`;
+                            createColumnMutation.mutate({
+                              column_id: columnId,
+                              title: newColumnTitle.trim(),
+                              color: '#E5E7EB',
+                              position: columns.length
+                            });
+                          }
+                        }}
+                        className="flex-1 px-3 py-1.5 bg-primary-600 text-white rounded hover:bg-primary-700 text-sm"
+                      >
+                        افزودن
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowAddColumn(false);
+                          setNewColumnTitle('');
+                        }}
+                        className="px-3 py-1.5 bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 rounded hover:bg-neutral-300 dark:hover:bg-neutral-600"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowAddColumn(true)}
+                    className="w-full h-full min-h-[600px] border-2 border-dashed border-neutral-300 dark:border-neutral-600 rounded-lg flex items-center justify-center text-neutral-500 hover:border-primary-400 hover:text-primary-600 transition-colors"
+                  >
+                    <Plus size={24} className="ml-2" />
+                    افزودن ستون
+                  </button>
+                )}
               </div>
-            );
-          })}
+            )}
+          </div>
         </div>
       ) : (
         <div className="glass-card">

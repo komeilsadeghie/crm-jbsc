@@ -261,25 +261,75 @@ const Settings = () => {
 const UserModal = ({ user, roleLabels, onClose, onSave }: any) => {
   const [activeTab, setActiveTab] = useState<'profile' | 'permissions'>('profile');
   const [formData, setFormData] = useState({
-    username: user?.username || '',
-    email: user?.email || '',
-    full_name: user?.full_name || '',
-    first_name: user?.first_name || '',
-    last_name: user?.last_name || '',
-    phone: user?.phone || '',
+    username: '',
+    email: '',
+    full_name: '',
+    first_name: '',
+    last_name: '',
+    phone: '',
     password: '',
-    role: user?.role || 'user',
-    hourly_rate: user?.hourly_rate || 0,
-    facebook: user?.facebook || '',
-    linkedin: user?.linkedin || '',
-    skype: user?.skype || '',
-    email_signature: user?.email_signature || '',
-    default_language: user?.default_language || 'fa',
-    direction: user?.direction || 'rtl',
-    is_admin: user?.is_admin || false,
-    is_staff: user?.is_staff !== undefined ? user.is_staff : true,
-    voip_extension: user?.voip_extension || '',
+    role: 'user',
+    hourly_rate: 0,
+    facebook: '',
+    linkedin: '',
+    skype: '',
+    email_signature: '',
+    default_language: 'fa',
+    direction: 'rtl',
+    is_admin: false,
+    is_staff: true,
+    voip_extension: '',
   });
+
+  // Reset form data when user changes (when modal opens/closes or editing different user)
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        username: user.username || '',
+        email: user.email || '',
+        full_name: user.full_name || '',
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
+        phone: user.phone || '',
+        password: '',
+        role: user.role || 'user',
+        hourly_rate: user.hourly_rate || 0,
+        facebook: user.facebook || '',
+        linkedin: user.linkedin || '',
+        skype: user.skype || '',
+        email_signature: user.email_signature || '',
+        default_language: user.default_language || 'fa',
+        direction: user.direction || 'rtl',
+        is_admin: user.is_admin || false,
+        is_staff: user.is_staff !== undefined ? user.is_staff : true,
+        voip_extension: user.voip_extension || '',
+      });
+      setActiveTab('profile');
+    } else {
+      // Reset to defaults for new user
+      setFormData({
+        username: '',
+        email: '',
+        full_name: '',
+        first_name: '',
+        last_name: '',
+        phone: '',
+        password: '',
+        role: 'user',
+        hourly_rate: 0,
+        facebook: '',
+        linkedin: '',
+        skype: '',
+        email_signature: '',
+        default_language: 'fa',
+        direction: 'rtl',
+        is_admin: false,
+        is_staff: true,
+        voip_extension: '',
+      });
+      setActiveTab('profile');
+    }
+  }, [user]);
 
   const { data: departments } = useQuery('departments', async () => {
     const response = await api.get('/tickets/departments');
@@ -341,53 +391,76 @@ const UserModal = ({ user, roleLabels, onClose, onSave }: any) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user && !formData.password) {
-      alert('لطفا رمز عبور را وارد کنید');
-      return;
+    
+    // Validate required fields for new users
+    if (!user) {
+      if (!formData.username || formData.username.trim() === '') {
+        alert('لطفا نام کاربری را وارد کنید');
+        return;
+      }
+      if (!formData.email || formData.email.trim() === '') {
+        alert('لطفا ایمیل را وارد کنید');
+        return;
+      }
+      if (!formData.password || formData.password.trim() === '') {
+        alert('لطفا رمز عبور را وارد کنید');
+        return;
+      }
+      if (!formData.role || formData.role.trim() === '') {
+        alert('لطفا نقش را انتخاب کنید');
+        return;
+      }
     }
+    
     const data: any = {
-      username: formData.username,
-      email: formData.email,
-      full_name: formData.full_name,
-      first_name: formData.first_name,
-      last_name: formData.last_name,
-      phone: formData.phone,
+      username: formData.username.trim(),
+      email: formData.email.trim(),
+      full_name: formData.full_name?.trim() || null,
+      first_name: formData.first_name?.trim() || null,
+      last_name: formData.last_name?.trim() || null,
+      phone: formData.phone?.trim() || null,
       role: formData.role,
       hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate.toString()) : 0,
-      facebook: formData.facebook,
-      linkedin: formData.linkedin,
-      skype: formData.skype,
-      email_signature: formData.email_signature,
-      default_language: formData.default_language,
-      direction: formData.direction,
-      is_admin: formData.is_admin,
-      is_staff: formData.is_staff,
+      facebook: formData.facebook?.trim() || null,
+      linkedin: formData.linkedin?.trim() || null,
+      skype: formData.skype?.trim() || null,
+      email_signature: formData.email_signature?.trim() || null,
+      default_language: formData.default_language || 'fa',
+      direction: formData.direction || 'rtl',
+      is_admin: formData.is_admin || false,
+      is_staff: formData.is_staff !== undefined ? formData.is_staff : true,
+      voip_extension: formData.voip_extension?.trim() || null,
     };
-    if (formData.password) {
+    if (formData.password && formData.password.trim() !== '') {
       data.password = formData.password;
     }
     
-    await onSave(data);
+    try {
+      await onSave(data);
 
-    // Save permissions and departments if editing
-    if (user && activeTab === 'permissions') {
-      try {
-        // Save permissions
-        const permissions = Object.entries(selectedPermissions)
-          .filter(([_, granted]) => granted)
-          .map(([permission_id, _]) => ({ permission_id: parseInt(permission_id), granted: true }));
-        
-        await api.put(`/permissions/user/${user.id}`, { permissions });
+      // Save permissions and departments if editing
+      if (user && activeTab === 'permissions') {
+        try {
+          // Save permissions
+          const permissions = Object.entries(selectedPermissions)
+            .filter(([_, granted]) => granted)
+            .map(([permission_id, _]) => ({ permission_id: parseInt(permission_id), granted: true }));
+          
+          await api.put(`/permissions/user/${user.id}`, { permissions });
 
-        // Save departments
-        await api.put(`/permissions/user/${user.id}/departments`, { 
-          department_ids: selectedDepartments 
-        });
-        
-        alert('دسترسی‌ها و دپارتمان‌ها با موفقیت ذخیره شدند');
-      } catch (error: any) {
-        alert('خطا در ذخیره دسترسی‌ها: ' + (error.response?.data?.error || error.message));
+          // Save departments
+          await api.put(`/permissions/user/${user.id}/departments`, { 
+            department_ids: selectedDepartments 
+          });
+          
+          alert('دسترسی‌ها و دپارتمان‌ها با موفقیت ذخیره شدند');
+        } catch (error: any) {
+          alert('خطا در ذخیره دسترسی‌ها: ' + (error.response?.data?.error || error.message));
+        }
       }
+    } catch (error: any) {
+      // Error is already handled by mutation onError callback
+      console.error('Error in handleSubmit:', error);
     }
   };
 

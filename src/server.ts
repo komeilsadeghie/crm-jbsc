@@ -165,6 +165,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
         await (await import('./database/migrate-goals-enhanced')).migrateGoalsEnhanced();
         await (await import('./database/migrate-project-labels')).migrateProjectLabels();
         await (await import('./database/migrate-users-voip')).migrateUsersVoipExtension();
+        await (await import('./database/migrate-task-kanban-columns')).migrateTaskKanbanColumnsTable();
       } else {
         console.log('ℹ️ Optional migrations skipped (set RUN_MIGRATIONS=true to run).');
       }
@@ -224,6 +225,7 @@ import surveysRoutes from './routes/surveys';
 import activityLogRoutes from './routes/activity-log';
 import announcementsRoutes from './routes/announcements';
 import notificationsRoutes from './routes/notifications';
+import databaseBackupRoutes from './routes/database-backup';
 
 // Register routes
 app.use('/api/auth', authRoutes);
@@ -271,6 +273,7 @@ app.use('/api/surveys', surveysRoutes);
 app.use('/api/activity-log', activityLogRoutes);
 app.use('/api/utilities/announcements', announcementsRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/utilities/database-backup', databaseBackupRoutes);
 
 // Serve static files for uploads
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));

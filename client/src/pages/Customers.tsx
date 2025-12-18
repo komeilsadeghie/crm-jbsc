@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { Plus, Search, Edit, Trash2, Eye, CheckSquare, Square, Target, FileText as FileTextIcon, MessageSquare as MessageSquareIcon, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Eye, CheckSquare, Square, Target, FileText as FileTextIcon, MessageSquare as MessageSquareIcon, ArrowUpDown, ArrowUp, ArrowDown, FolderPlus } from 'lucide-react';
 import { useDebounce } from '../hooks/useDebounce';
 import EmptyState from '../components/EmptyState';
 import { toJalali } from '../utils/dateHelper';
@@ -162,6 +162,22 @@ const Customers = () => {
       },
       onError: (error: any) => {
         toast.showError('خطا در حذف گروهی: ' + (error.response?.data?.error || error.message));
+      },
+    }
+  );
+
+  const convertToProjectMutation = useMutation(
+    ({ customerId, project_name, project_description }: { customerId: number; project_name?: string; project_description?: string }) => 
+      api.post(`/customers/${customerId}/convert-to-project`, { project_name, project_description }),
+    {
+      onSuccess: (data) => {
+        queryClient.invalidateQueries('projects');
+        toast.showSuccess(data.data?.message || 'پروژه با موفقیت ایجاد شد');
+        // Navigate to projects page
+        navigate('/projects');
+      },
+      onError: (error: any) => {
+        toast.showError('خطا در ایجاد پروژه: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -578,6 +594,21 @@ const Customers = () => {
                           title="ویرایش"
                         >
                           <Edit size={18} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm(`آیا می‌خواهید برای مشتری "${customer.name}" یک پروژه ایجاد کنید؟`)) {
+                              convertToProjectMutation.mutate({
+                                customerId: customer.id,
+                                project_name: `پروژه ${customer.name}`
+                              });
+                            }
+                          }}
+                          className="text-primary-600 hover:text-primary-700 hover:bg-primary-50 p-2 rounded transition-colors"
+                          title="ایجاد پروژه"
+                          disabled={convertToProjectMutation.isLoading}
+                        >
+                          <FolderPlus size={18} />
                         </button>
                         <button
                           onClick={() => handleDelete(customer.id)}
