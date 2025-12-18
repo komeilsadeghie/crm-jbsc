@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+
 import { initDatabase } from './database/db';
 import { migrateEstimatesTable } from './database/migrate-estimates';
 import { migrateContactsPortal } from './database/migrate-contacts-portal';
@@ -21,118 +22,127 @@ import { fixUniqueIdColumn } from './database/fix-unique-id';
 dotenv.config();
 
 const app = express();
-const PORT = parseInt(process.env.PORT || '3000', 10);
 
-// Middleware
-const allowedOrigins = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:3000', 'http://localhost:3001'];
+// IMPORTANT: On PaaS you MUST listen on process.env.PORT
+const PORT = Number(process.env.PORT) || 3000;
 
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true
-}));
+// If behind proxy (common in PaaS), helps with secure cookies / IPs
+app.set('trust proxy', 1);
+
+// -------------------- Middleware --------------------
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+// In dev allow localhost(s), in prod only allow ALLOWED_ORIGINS
+const devFallbackOrigins = ['http://localhost:3000', 'http://localhost:3001'];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (curl, Postman, server-to-server)
+      if (!origin) return callback(null, true);
+
+      // Dev mode: allow everything (or at least the common ones)
+      if (process.env.NODE_ENV !== 'production') {
+        return callback(null, true);
+      }
+
+      // Production: allow only explicitly listed origins
+      const finalAllowed = allowedOrigins.length ? allowedOrigins : devFallbackOrigins;
+
+      if (finalAllowed.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+  })
+);
+
 // Increase body parser limit to 50MB for Excel file uploads
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// --- Initialize SQLite Database ---
+// -------------------- Initialize SQLite Database --------------------
 (async () => {
   try {
-    console.log("🛠 Initializing database tables...");
+    console.log('🛠 Initializing database tables...');
     await initDatabase();
-    
-    // Migrate estimates table to add new columns
-    console.log("🔄 Migrating estimates table...");
+
+    console.log('🔄 Migrating estimates table...');
     await migrateEstimatesTable();
-    
-    // Migrate contacts table for portal
-    console.log("🔄 Migrating contacts table...");
+
+    console.log('🔄 Migrating contacts table...');
     await migrateContactsPortal();
-    
-    // Migrate tasks table for new columns
-    console.log("🔄 Migrating tasks table...");
+
+    console.log('🔄 Migrating tasks table...');
     await migrateTasksTable();
-    
-    // Migrate contracts table for new columns
-    console.log("🔄 Migrating contracts table...");
+
+    console.log('🔄 Migrating contracts table...');
     await migrateContractsTable();
-    
-    // Migrate users table for new columns and permissions
-    console.log("🔄 Migrating users table...");
+
+    console.log('🔄 Migrating users table...');
     await migrateUsersTable();
-    
-    // Migrate invoices table for items and recurring invoices
-    console.log("🔄 Migrating invoices table...");
+
+    console.log('🔄 Migrating invoices table...');
     await migrateInvoicesTable();
-    
-    // Migrate expenses table for recurring expenses
-    console.log("🔄 Migrating expenses table...");
+
+    console.log('🔄 Migrating expenses table...');
     await migrateRecurringExpensesTable();
-    
-    // Migrate proposals table
-    console.log("🔄 Migrating proposals table...");
+
+    console.log('🔄 Migrating proposals table...');
     await migrateProposalsTable();
-    
-    // Migrate tasks enhanced features
-    console.log("🔄 Migrating tasks enhanced features...");
+
+    console.log('🔄 Migrating tasks enhanced features...');
     await migrateTasksEnhancedTable();
-    
-    // Migrate payment gateways
-    console.log("🔄 Migrating payment gateways...");
+
+    console.log('🔄 Migrating payment gateways...');
     await migratePaymentGatewaysTable();
-    
-    // Migrate surveys
-    console.log("🔄 Migrating surveys...");
+
+    console.log('🔄 Migrating surveys...');
     await migrateSurveysTable();
-    
-    // Migrate media import fields (code, designer, settlements)
-    console.log("🔄 Migrating media import fields...");
+
+    console.log('🔄 Migrating media import fields (code, designer, settlements)...');
     try {
       await migrateMediaImportFields();
     } catch (migrationError: any) {
-      console.error("⚠️ Error in migrateMediaImportFields:", migrationError);
-      // Try to fix unique_id column manually
-      console.log("🔄 Attempting to fix unique_id column...");
+      console.error('⚠️ Error in migrateMediaImportFields:', migrationError);
+
+      console.log('🔄 Attempting to fix unique_id column...');
       try {
         await fixUniqueIdColumn();
       } catch (fixError: any) {
-        console.error("❌ Could not fix unique_id column:", fixError);
+        console.error('❌ Could not fix unique_id column:', fixError);
       }
     }
-    
-    // Optional migrations (files may not exist in some deployments)
-    try {
-      if (process.env.RUN_MIGRATIONS === "true") {
-        console.log("🔄 Running optional migrations...");
 
-        await (await import("./database/migrate-knowledge-base-enhanced")).migrateKnowledgeBaseEnhanced();
-        await (await import("./database/migrate-customer-journey")).migrateCustomerJourney();
-        await (await import("./database/migrate-goals-enhanced")).migrateGoalsEnhanced();
-        await (await import("./database/migrate-project-labels")).migrateProjectLabels();
-        await (await import("./database/migrate-users-voip")).migrateUsersVoipExtension();
+    // Optional migrations
+    try {
+      if (process.env.RUN_MIGRATIONS === 'true') {
+        console.log('🔄 Running optional migrations...');
+
+        await (await import('./database/migrate-knowledge-base-enhanced')).migrateKnowledgeBaseEnhanced();
+        await (await import('./database/migrate-customer-journey')).migrateCustomerJourney();
+        await (await import('./database/migrate-goals-enhanced')).migrateGoalsEnhanced();
+        await (await import('./database/migrate-project-labels')).migrateProjectLabels();
+        await (await import('./database/migrate-users-voip')).migrateUsersVoipExtension();
       } else {
-        console.log("ℹ️ Optional migrations skipped (set RUN_MIGRATIONS=true to run).");
+        console.log('ℹ️ Optional migrations skipped (set RUN_MIGRATIONS=true to run).');
       }
     } catch (e) {
-      console.warn("⚠️ Optional migrations not available or failed; continuing without them.", e);
+      console.warn('⚠️ Optional migrations not available or failed; continuing without them.', e);
     }
 
-    console.log("✅ Database initialized successfully!");
+    console.log('✅ Database initialized successfully!');
   } catch (err) {
-    console.error("❌ Database initialization error:", err);
+    console.error('❌ Database initialization error:', err);
   }
 })();
 
-// --- ROUTES ---
+// -------------------- ROUTES --------------------
 import authRoutes from './routes/auth';
 import customerRoutes from './modules/customers/customer.router';
 import interactionRoutes from './routes/interactions';
@@ -229,80 +239,49 @@ app.use('/api/notifications', notificationsRoutes);
 // Serve static files for uploads
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// Serve client build files in production
+// -------------------- Serve client build in production --------------------
 if (process.env.NODE_ENV === 'production') {
-  const clientDistPath = path.join(__dirname, '../../client/dist');
-  
-  // Check if client dist exists before serving
   const fs = require('fs');
+
+  // IMPORTANT: use process.cwd() so path works after TypeScript build
+  const clientDistPath = path.join(process.cwd(), 'client', 'dist');
+
   if (fs.existsSync(clientDistPath)) {
     app.use(express.static(clientDistPath));
-    
-    // Serve index.html for all non-API routes (SPA routing)
+
+    // SPA fallback for non-API routes
     app.get('*', (req, res, next) => {
-      // Skip API routes
-      if (req.path.startsWith('/api')) {
-        return next();
-      }
+      if (req.path.startsWith('/api')) return next();
+
       const indexPath = path.join(clientDistPath, 'index.html');
-      if (fs.existsSync(indexPath)) {
-        res.sendFile(indexPath);
-      } else {
-        res.status(404).json({ error: 'Client build not found' });
-      }
+      if (fs.existsSync(indexPath)) return res.sendFile(indexPath);
+
+      return res.status(404).json({ error: 'Client build not found' });
     });
   } else {
-    console.warn('⚠️  Client dist directory not found. Skipping static file serving.');
+    console.warn('⚠️ Client dist directory not found. Skipping static file serving.');
   }
 }
 
-// Health check
+// -------------------- Health check --------------------
+app.get('/', (req, res) => {
+  res.send('OK');
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'CRM API is running' });
 });
 
-// Global error handler
+// -------------------- Global error handler --------------------
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error("❌ ERROR:", err);
+  if (err?.message?.includes('CORS')) {
+    return res.status(403).json({ error: 'CORS blocked' });
+  }
+  console.error('❌ ERROR:', err);
   res.status(500).json({ error: 'خطای سرور' });
 });
 
-// Function to start server on a port, trying next port if current is busy
-const startServer = (port: number, maxAttempts: number = 5): void => {
-  let attempts = 0;
-  
-  const tryStart = (currentPort: number) => {
-    attempts++;
-    
-    const server = app.listen(currentPort, () => {
-      console.log(`🚀 CRM Server running on port ${currentPort}`);
-      console.log(`📊 API available at http://localhost:${currentPort}/api`);
-      if (currentPort !== PORT) {
-        console.log(`⚠️  Note: Port ${PORT} was busy, using port ${currentPort} instead`);
-        console.log(`💡 Update vite.config.ts proxy target to http://localhost:${currentPort} if needed`);
-      }
-    });
-    
-    server.on('error', (err: NodeJS.ErrnoException) => {
-      if (err.code === 'EADDRINUSE') {
-        if (attempts < maxAttempts) {
-          console.log(`⚠️  Port ${currentPort} is busy, trying port ${currentPort + 1}...`);
-          tryStart(currentPort + 1);
-        } else {
-          console.error(`❌ Failed to find available port after ${maxAttempts} attempts`);
-          console.log(`💡 Please kill processes using ports ${PORT}-${currentPort} and try again`);
-          console.log(`💡 Or use: netstat -ano | findstr :${PORT}`);
-          process.exit(1);
-        }
-      } else {
-        console.error('❌ Server error:', err);
-        process.exit(1);
-      }
-    });
-  };
-  
-  tryStart(port);
-};
-
-// Start server
-startServer(PORT);
+// -------------------- Start server (PaaS friendly) --------------------
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 CRM Server running on port ${PORT}`);
+});
