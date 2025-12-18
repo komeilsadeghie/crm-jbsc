@@ -248,7 +248,7 @@ const Expenses = () => {
             setShowModal(false);
             setEditingExpense(null);
           }}
-          onSave={(data) => {
+          onSave={(data: any) => {
             if (editingExpense) {
               updateMutation.mutate({ id: editingExpense.id, data });
             } else {
@@ -266,7 +266,7 @@ const Expenses = () => {
             setShowCategoryModal(false);
             setEditingCategory(null);
           }}
-          onSave={(data, categoryId) => {
+          onSave={(data: any, categoryId: any) => {
             if (categoryId) {
               updateCategoryMutation.mutate({ id: categoryId, data });
             } else {
@@ -274,7 +274,7 @@ const Expenses = () => {
             }
             setEditingCategory(null);
           }}
-          onDelete={(id) => {
+          onDelete={(id: any) => {
             deleteCategoryMutation.mutate(id);
             setEditingCategory(null);
           }}

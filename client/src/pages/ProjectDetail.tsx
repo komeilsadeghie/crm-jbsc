@@ -1319,7 +1319,7 @@ const ProjectDetail = () => {
                   setShowTaskModal(false);
                   setEditingTask(null);
                 }}
-                onSave={(data) => {
+                onSave={(data: any) => {
                   if (editingTask) {
                     updateTaskMutation.mutate({ id: editingTask.id, data });
                   } else {
@@ -1333,7 +1333,7 @@ const ProjectDetail = () => {
         {showDiscussionModal && (
           <DiscussionModal
             onClose={() => setShowDiscussionModal(false)}
-            onSave={(data) => {
+            onSave={(data: any) => {
               createDiscussionMutation.mutate(data);
             }}
           />

@@ -171,7 +171,7 @@ const Tasks = () => {
   const handleDragStart = (e: React.DragEvent, task: any) => {
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('task', JSON.stringify(task));
-    e.currentTarget.style.opacity = '0.5';
+    (e.currentTarget as HTMLElement).style.opacity = '0.5';
     console.log('Drag started for task:', task.id, 'to column:', task.kanban_column);
   };
 
@@ -455,7 +455,7 @@ const Tasks = () => {
             setShowModal(false);
             setEditingTask(null);
           }}
-          onSave={(data) => {
+          onSave={(data: any) => {
             if (editingTask) {
               updateMutation.mutate({ id: editingTask.id, data });
             } else {

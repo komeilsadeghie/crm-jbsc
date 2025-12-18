@@ -387,17 +387,17 @@ const Coaching = () => {
             goalsProgress={goalsProgress}
             overdueExercises={overdueExercises}
             customers={customers}
-            onSessionClick={(session) => {
+            onSessionClick={(session: any) => {
               setEditingItem(session);
               setModalType('session');
               setShowModal(true);
             }}
-            onGoalClick={(goal) => {
+            onGoalClick={(goal: any) => {
               setEditingItem(goal);
               setModalType('goal');
               setShowModal(true);
             }}
-            onExerciseClick={(exercise) => {
+            onExerciseClick={(exercise: any) => {
               setEditingItem(exercise);
               setModalType('exercise');
               setShowModal(true);
@@ -440,7 +440,7 @@ const Coaching = () => {
           <CalendarView
             sessions={sessions}
             customers={customers}
-            onSessionClick={(session) => {
+            onSessionClick={(session: any) => {
               setEditingItem(session);
               setClickedDate(null);
               setModalType('session');
@@ -505,7 +505,7 @@ const Coaching = () => {
               customers={customers}
               searchTerm={searchTerm}
               statusFilter={statusFilter}
-              onEdit={(session) => {
+              onEdit={(session: any) => {
                 setEditingItem(session);
                 setModalType('session');
                 setShowModal(true);
@@ -519,7 +519,7 @@ const Coaching = () => {
           <GoalsList
             goals={goals}
             customers={customers}
-            onEdit={(goal) => {
+            onEdit={(goal: any) => {
               setEditingItem(goal);
               setModalType('goal');
               setShowModal(true);
@@ -533,7 +533,7 @@ const Coaching = () => {
             exercises={exercises}
             goals={goals}
             customers={customers}
-            onEdit={(exercise) => {
+            onEdit={(exercise: any) => {
               setEditingItem(exercise);
               setModalType('exercise');
               setShowModal(true);
@@ -546,7 +546,7 @@ const Coaching = () => {
           <ReportsList
             reports={reports}
             customers={customers}
-            onEdit={(report) => {
+            onEdit={(report: any) => {
               setEditingItem(report);
               setModalType('report');
               setShowModal(true);
@@ -559,7 +559,7 @@ const Coaching = () => {
           <ProgramsList
             programs={programs}
             customers={customers}
-            onEdit={(program) => {
+            onEdit={(program: any) => {
               setEditingItem(program);
               setModalType('program');
               setShowModal(true);
@@ -571,7 +571,7 @@ const Coaching = () => {
         {activeTab === 'templates' && (
           <TemplatesList
             templates={templates}
-            onEdit={(template) => {
+            onEdit={(template: any) => {
               setEditingItem(template);
               setModalType('template');
               setShowModal(true);
@@ -585,7 +585,7 @@ const Coaching = () => {
             feedbacks={feedbacks}
             customers={customers}
             sessions={sessions}
-            onEdit={(feedback) => {
+            onEdit={(feedback: any) => {
               setEditingItem(feedback);
               setModalType('feedback');
               setShowModal(true);
@@ -956,7 +956,7 @@ const ReportsList = ({ reports, customers, onEdit, onDelete }: any) => {
     const headers = Object.keys(data[0] || {});
     const csvContent = [
       headers.join(','),
-      ...data.map(row => headers.map(header => `"${(row[header] || '').toString().replace(/"/g, '""')}"`).join(','))
+      ...data.map((row: Record<string, any>) => headers.map((header: string) => `"${(row[header] || '').toString().replace(/"/g, '""')}"`).join(','))
     ].join('\n');
 
     const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -1154,7 +1154,7 @@ const CoachingModal = ({ type, item, customers, goals, sessions, clickedDate: pr
   });
 
   const mutation = useMutation(
-    (data: any) => {
+    async (data: any) => {
       // Convert Jalali date to Gregorian for session_date
       const submitData = { ...data };
       if (type === 'session' && submitData.session_date) {

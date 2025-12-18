@@ -243,7 +243,7 @@ const Contracts = () => {
             setShowModal(false);
             setEditingContract(null);
           }}
-          onSave={(data) => {
+          onSave={(data: any) => {
             if (editingContract) {
               updateMutation.mutate({ id: editingContract.id, data });
             } else {

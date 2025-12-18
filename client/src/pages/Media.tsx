@@ -14,6 +14,7 @@ import Pagination from '../components/Pagination';
 const Media = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<'briefs' | 'items' | 'calendar' | 'assets' | 'import'>('briefs');
   const [sortConfig, setSortConfig] = useState<{ field: string; direction: 'asc' | 'desc' } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -204,7 +205,7 @@ const Media = () => {
             {/* Basic Filters */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <div className="relative">
-                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} className="sm:w-5 sm:h-5" />
+                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 sm:w-5 sm:h-5" size={18} />
                 <input
                   type="text"
                   placeholder="جستجو..."
@@ -298,7 +299,7 @@ const Media = () => {
         {activeTab === 'briefs' && (
           <BriefsList
             briefs={getFilteredAndSortedData(Array.isArray(briefs) ? briefs : [], 'briefs')}
-            onEdit={(brief) => {
+            onEdit={(brief: any) => {
               setEditingItem(brief);
               setModalType('brief');
               setShowModal(true);
@@ -311,7 +312,7 @@ const Media = () => {
         {activeTab === 'items' && (
           <ItemsList
             items={getFilteredAndSortedData(Array.isArray(items) ? items : [], 'items')}
-            onEdit={(item) => {
+            onEdit={(item: any) => {
               setEditingItem(item);
               setModalType('item');
               setShowModal(true);
@@ -328,7 +329,7 @@ const Media = () => {
         {activeTab === 'assets' && (
           <AssetsList
             assets={getFilteredAndSortedData(Array.isArray(assets) ? assets : [], 'assets')}
-            onEdit={(asset) => {
+            onEdit={(asset: any) => {
               setEditingItem(asset);
               setModalType('asset');
               setShowModal(true);
@@ -788,7 +789,7 @@ const MediaModal = ({ type, item, onClose }: any) => {
   });
 
   const mutation = useMutation(
-    (data: any) => {
+    async (data: any) => {
       if (item) {
         if (type === 'brief') {
           return api.put(`/media/briefs/${item.id}`, data);
@@ -1062,6 +1063,7 @@ const MediaModal = ({ type, item, onClose }: any) => {
 // Import Customers Section
 const ImportCustomersSection = ({ onSuccess }: { onSuccess: (data?: any) => void }) => {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [importFile, setImportFile] = useState<File | null>(null);
   const [previewData, setPreviewData] = useState<any>(null);
   const [mapping, setMapping] = useState<Record<string, string>>({});

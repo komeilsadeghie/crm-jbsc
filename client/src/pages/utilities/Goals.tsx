@@ -234,6 +234,7 @@ const Goals = () => {
         {/* Delete Confirm Dialog */}
         <ConfirmDialog
           isOpen={deleteConfirm.show}
+          onClose={() => setDeleteConfirm({ show: false })}
           title="حذف هدف"
           message="آیا مطمئن هستید که می‌خواهید این هدف را حذف کنید؟"
           onConfirm={() => {

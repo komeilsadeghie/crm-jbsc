@@ -253,7 +253,7 @@ const Announcements = () => {
               setShowModal(false);
               setEditingAnnouncement(null);
             }}
-            onSave={(data) => {
+            onSave={(data: any) => {
               if (editingAnnouncement) {
                 updateMutation.mutate({ id: editingAnnouncement.id, data });
               } else {
@@ -266,6 +266,7 @@ const Announcements = () => {
         {/* Delete Confirm Dialog */}
         <ConfirmDialog
           isOpen={deleteConfirm.show}
+          onClose={() => setDeleteConfirm({ show: false })}
           title="حذف اعلان"
           message="آیا مطمئن هستید که می‌خواهید این اعلان را حذف کنید؟"
           onConfirm={() => {

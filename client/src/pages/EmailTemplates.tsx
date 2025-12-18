@@ -125,7 +125,7 @@ const EmailTemplates = () => {
             setShowModal(false);
             setEditingTemplate(null);
           }}
-          onSave={(data) => {
+          onSave={(data: any) => {
             if (editingTemplate) {
               updateMutation.mutate({ id: editingTemplate.id, data });
             } else {

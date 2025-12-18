@@ -587,7 +587,7 @@ const EventModal = ({ event, customers, customersLoading, deals, selectedDate, c
         queryClient.invalidateQueries(['calendar-events']);
         onClose();
         setTimeout(() => {
-          refetch().catch((err) => {
+          refetch().catch((err: unknown) => {
             console.error('Error refetching events:', err);
           });
         }, 300);
@@ -750,7 +750,7 @@ const EventModal = ({ event, customers, customersLoading, deals, selectedDate, c
         
         // Then refetch after a short delay
         setTimeout(() => {
-          refetch().catch((err) => {
+          refetch().catch((err: unknown) => {
             console.error('Error refetching events:', err);
           });
         }, 300);

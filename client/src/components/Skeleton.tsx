@@ -4,6 +4,7 @@ interface SkeletonProps {
   width?: string | number;
   height?: string | number;
   lines?: number;
+  style?: React.CSSProperties;
 }
 
 const Skeleton = ({ 
@@ -11,7 +12,8 @@ const Skeleton = ({
   variant = 'rectangular', 
   width, 
   height,
-  lines 
+  lines,
+  style
 }: SkeletonProps) => {
   const baseClasses = 'animate-shimmer bg-neutral-200 dark:bg-neutral-700 rounded';
   
@@ -45,6 +47,7 @@ const Skeleton = ({
       style={{
         width: width || '100%',
         height: height || variant === 'circular' ? width || '40px' : '1rem',
+        ...style,
       }}
     />
   );

@@ -780,6 +780,8 @@ const Estimates = () => {
       {/* Convert Confirm Dialog */}
       {convertConfirm.show && (
         <ConfirmDialog
+          isOpen={convertConfirm.show}
+          onClose={() => setConvertConfirm({ show: false })}
           title="تبدیل پیش‌فاکتور به فاکتور"
           message="آیا مطمئن هستید که می‌خواهید این پیش‌فاکتور را به فاکتور تبدیل کنید؟"
           onConfirm={() => {
@@ -794,6 +796,8 @@ const Estimates = () => {
       {/* Delete Confirm Dialog */}
       {deleteConfirm.show && (
         <ConfirmDialog
+          isOpen={deleteConfirm.show}
+          onClose={() => setDeleteConfirm({ show: false })}
           title="حذف پیش‌فاکتور"
           message="آیا مطمئن هستید که می‌خواهید این پیش‌فاکتور را حذف کنید؟ این عمل قابل بازگشت نیست."
           onConfirm={() => {

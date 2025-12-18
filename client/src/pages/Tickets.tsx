@@ -135,7 +135,7 @@ const Tickets = () => {
           departments={departments || []}
           departmentsLoading={departmentsLoading}
           onClose={() => setShowModal(false)}
-          onSave={(data) => createMutation.mutate(data)}
+          onSave={(data: any) => createMutation.mutate(data)}
         />
       )}
 

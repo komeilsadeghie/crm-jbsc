@@ -216,6 +216,7 @@ const DatabaseBackup = () => {
         {/* Delete Confirm Dialog */}
         <ConfirmDialog
           isOpen={deleteConfirm.show}
+          onClose={() => setDeleteConfirm({ show: false })}
           title="حذف پشتیبان"
           message="آیا مطمئن هستید که می‌خواهید این پشتیبان را حذف کنید؟"
           onConfirm={() => {

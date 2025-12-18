@@ -244,7 +244,7 @@ const Settings = () => {
             setShowUserModal(false);
             setEditingUser(null);
           }}
-          onSave={async (data) => {
+          onSave={async (data: any) => {
             if (editingUser) {
               await updateUserMutation.mutateAsync({ id: editingUser.id, data });
             } else {
@@ -438,7 +438,7 @@ const UserModal = ({ user, roleLabels, onClose, onSave }: any) => {
                     className="input"
                   >
                     {Object.entries(roleLabels).map(([value, label]) => (
-                      <option key={value} value={value}>{label}</option>
+                      <option key={value} value={value}>{String(label)}</option>
                     ))}
                   </select>
                 </div>
@@ -1371,7 +1371,7 @@ const DepartmentsManagement = () => {
             setShowModal(false);
             setEditingDepartment(null);
           }}
-          onSave={(data) => {
+          onSave={(data: any) => {
             if (editingDepartment) {
               updateMutation.mutate({ id: editingDepartment.id, data });
             } else {

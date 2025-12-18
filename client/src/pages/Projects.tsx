@@ -297,7 +297,7 @@ const Projects = () => {
             setShowModal(false);
             setEditingProject(null);
           }}
-          onSave={(data) => {
+          onSave={(data: any) => {
             if (editingProject) {
               updateMutation.mutate({ id: editingProject.id, data });
             } else {

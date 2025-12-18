@@ -422,7 +422,7 @@ const KnowledgeBase = () => {
             setShowModal(false);
             setEditingArticle(null);
           }}
-          onSave={(data) => {
+          onSave={(data: any) => {
             if (editingArticle) {
               updateMutation.mutate({ id: editingArticle.id, data });
             } else {
@@ -440,7 +440,7 @@ const KnowledgeBase = () => {
               setShowSOPModal(false);
               setEditingSOP(null);
             }}
-            onSave={(data) => {
+            onSave={(data: any) => {
               if (editingSOP) {
                 updateSOPMutation.mutate({ id: editingSOP.id, data });
               } else {

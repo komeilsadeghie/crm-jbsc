@@ -10,6 +10,7 @@ interface ConfirmDialogProps {
   confirmText?: string;
   cancelText?: string;
   isLoading?: boolean;
+  onCancel?: () => void; // For backward compatibility
 }
 
 const ConfirmDialog = ({
@@ -22,7 +23,9 @@ const ConfirmDialog = ({
   confirmText = 'تأیید',
   cancelText = 'لغو',
   isLoading = false,
+  onCancel,
 }: ConfirmDialogProps) => {
+  const handleCancel = onCancel || onClose;
   if (!isOpen) return null;
 
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -99,7 +102,7 @@ const ConfirmDialog = ({
         </div>
         <div className="p-6 flex items-center justify-end gap-3">
           <button
-            onClick={onClose}
+            onClick={handleCancel}
             disabled={isLoading}
             className="btn btn-secondary"
           >

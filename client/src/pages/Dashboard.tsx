@@ -127,7 +127,7 @@ const Dashboard = () => {
         <div className="glass-card p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 transition-colors animate-slide-down">
           <h1 className="heading-2 text-neutral-800 dark:text-neutral-200">داشبورد</h1>
         <div className="body-small text-neutral-600 dark:text-neutral-400">
-          خوش آمدید، {user?.full_name || user?.username}
+          خوش آمدید، {user?.fullName || user?.username}
         </div>
       </div>
 
@@ -142,7 +142,7 @@ const Dashboard = () => {
             <div className="relative">
               <div className="flex items-center justify-between mb-2">
                 <span className="body-small text-neutral-600 dark:text-neutral-400">فاکتورهای در انتظار پرداخت</span>
-                <FileText className="text-danger-500 dark:text-danger-400" size={18} className="sm:w-5 sm:h-5 flex-shrink-0 group-hover:scale-110 transition-transform" />
+                <FileText className="text-danger-500 dark:text-danger-400 sm:w-5 sm:h-5 flex-shrink-0 group-hover:scale-110 transition-transform" size={18} />
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="heading-2 text-neutral-800 dark:text-neutral-200">
@@ -168,7 +168,7 @@ const Dashboard = () => {
             <div className="relative">
               <div className="flex items-center justify-between mb-2">
                 <span className="body-small text-neutral-600 dark:text-neutral-400">سرنخ‌های تبدیل شده</span>
-                <TrendingUp className="text-success-500 dark:text-success-400" size={18} className="sm:w-5 sm:h-5 flex-shrink-0 group-hover:scale-110 transition-transform" />
+                <TrendingUp className="text-success-500 dark:text-success-400 sm:w-5 sm:h-5 flex-shrink-0 group-hover:scale-110 transition-transform" size={18} />
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="heading-2 text-neutral-800 dark:text-neutral-200">
@@ -194,7 +194,7 @@ const Dashboard = () => {
             <div className="relative">
               <div className="flex items-center justify-between mb-2">
                 <span className="body-small text-neutral-600 dark:text-neutral-400">پروژه‌های در حال انجام</span>
-                <FolderOpen className="text-primary-500 dark:text-primary-400" size={18} className="sm:w-5 sm:h-5 flex-shrink-0 group-hover:scale-110 transition-transform" />
+                <FolderOpen className="text-primary-500 dark:text-primary-400 sm:w-5 sm:h-5 flex-shrink-0 group-hover:scale-110 transition-transform" size={18} />
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="heading-2 text-neutral-800 dark:text-neutral-200">
@@ -220,7 +220,7 @@ const Dashboard = () => {
             <div className="relative">
               <div className="flex items-center justify-between mb-2">
                 <span className="body-small text-neutral-600 dark:text-neutral-400">وظایف تمام نشده</span>
-                <CheckSquare className="text-neutral-500 dark:text-neutral-400" size={18} className="sm:w-5 sm:h-5 flex-shrink-0 group-hover:scale-110 transition-transform" />
+                <CheckSquare className="text-neutral-500 dark:text-neutral-400 sm:w-5 sm:h-5 flex-shrink-0 group-hover:scale-110 transition-transform" size={18} />
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="heading-2 text-neutral-800 dark:text-neutral-200">
@@ -563,7 +563,6 @@ const Dashboard = () => {
                       borderRadius: '8px',
                       color: '#1f2937'
                     }}
-                    className="dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700"
                   />
                   <Legend wrapperStyle={{ color: 'currentColor' }} className="text-neutral-700 dark:text-neutral-300" />
                   <Bar dataKey="thisWeek" fill="#0088FE" name="این هفته" />
