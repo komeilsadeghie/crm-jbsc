@@ -807,7 +807,30 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
         }
 
         // Create project if createProjects is true (for all customers)
-        if (createProjects && accountId) {
+        // Ensure accountId exists - if not, create it
+        if (createProjects) {
+          if (!accountId) {
+            // Try to create account if it doesn't exist
+            try {
+              const accountResult = await dbRun(
+                `INSERT INTO accounts (name, website, status, created_at)
+                 VALUES (?, ?, ?, CURRENT_TIMESTAMP)`,
+                [
+                  companyName || customerName,
+                  normalizeValue(website),
+                  'active',
+                ]
+              );
+              accountId = accountResult.lastID || null;
+              if (process.env.NODE_ENV === 'development') {
+                console.log(`Created account ${accountId} for customer ${customerId}`);
+              }
+            } catch (accountError: any) {
+              console.error(`Error creating account for project:`, accountError);
+            }
+          }
+          
+          if (accountId) {
           try {
             // Use serviceCost or balanceValue as budget, or null if neither exists
             const costValue = serviceCost || balanceValue;
@@ -963,9 +986,18 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
               );
               projectsCreated++;
             }
-          } catch (projectError: any) {
-            // Log but don't fail the import
-            console.error(`Error creating project for account ${accountId}:`, projectError);
+            } catch (projectError: any) {
+              // Log but don't fail the import
+              console.error(`Error creating project for account ${accountId}:`, projectError);
+              if (process.env.NODE_ENV === 'development') {
+                console.error('Project error details:', projectError.message);
+              }
+            }
+          } else {
+            // Log if accountId is still null after attempt to create
+            if (process.env.NODE_ENV === 'development') {
+              console.warn(`⚠️ Cannot create project: accountId is still null for customer ${customerId} (${customerName})`);
+            }
           }
         }
       } catch (error: any) {

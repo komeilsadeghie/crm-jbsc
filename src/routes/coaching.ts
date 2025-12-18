@@ -310,6 +310,10 @@ router.get('/kanban', authenticate, async (req: AuthRequest, res: Response) => {
       LEFT JOIN users u ON cs.coach_id = u.id
       ORDER BY cs.kanban_column, cs.position, cs.session_date
     `, []);
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Kanban board: fetched ${sessions?.length || 0} sessions`);
+    }
 
     // Group sessions by kanban column
     const kanbanData: any = {
