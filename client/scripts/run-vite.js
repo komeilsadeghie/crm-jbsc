@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Helper script to run vite build in production environment
-import { spawn } from 'child_process';
+// This script tries multiple methods to find and run vite
+import { spawn, execSync } from 'child_process';
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import { dirname, join, resolve } from 'path';
@@ -50,11 +51,23 @@ try {
   }
 }
 
+// Method 4: If still not found, try using npm run which sets PATH correctly
 if (!vitePath) {
-  console.error('Error: Could not find vite executable');
-  console.error('Project root:', projectRoot);
-  console.error('Current working directory:', process.cwd());
-  process.exit(1);
+  console.warn('Could not find vite directly, trying npm run vite-build...');
+  try {
+    const args = process.argv.slice(2);
+    execSync(`npm run vite-build`, {
+      stdio: 'inherit',
+      cwd: projectRoot,
+      env: { ...process.env, PATH: process.env.PATH },
+    });
+    process.exit(0);
+  } catch (error) {
+    console.error('Error: Could not find vite executable');
+    console.error('Project root:', projectRoot);
+    console.error('Current working directory:', process.cwd());
+    process.exit(1);
+  }
 }
 
 // Get command line arguments (skip node and script name)
@@ -65,6 +78,7 @@ const vite = spawn('node', [vitePath, ...args], {
   stdio: 'inherit',
   cwd: projectRoot,
   shell: false,
+  env: { ...process.env, PATH: process.env.PATH },
 });
 
 vite.on('error', (error) => {
