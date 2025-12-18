@@ -18,8 +18,7 @@
     "noFallthroughCasesInSwitch": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true,
-    "types": ["vite/client", "react", "react-dom", "node"]
+    "forceConsistentCasingInFileNames": true
   },
   "include": ["src"],
   "exclude": ["src/**/*Copy*.tsx", "src/**/*Copy*.ts"],
