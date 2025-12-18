@@ -76,7 +76,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     return logoPath.startsWith('http') ? logoPath : `http://localhost:3001${logoPath}`;
   };
 
-  const menuGroups = useMemo(
+  type MenuItem = {
+    path: string;
+    icon: any;
+    label: string;
+    group: string;
+  };
+
+  const menuGroups = useMemo<Record<string, MenuItem[]>>(
     () => {
       if (!user) {
         return {
@@ -90,7 +97,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         };
       }
       
-      const allItems = [
+      const allItems: MenuItem[] = [
         { path: '/dashboard', icon: LayoutDashboard, label: 'داشبورد', group: 'main' },
         { path: '/leads', icon: UserPlus, label: 'سرنخ‌ها', group: 'sales' },
         { path: '/deals', icon: Briefcase, label: 'معاملات', group: 'sales' },
@@ -143,7 +150,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       });
       
       // گروه‌بندی منوها
-      type MenuItem = typeof filtered[0];
       const groups: Record<string, MenuItem[]> = {
         main: [],
         sales: [],
