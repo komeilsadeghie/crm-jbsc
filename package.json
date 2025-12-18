@@ -8,7 +8,9 @@
     "build": "npm run build:server && npm run build:client",
     "build:server": "tsc --skipLibCheck",
     "build:client": "cd client && npm ci && npm run build",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "init:db": "ts-node src/database/init.ts",
+    "create-user": "ts-node src/scripts/create-user.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
@@ -38,6 +40,7 @@
     "@types/express": "^4.17.21",
     "@types/cors": "^2.8.17",
     "@types/multer": "^2.0.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   }
 }

@@ -52,19 +52,23 @@ app.use((req, res, next) => {
       // Allow requests with no origin (curl, Postman, server-to-server)
       if (!origin) return callback(null, true);
 
-      // Dev mode: allow everything (or at least the common ones)
+      // Dev mode: allow everything
       if (process.env.NODE_ENV !== 'production') {
         return callback(null, true);
       }
 
-      // Production: allow only explicitly listed origins
-      const finalAllowed = allowedOrigins.length ? allowedOrigins : devFallbackOrigins;
-
-      if (finalAllowed.includes(origin)) {
-        return callback(null, true);
+      // Production: allow explicitly listed origins
+      // If ALLOWED_ORIGINS is set, use it; otherwise allow all origins (for Railway/cloud deployments)
+      if (allowedOrigins.length > 0) {
+        if (allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+        return callback(new Error('Not allowed by CORS'));
       }
 
-      return callback(new Error('Not allowed by CORS'));
+      // If ALLOWED_ORIGINS is not set, allow all origins (useful for Railway/cloud deployments)
+      // You can set ALLOWED_ORIGINS environment variable to restrict origins
+      return callback(null, true);
     },
     credentials: true,
   })(req, res, next);
