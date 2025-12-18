@@ -612,8 +612,8 @@ const UserModal = ({ user, roleLabels, onClose, onSave }: any) => {
                   <input
                     type="number"
                     step="0.01"
-                    value={formData.hourly_rate}
-                    onChange={(e) => setFormData({ ...formData, hourly_rate: e.target.value })}
+                    value={formData.hourly_rate.toString()}
+                    onChange={(e) => setFormData({ ...formData, hourly_rate: parseFloat(e.target.value) || 0 })}
                     className="input"
                   />
                 </div>
