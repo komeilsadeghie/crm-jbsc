@@ -131,6 +131,22 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
       }
     }
 
+    console.log('🔄 Migrating customer Excel fields (gender, site_languages_count, etc.)...');
+    try {
+      const { migrateCustomerExcelFields } = await import('./database/migrate-customer-excel-fields');
+      await migrateCustomerExcelFields();
+    } catch (migrationError: any) {
+      console.error('⚠️ Error in migrateCustomerExcelFields:', migrationError);
+    }
+
+    console.log('🔄 Migrating customer Excel fields (gender, site_languages_count, etc.)...');
+    try {
+      const { migrateCustomerExcelFields } = await import('./database/migrate-customer-excel-fields');
+      await migrateCustomerExcelFields();
+    } catch (migrationError: any) {
+      console.error('⚠️ Error in migrateCustomerExcelFields:', migrationError);
+    }
+
     // Optional migrations
     try {
       if (process.env.RUN_MIGRATIONS === 'true') {
@@ -341,3 +357,4 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 CRM Server running on port ${PORT}`);
 });
+

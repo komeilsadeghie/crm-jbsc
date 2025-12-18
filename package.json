@@ -10,7 +10,8 @@
     "build:client": "cd client && npm ci && npm run build",
     "start": "node dist/server.js",
     "init:db": "ts-node src/database/init.ts",
-    "create-user": "ts-node src/scripts/create-user.ts"
+    "create-user": "ts-node src/scripts/create-user.ts",
+    "migrate:customer-fields": "ts-node src/scripts/migrate-customer-fields.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
