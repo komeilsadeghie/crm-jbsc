@@ -220,7 +220,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     // Apply color theme - set all primary color shades as CSS variables
     const themeColors = colorThemes[colorTheme];
     Object.entries(themeColors.shades).forEach(([shade, color]) => {
-      root.style.setProperty(`--color-primary-${shade}`, color);
+      root.style.setProperty(`--color-primary-${shade}`, color as string);
     });
     
     // Also set a general primary color variable

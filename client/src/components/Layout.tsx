@@ -79,7 +79,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const menuGroups = useMemo(
     () => {
       if (!user) {
-        return [];
+        return {
+          main: [],
+          sales: [],
+          project: [],
+          content: [],
+          tools: [],
+          utilities: [],
+          settings: [],
+        };
       }
       
       const allItems = [

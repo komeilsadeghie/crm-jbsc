@@ -5,6 +5,7 @@ interface SkeletonProps {
   height?: string | number;
   lines?: number;
   style?: React.CSSProperties;
+  key?: React.Key;
 }
 
 const Skeleton = ({ 
