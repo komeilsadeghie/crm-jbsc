@@ -81,10 +81,21 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // -------------------- Initialize Database --------------------
 (async () => {
   try {
-    // Wait a bit for database connection to be established
+    // Wait a bit for database connection to be established (especially for MySQL)
     if (process.env.DATABASE_URL || process.env.MYSQL_URL) {
       console.log('⏳ Waiting for database connection...');
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Wait up to 10 seconds for MySQL to be ready
+      for (let i = 0; i < 10; i++) {
+        const { isDatabaseReady } = await import('./database/db');
+        if (isDatabaseReady()) {
+          console.log('✅ Database connection ready');
+          break;
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        if (i === 9) {
+          console.warn('⚠️ Database connection not ready after 10 seconds, continuing anyway...');
+        }
+      }
     }
     
     console.log('🛠 Initializing database tables...');
@@ -268,32 +279,17 @@ import announcementsRoutes from './routes/announcements';
 import notificationsRoutes from './routes/notifications';
 import databaseBackupRoutes from './routes/database-backup';
 
-// Database connection check middleware
+// Database connection check middleware (optional - routes handle their own checks)
+// This is a fallback for routes that don't check database status
 app.use('/api', async (req, res, next) => {
-  // Skip health check
-  if (req.path === '/health') {
+  // Skip health check and static routes
+  if (req.path === '/health' || req.path.startsWith('/uploads')) {
     return next();
   }
   
-  try {
-    const { isDatabaseReady } = await import('./database/db');
-    
-    // Check if database is available
-    if (!isDatabaseReady()) {
-      return res.status(503).json({ 
-        error: 'Database connection not available. Please check database service.',
-        code: 'DATABASE_NOT_READY'
-      });
-    }
-    
-    next();
-  } catch (err: any) {
-    console.error('Database check error:', err);
-    return res.status(503).json({ 
-      error: 'Database check failed',
-      code: 'DATABASE_CHECK_ERROR'
-    });
-  }
+  // Let routes handle their own database checks for better error messages
+  // This middleware is just a safety net
+  next();
 });
 
 // Register routes

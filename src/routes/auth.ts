@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { db } from '../database/db';
+import { dbGet, dbRun, isDatabaseReady } from '../database/db';
 
 const router = express.Router();
 
@@ -25,28 +25,16 @@ const normalizeRole = (role: string): string => {
   return normalized;
 };
 
-// Helper function to promisify db.get
-const dbGet = (query: string, params: any[]): Promise<any> => {
-  return new Promise((resolve, reject) => {
-    db.get(query, params, (err, row) => {
-      if (err) reject(err);
-      else resolve(row);
-    });
-  });
-};
-
-// Helper function to promisify db.run
-const dbRun = (query: string, params: any[]): Promise<{ lastID?: number; changes?: number }> => {
-  return new Promise((resolve, reject) => {
-    db.run(query, params, function(err) {
-      if (err) reject(err);
-      else resolve({ lastID: this.lastID, changes: this.changes });
-    });
-  });
-};
-
 router.post('/login', async (req: Request, res: Response) => {
   try {
+    // Check if database is ready
+    if (!isDatabaseReady()) {
+      return res.status(503).json({ 
+        error: 'Database connection not available. Please try again in a moment.',
+        code: 'DATABASE_NOT_READY'
+      });
+    }
+
     const { username, password } = req.body as { username: string; password: string };
 
     if (!username || !password) {
@@ -55,10 +43,19 @@ router.post('/login', async (req: Request, res: Response) => {
 
     const normalizedUsername = username.toLowerCase();
     
-    const user = await dbGet(
-      'SELECT * FROM users WHERE username = ? OR email = ?',
-      [normalizedUsername, normalizedUsername]
-    ) as User | undefined;
+    let user: User | undefined;
+    try {
+      user = await dbGet(
+        'SELECT * FROM users WHERE username = ? OR email = ?',
+        [normalizedUsername, normalizedUsername]
+      ) as User | undefined;
+    } catch (dbError: any) {
+      console.error('Database error in login:', dbError);
+      return res.status(503).json({ 
+        error: 'Database error. Please try again.',
+        code: 'DATABASE_ERROR'
+      });
+    }
 
     if (!user) {
       return res.status(401).json({ error: 'نام کاربری یا رمز عبور اشتباه است' });
@@ -91,14 +88,29 @@ router.post('/login', async (req: Request, res: Response) => {
         role: normalizeRole(user.role),
       },
     });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'خطا در ورود به سیستم' });
+  } catch (error: any) {
+    console.error('Login error:', error);
+    // Don't expose internal errors in production
+    const errorMessage = process.env.NODE_ENV === 'development' 
+      ? error.message 
+      : 'خطا در ورود به سیستم';
+    res.status(500).json({ 
+      error: errorMessage,
+      code: 'INTERNAL_ERROR'
+    });
   }
 });
 
 router.post('/register', async (req: Request, res: Response) => {
   try {
+    // Check if database is ready
+    if (!isDatabaseReady()) {
+      return res.status(503).json({ 
+        error: 'Database connection not available. Please try again in a moment.',
+        code: 'DATABASE_NOT_READY'
+      });
+    }
+
     const { username, email, password, fullName, phone, role } = req.body;
 
     if (!username || !email || !password) {
@@ -110,10 +122,19 @@ router.post('/register', async (req: Request, res: Response) => {
     const selectedRole = (role || 'user').toLowerCase();
 
     // Check if user exists
-    const existingUser = await dbGet(
-      'SELECT * FROM users WHERE username = ? OR email = ?',
-      [normalizedUsername, normalizedEmail]
-    ) as User | undefined;
+    let existingUser: User | undefined;
+    try {
+      existingUser = await dbGet(
+        'SELECT * FROM users WHERE username = ? OR email = ?',
+        [normalizedUsername, normalizedEmail]
+      ) as User | undefined;
+    } catch (dbError: any) {
+      console.error('Database error in register:', dbError);
+      return res.status(503).json({ 
+        error: 'Database error. Please try again.',
+        code: 'DATABASE_ERROR'
+      });
+    }
 
     if (existingUser) {
       return res.status(400).json({ error: 'نام کاربری یا ایمیل تکراری است' });
@@ -121,21 +142,33 @@ router.post('/register', async (req: Request, res: Response) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const result = await dbRun(
-      'INSERT INTO users (username, email, password, role, full_name, phone) VALUES (?, ?, ?, ?, ?, ?)',
-      [normalizedUsername, normalizedEmail, hashedPassword, selectedRole, fullName || null, phone || null]
-    );
+    let result;
+    try {
+      result = await dbRun(
+        'INSERT INTO users (username, email, password, role, full_name, phone) VALUES (?, ?, ?, ?, ?, ?)',
+        [normalizedUsername, normalizedEmail, hashedPassword, selectedRole, fullName || null, phone || null]
+      );
+    } catch (dbError: any) {
+      console.error('Database error inserting user:', dbError);
+      return res.status(503).json({ 
+        error: 'Database error. Please try again.',
+        code: 'DATABASE_ERROR'
+      });
+    }
 
     res.status(201).json({
       message: 'کاربر با موفقیت ثبت شد',
-      id: result.lastID,
+      id: result.lastID || result.insertId,
     });
   } catch (error: any) {
     console.error('Error registering user:', error);
     console.error('Error details:', error.message);
+    const errorMessage = process.env.NODE_ENV === 'development' 
+      ? error.message 
+      : 'خطا در ثبت نام';
     res.status(500).json({ 
-      error: 'خطا در ثبت نام',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: errorMessage,
+      code: 'INTERNAL_ERROR'
     });
   }
 });
