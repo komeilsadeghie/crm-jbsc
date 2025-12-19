@@ -43,8 +43,6 @@ if (isMySQL && databaseUrl) {
       // MySQL-specific options
       timezone: '+00:00', // Use UTC
       charset: 'utf8mb4',
-      // Handle connection errors gracefully
-      reconnect: true,
     };
 
     mysqlPool = mysql.createPool(connectionConfig);
