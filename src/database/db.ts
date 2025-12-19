@@ -30,6 +30,26 @@ export const isDatabaseReady = (): boolean => {
   return false;
 };
 
+// Test database connection (async check)
+export const testDatabaseConnection = async (): Promise<boolean> => {
+  try {
+    if (isMySQL && mysqlPool) {
+      await mysqlPool.query('SELECT 1');
+      return true;
+    } else if (isSQLite && sqliteDb) {
+      return new Promise((resolve) => {
+        sqliteDb!.get('SELECT 1', [], (err) => {
+          resolve(!err);
+        });
+      });
+    }
+    return false;
+  } catch (err) {
+    console.error('Database connection test failed:', err);
+    return false;
+  }
+};
+
 if (isMySQL && databaseUrl) {
   try {
     // Parse MySQL URL: mysql://user:password@host:port/database

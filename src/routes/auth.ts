@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { dbGet, dbRun, isDatabaseReady } from '../database/db';
+import { dbGet, dbRun, isDatabaseReady, testDatabaseConnection } from '../database/db';
 
 const router = express.Router();
 
@@ -105,9 +105,20 @@ router.post('/register', async (req: Request, res: Response) => {
   try {
     // Check if database is ready
     if (!isDatabaseReady()) {
+      console.error('❌ Database not ready - pool not initialized');
       return res.status(503).json({ 
         error: 'Database connection not available. Please try again in a moment.',
         code: 'DATABASE_NOT_READY'
+      });
+    }
+
+    // Test actual database connection
+    const isConnected = await testDatabaseConnection();
+    if (!isConnected) {
+      console.error('❌ Database connection test failed');
+      return res.status(503).json({ 
+        error: 'Database connection test failed. Please check MySQL service.',
+        code: 'DATABASE_CONNECTION_FAILED'
       });
     }
 
@@ -129,10 +140,29 @@ router.post('/register', async (req: Request, res: Response) => {
         [normalizedUsername, normalizedEmail]
       ) as User | undefined;
     } catch (dbError: any) {
-      console.error('Database error in register:', dbError);
+      console.error('Database error in register (checking user):', dbError);
+      console.error('Error code:', dbError.code);
+      console.error('Error message:', dbError.message);
+      
+      // Check for specific MySQL errors
+      if (dbError.code === 'ECONNREFUSED' || dbError.code === 'ETIMEDOUT') {
+        return res.status(503).json({ 
+          error: 'Cannot connect to MySQL server. Please check MySQL service status.',
+          code: 'DATABASE_CONNECTION_REFUSED'
+        });
+      }
+      
+      if (dbError.code === 'ER_ACCESS_DENIED_ERROR' || dbError.code === 'ER_BAD_DB_ERROR') {
+        return res.status(503).json({ 
+          error: 'Database access denied. Please check DATABASE_URL configuration.',
+          code: 'DATABASE_ACCESS_DENIED'
+        });
+      }
+
       return res.status(503).json({ 
         error: 'Database error. Please try again.',
-        code: 'DATABASE_ERROR'
+        code: 'DATABASE_ERROR',
+        details: process.env.NODE_ENV === 'development' ? dbError.message : undefined
       });
     }
 
@@ -150,9 +180,35 @@ router.post('/register', async (req: Request, res: Response) => {
       );
     } catch (dbError: any) {
       console.error('Database error inserting user:', dbError);
+      console.error('Error code:', dbError.code);
+      console.error('Error message:', dbError.message);
+      
+      // Check for specific MySQL errors
+      if (dbError.code === 'ECONNREFUSED' || dbError.code === 'ETIMEDOUT') {
+        return res.status(503).json({ 
+          error: 'Cannot connect to MySQL server. Please check MySQL service status.',
+          code: 'DATABASE_CONNECTION_REFUSED'
+        });
+      }
+      
+      if (dbError.code === 'ER_DUP_ENTRY') {
+        return res.status(400).json({ 
+          error: 'نام کاربری یا ایمیل تکراری است',
+          code: 'DUPLICATE_ENTRY'
+        });
+      }
+
+      if (dbError.code === 'ER_NO_SUCH_TABLE') {
+        return res.status(503).json({ 
+          error: 'Database tables not initialized. Please wait for initialization to complete.',
+          code: 'DATABASE_TABLES_NOT_INITIALIZED'
+        });
+      }
+
       return res.status(503).json({ 
         error: 'Database error. Please try again.',
-        code: 'DATABASE_ERROR'
+        code: 'DATABASE_ERROR',
+        details: process.env.NODE_ENV === 'development' ? dbError.message : undefined
       });
     }
 
