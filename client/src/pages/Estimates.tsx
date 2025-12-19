@@ -330,15 +330,15 @@ const Estimates = () => {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 p-3 sm:p-4 md:p-6 pt-20 sm:pt-24 md:pt-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-center glass-card">
-          <h1 className="page-heading-gradient">پیش‌فاکتورها</h1>
-        <button
-          onClick={() => {
-            setEditingEstimate(null);
-            setFormData({
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 glass-card p-3 sm:p-4">
+          <h1 className="page-heading-gradient text-xl sm:text-2xl md:text-3xl">پیش‌فاکتورها</h1>
+          <button
+            onClick={() => {
+              setEditingEstimate(null);
+              setFormData({
               account_id: '',
               deal_id: '',
               amount: '',

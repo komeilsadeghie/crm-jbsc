@@ -19,13 +19,16 @@ const Settings = () => {
   const createUserMutation = useMutation(
     (data: any) => api.post('/users', data),
     {
-      onSuccess: () => {
-        queryClient.invalidateQueries('users-list');
+      onSuccess: async () => {
+        // Invalidate and refetch users list to show the new user immediately
+        await queryClient.invalidateQueries('users-list');
+        await queryClient.refetchQueries('users-list');
         setShowUserModal(false);
         setEditingUser(null);
         alert('کاربر با موفقیت ایجاد شد');
       },
       onError: (error: any) => {
+        console.error('Error creating user:', error);
         alert('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
@@ -81,10 +84,10 @@ const Settings = () => {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex justify-between items-center glass-card">
-          <h1 className="page-heading-gradient">تنظیمات</h1>
+    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 p-3 sm:p-4 md:p-6 pt-20 sm:pt-24 md:pt-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+        <div className="flex justify-between items-center glass-card p-3 sm:p-4">
+          <h1 className="page-heading-gradient text-xl sm:text-2xl md:text-3xl">تنظیمات</h1>
         </div>
 
       {/* Tabs */}

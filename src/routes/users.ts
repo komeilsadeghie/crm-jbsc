@@ -208,7 +208,16 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       }
     }
     
-    res.status(201).json({ id: userId, message: 'کاربر با موفقیت ایجاد شد' });
+    // Fetch the created user to return full details
+    const createdUser = await dbGet(
+      `SELECT id, username, email, full_name, first_name, last_name, phone, role, 
+       hourly_rate, facebook, linkedin, skype, email_signature, default_language, 
+       direction, is_admin, is_staff, avatar_url, voip_extension, created_at 
+       FROM users WHERE id = ?`,
+      [userId]
+    );
+    
+    res.status(201).json(createdUser || { id: userId, message: 'کاربر با موفقیت ایجاد شد' });
   } catch (error: any) {
     console.error('Error creating user:', error);
     console.error('Error details:', error.message);

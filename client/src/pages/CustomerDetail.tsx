@@ -48,7 +48,7 @@ const CustomerDetail = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pt-20 sm:pt-24 md:pt-6">
       <button
         onClick={() => navigate('/customers')}
         className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4"

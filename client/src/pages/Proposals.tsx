@@ -221,9 +221,10 @@ const Proposals = () => {
   }) || [];
 
   return (
-    <div className="p-6 bg-neutral-50 dark:bg-neutral-900 min-h-screen">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="page-heading-gradient">پروپوزال‌ها</h1>
+    <div className="p-3 sm:p-4 md:p-6 pt-20 sm:pt-24 md:pt-6 bg-neutral-50 dark:bg-neutral-900 min-h-screen">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 glass-card p-3 sm:p-4">
+          <h1 className="page-heading-gradient text-xl sm:text-2xl md:text-3xl">پروپوزال‌ها</h1>
         <button
           onClick={() => {
             setEditingProposal(null);
@@ -237,8 +238,8 @@ const Proposals = () => {
         </button>
       </div>
 
-      {/* Filters */}
-      <div className="glass-card p-4 mb-6 flex gap-4">
+        {/* Filters */}
+        <div className="glass-card p-3 sm:p-4 flex flex-col sm:flex-row gap-3 sm:gap-4">
         <div className="flex-1">
           <div className="relative">
             <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-400 dark:text-neutral-500" size={20} />
@@ -265,8 +266,8 @@ const Proposals = () => {
         </select>
       </div>
 
-      {/* Table */}
-      <div className="glass-card overflow-x-auto">
+        {/* Table */}
+        <div className="glass-card overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b">
@@ -343,8 +344,8 @@ const Proposals = () => {
         </table>
       </div>
 
-      {/* Modal */}
-      {showModal && (
+        {/* Modal */}
+        {showModal && (
         <ProposalModal
           formData={formData}
           setFormData={setFormData}
@@ -362,7 +363,8 @@ const Proposals = () => {
           onItemChange={handleItemChange}
           isSubmitting={createMutation.isLoading || updateMutation.isLoading}
         />
-      )}
+        )}
+      </div>
     </div>
   );
 };

@@ -471,7 +471,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
         {/* Main content */}
         <main className="flex-1 w-full lg:w-[calc(100%-16rem)] bg-neutral-50 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 h-full overflow-y-auto overflow-x-hidden scrollbar-neumorphic transition-colors">
-          <div className="w-full max-w-full p-3 sm:p-4 md:p-6 min-h-full box-border">{children}</div>
+          <div className="w-full max-w-full min-h-full box-border">{children}</div>
         </main>
       </div>
     </div>

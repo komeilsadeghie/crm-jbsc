@@ -24,20 +24,35 @@ const Tasks = () => {
     return response.data || [];
   });
 
-  const { data: kanbanData, isLoading } = useQuery(
+  const { data: kanbanData, isLoading, error: kanbanError } = useQuery(
     ['tasks-kanban', projectFilter],
     async () => {
       const params = projectFilter ? `?project_id=${projectFilter}` : '';
       const response = await api.get(`/tasks/kanban/board${params}`);
       return response.data;
+    },
+    {
+      retry: 1,
+      onError: (error) => {
+        console.error('Error fetching kanban board:', error);
+      }
     }
   );
 
-  const { data: kanbanColumns } = useQuery(
+  const { data: kanbanColumns, error: columnsError } = useQuery(
     'tasks-kanban-columns',
     async () => {
-      const response = await api.get('/tasks/kanban/columns');
-      return response.data || [];
+      try {
+        const response = await api.get('/tasks/kanban/columns');
+        return response.data || [];
+      } catch (error) {
+        console.error('Error fetching kanban columns:', error);
+        return [];
+      }
+    },
+    {
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
     }
   );
 
@@ -290,12 +305,38 @@ const Tasks = () => {
   );
 
   if (isLoading) {
-    return <div className="p-6">در حال بارگذاری...</div>;
+    return (
+      <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 p-3 sm:p-4 md:p-6 pt-20 sm:pt-24 md:pt-6">
+        <div className="text-center py-12">در حال بارگذاری...</div>
+      </div>
+    );
   }
 
+  if (kanbanError || columnsError) {
+    return (
+      <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 p-3 sm:p-4 md:p-6 pt-20 sm:pt-24 md:pt-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="glass-card p-6 text-center">
+            <h2 className="text-xl font-bold mb-2 text-red-600">خطا در نمایش صفحه</h2>
+            <p className="text-neutral-600 mb-4">متأسفانه مشکلی در بارگذاری داده‌ها رخ داده است.</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="btn btn-primary"
+            >
+              بارگذاری مجدد
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Ensure columns is always an array
+  const safeColumns = Array.isArray(columns) ? columns : [];
+
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 p-3 sm:p-4 md:p-6 pt-20 sm:pt-24 md:pt-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         <div className="flex justify-between items-center card">
           <h1 className="page-heading-gradient">وظایف</h1>
         <div className="flex gap-2">
@@ -339,7 +380,7 @@ const Tasks = () => {
       {viewMode === 'kanban' ? (
         <div className="overflow-x-auto pb-4">
           <div className="flex gap-4 min-w-max" style={{ minHeight: '600px' }}>
-            {columns.map((column: any) => {
+            {safeColumns.map((column: any) => {
               const columnId = column.column_id || column.id;
               const tasks = Array.isArray(kanbanBoard?.[columnId]) ? kanbanBoard[columnId] : [];
               const columnColor = column.color || '#E5E7EB';
@@ -460,7 +501,7 @@ const Tasks = () => {
                 </div>
               );
             })}
-            {isAdmin && (
+            {isAdmin && safeColumns.length > 0 && (
               <div className="flex-shrink-0 w-80">
                 {showAddColumn ? (
                   <div className="bg-white dark:bg-neutral-800 rounded-lg p-4 border-2 border-dashed border-neutral-300 dark:border-neutral-600">

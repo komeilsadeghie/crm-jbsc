@@ -196,9 +196,9 @@ const Leads = () => {
     paginatedLeads.some((l: any) => selectedIds.includes(l.id));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-primary-50/30 to-info-50/30 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex justify-between items-center card">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-primary-50/30 to-info-50/30 p-3 sm:p-4 md:p-6 pt-20 sm:pt-24 md:pt-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 card p-3 sm:p-4">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary-600 to-info-600 bg-clip-text text-transparent">مدیریت سرنخ‌ها (Leads)</h1>
         <div className="flex gap-2">
           {viewMode === 'list' && (

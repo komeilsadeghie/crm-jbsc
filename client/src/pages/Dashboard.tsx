@@ -121,7 +121,7 @@ const Dashboard = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-neutral-100 to-neutral-200 dark:from-neutral-900 dark:via-neutral-800 dark:to-neutral-900 p-2 sm:p-4 transition-colors">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-neutral-100 to-neutral-200 dark:from-neutral-900 dark:via-neutral-800 dark:to-neutral-900 p-2 sm:p-4 pt-20 sm:pt-24 md:pt-4 transition-colors">
       <div className="max-w-[1600px] mx-auto space-y-3 sm:space-y-4 animate-fade-in">
         {/* Header */}
         <div className="glass-card p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 transition-colors animate-slide-down">

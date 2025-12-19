@@ -318,7 +318,7 @@ const Coaching = () => {
   ];
 
   return (
-    <div className="space-y-6 pt-[50px] pb-[50px]">
+    <div className="space-y-6 pt-20 sm:pt-24 md:pt-6 pb-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-neutral-100">ماژول کوچینگ</h1>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
