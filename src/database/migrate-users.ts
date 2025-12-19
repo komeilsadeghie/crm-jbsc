@@ -1,16 +1,17 @@
-import { db } from './db';
+import { db, getTableInfo, isMySQL, convertSQLiteToMySQL } from './db';
 
 // Migration script to add new columns to users table and create permissions tables
-export const migrateUsersTable = (): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    db.all(`PRAGMA table_info(users)`, [], (err: any, info: any[]) => {
-      if (err) {
-        console.log('⚠️  Users table not found, will be created by initDatabase');
-        resolve();
-        return;
-      }
+export const migrateUsersTable = async (): Promise<void> => {
+  try {
+    // Get table info using helper function (works with both SQLite and MySQL)
+    const info = await getTableInfo('users');
+    
+    if (!info || info.length === 0) {
+      console.log('⚠️  Users table not found, will be created by initDatabase');
+      return;
+    }
 
-      const columnNames = info.map((col: any) => col.name);
+    const columnNames = info.map((col: any) => col.name);
       const columnsToAdd = [
         { name: 'first_name', type: 'TEXT' },
         { name: 'last_name', type: 'TEXT' },

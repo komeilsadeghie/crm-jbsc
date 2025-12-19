@@ -4,32 +4,69 @@ import path from 'path';
 import fs from 'fs';
 
 // Database type detection
-const isMySQL = !!process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('mysql');
-const isSQLite = !isMySQL;
+// Check for MySQL/MariaDB connection string
+const getDatabaseUrl = (): string | undefined => {
+  return process.env.DATABASE_URL || process.env.MYSQL_URL;
+};
+
+const databaseUrl = getDatabaseUrl();
+export const isMySQL = !!databaseUrl && (
+  databaseUrl.startsWith('mysql://') || 
+  databaseUrl.startsWith('mariadb://') ||
+  databaseUrl.startsWith('mysql2://')
+);
+export const isSQLite = !isMySQL;
 
 // MySQL Connection Pool (if using MySQL)
 let mysqlPool: mysql.Pool | null = null;
 
-if (isMySQL && process.env.DATABASE_URL) {
+if (isMySQL && databaseUrl) {
   try {
     // Parse MySQL URL: mysql://user:password@host:port/database
-    const url = new URL(process.env.DATABASE_URL);
-    mysqlPool = mysql.createPool({
+    const url = new URL(databaseUrl);
+    
+    // Extract database name from pathname (remove leading '/')
+    const databaseName = url.pathname.slice(1);
+    
+    // Build connection config
+    const connectionConfig: mysql.PoolOptions = {
       host: url.hostname,
       port: parseInt(url.port) || 3306,
-      user: url.username,
-      password: url.password,
-      database: url.pathname.slice(1), // Remove leading '/'
+      user: decodeURIComponent(url.username),
+      password: decodeURIComponent(url.password || ''),
+      database: databaseName || undefined,
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,
       enableKeepAlive: true,
       keepAliveInitialDelay: 0,
-    });
-    console.log('✅ Connected to MySQL database');
+      // MySQL-specific options
+      timezone: '+00:00', // Use UTC
+      charset: 'utf8mb4',
+      // Handle connection errors gracefully
+      reconnect: true,
+    };
+
+    mysqlPool = mysql.createPool(connectionConfig);
+    
+    // Test the connection
+    mysqlPool.getConnection()
+      .then((connection) => {
+        console.log('✅ Connected to MySQL database');
+        console.log(`   Host: ${connection.config.host}`);
+        console.log(`   Database: ${connection.config.database || 'default'}`);
+        connection.release();
+      })
+      .catch((err) => {
+        console.error('❌ Error testing MySQL connection:', err);
+      });
   } catch (error: any) {
-    console.error('❌ Error connecting to MySQL:', error);
-    throw error;
+    console.error('❌ Error creating MySQL connection pool:', error);
+    console.error('   DATABASE_URL:', databaseUrl ? '***' : 'not set');
+    // Don't throw in production - allow app to start and retry later
+    if (process.env.NODE_ENV === 'development') {
+      throw error;
+    }
   }
 }
 
@@ -92,20 +129,50 @@ console.log(`🗄️  Database path: ${DB_PATH}`);
 }
 
 // Helper function to convert SQLite syntax to MySQL
-const convertSQLiteToMySQL = (query: string): string => {
+export const convertSQLiteToMySQL = (query: string): string => {
   if (!isMySQL) return query;
   
+  let converted = query;
+  
   // Replace SQLite-specific syntax with MySQL equivalents
-  return query
+  converted = converted
+    // Primary key with auto increment
     .replace(/INTEGER PRIMARY KEY AUTOINCREMENT/gi, 'INT AUTO_INCREMENT PRIMARY KEY')
-    .replace(/PRAGMA foreign_keys = ON/gi, 'SET FOREIGN_KEY_CHECKS = 1')
-    .replace(/CREATE TABLE IF NOT EXISTS/gi, 'CREATE TABLE IF NOT EXISTS')
+    .replace(/INTEGER PRIMARY KEY/gi, 'INT PRIMARY KEY')
+    // PRAGMA statements
+    .replace(/PRAGMA\s+foreign_keys\s*=\s*ON/gi, 'SET FOREIGN_KEY_CHECKS = 1')
+    .replace(/PRAGMA\s+foreign_keys\s*=\s*OFF/gi, 'SET FOREIGN_KEY_CHECKS = 0')
+    // INSERT statements
     .replace(/INSERT OR IGNORE INTO/gi, 'INSERT IGNORE INTO')
     .replace(/INSERT OR REPLACE INTO/gi, 'REPLACE INTO')
-    .replace(/DATETIME DEFAULT CURRENT_TIMESTAMP/gi, 'DATETIME DEFAULT CURRENT_TIMESTAMP')
-    .replace(/TEXT/gi, 'TEXT')
-    .replace(/INTEGER/gi, 'INT')
-    .replace(/REAL/gi, 'DOUBLE');
+    // Data types
+    .replace(/\bINTEGER(?!\s+PRIMARY)(?!\s+AUTO)/gi, 'INT')
+    .replace(/\bREAL\b/gi, 'DOUBLE')
+    .replace(/\bBLOB\b/gi, 'LONGBLOB')
+    // Boolean handling (SQLite uses INTEGER, MySQL uses TINYINT or BOOLEAN)
+    .replace(/\bBOOLEAN\b/gi, 'TINYINT(1)')
+    // Date functions
+    .replace(/\bdatetime\('now'\)/gi, 'NOW()')
+    .replace(/\bCURRENT_TIMESTAMP\b/gi, 'CURRENT_TIMESTAMP')
+    // String concatenation (SQLite uses ||, MySQL uses CONCAT)
+    // Note: This is a simple replacement, may need more complex handling for edge cases
+    .replace(/\|\|/g, 'CONCAT')
+    // LIMIT and OFFSET syntax (mostly compatible, but ensure proper format)
+    // MySQL supports: LIMIT offset, count or LIMIT count OFFSET offset
+    // SQLite supports both formats, so no change needed
+    // CHECK constraints - MySQL supports them (MySQL 8.0+)
+    // FOREIGN KEY syntax is mostly compatible
+  
+  // Handle TEXT with UNIQUE constraints - MySQL requires VARCHAR for UNIQUE
+  converted = converted.replace(/\bTEXT\s+UNIQUE/gi, 'VARCHAR(255) UNIQUE');
+  
+  // Handle IF NOT EXISTS in CREATE TABLE (MySQL supports it)
+  // No change needed
+  
+  // Handle backticks for identifiers (MySQL uses backticks, SQLite uses double quotes)
+  // Both are supported in MySQL, so no change needed
+  
+  return converted;
 };
 
 // Unified database interface
@@ -200,6 +267,56 @@ export const db = {
       if (callback) callback(null);
     }
   },
+};
+
+// Helper function to get table info (works with both SQLite and MySQL)
+export const getTableInfo = async (tableName: string): Promise<any[]> => {
+  if (isMySQL && mysqlPool) {
+    const [rows]: any = await mysqlPool.query(
+      `SELECT COLUMN_NAME as name, DATA_TYPE as type, COLUMN_DEFAULT as dflt_value, IS_NULLABLE as notnull 
+       FROM INFORMATION_SCHEMA.COLUMNS 
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?`,
+      [tableName]
+    );
+    return rows.map((row: any) => ({
+      name: row.name,
+      type: row.type,
+      dflt_value: row.dflt_value,
+      notnull: row.notnull === 'NO' ? 1 : 0,
+    }));
+  } else if (isSQLite && sqliteDb) {
+    return new Promise((resolve, reject) => {
+      sqliteDb!.all(`PRAGMA table_info(${tableName})`, [], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows || []);
+      });
+    });
+  }
+  return [];
+};
+
+// Helper function to check if table exists (works with both SQLite and MySQL)
+export const tableExists = async (tableName: string): Promise<boolean> => {
+  if (isMySQL && mysqlPool) {
+    const [rows]: any = await mysqlPool.query(
+      `SELECT COUNT(*) as count FROM INFORMATION_SCHEMA.TABLES 
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?`,
+      [tableName]
+    );
+    return rows[0].count > 0;
+  } else if (isSQLite && sqliteDb) {
+    return new Promise((resolve, reject) => {
+      sqliteDb!.all(
+        `SELECT name FROM sqlite_master WHERE type='table' AND name=?`,
+        [tableName],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve((rows || []).length > 0);
+        }
+      );
+    });
+  }
+  return false;
 };
 
 // Helper functions for Promise-based operations (used throughout the codebase)
@@ -353,7 +470,11 @@ export const initDatabase = () => {
 
     if (isMySQL) {
       // Enable foreign keys for MySQL
-      mysqlPool!.query('SET FOREIGN_KEY_CHECKS = 1')
+      if (!mysqlPool) {
+        reject(new Error('MySQL connection pool not initialized'));
+        return;
+      }
+      mysqlPool.query('SET FOREIGN_KEY_CHECKS = 1')
         .then(() => runNext(0))
         .catch(reject);
     } else if (isSQLite) {
