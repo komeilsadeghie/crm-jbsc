@@ -155,17 +155,50 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
       console.error('⚠️ Error in migrateCustomersForeignKeys:', migrationError);
     }
 
-    // Optional migrations
+    // Essential migrations (always run, not optional)
+    console.log('🔄 Migrating coaching enhanced features...');
+    try {
+      await (await import('./database/migrate-coaching-enhanced')).migrateCoachingEnhanced();
+    } catch (e) {
+      console.warn('⚠️ migrateCoachingEnhanced failed:', e);
+    }
+
+    console.log('🔄 Migrating customer journey...');
+    try {
+      await (await import('./database/migrate-customer-journey')).migrateCustomerJourney();
+    } catch (e) {
+      console.warn('⚠️ migrateCustomerJourney failed:', e);
+    }
+
+    console.log('🔄 Migrating users VoIP extension...');
+    try {
+      await (await import('./database/migrate-users-voip')).migrateUsersVoipExtension();
+    } catch (e) {
+      console.warn('⚠️ migrateUsersVoipExtension failed:', e);
+    }
+
+    console.log('🔄 Migrating task Kanban columns...');
+    try {
+      await (await import('./database/migrate-task-kanban-columns')).migrateTaskKanbanColumnsTable();
+    } catch (e) {
+      console.warn('⚠️ migrateTaskKanbanColumnsTable failed:', e);
+    }
+
+    console.log('🔄 Migrating PDF templates...');
+    try {
+      await (await import('./database/migrate-pdf-templates')).migratePdfTemplatesTable();
+    } catch (e) {
+      console.warn('⚠️ migratePdfTemplatesTable failed:', e);
+    }
+
+    // Optional migrations (only if RUN_MIGRATIONS=true)
     try {
       if (process.env.RUN_MIGRATIONS === 'true') {
         console.log('🔄 Running optional migrations...');
 
         await (await import('./database/migrate-knowledge-base-enhanced')).migrateKnowledgeBaseEnhanced();
-        await (await import('./database/migrate-customer-journey')).migrateCustomerJourney();
         await (await import('./database/migrate-goals-enhanced')).migrateGoalsEnhanced();
         await (await import('./database/migrate-project-labels')).migrateProjectLabels();
-        await (await import('./database/migrate-users-voip')).migrateUsersVoipExtension();
-        await (await import('./database/migrate-task-kanban-columns')).migrateTaskKanbanColumnsTable();
       } else {
         console.log('ℹ️ Optional migrations skipped (set RUN_MIGRATIONS=true to run).');
       }
