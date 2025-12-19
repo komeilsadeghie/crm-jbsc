@@ -184,58 +184,98 @@ interface DatabaseResult {
 // Export unified db object that works with both SQLite and MySQL
 export const db = {
   // Get single row
-  get: (query: string, params: any[] = [], callback: (err: any, row: any) => void) => {
+  get: (query: string, paramsOrCallback?: any[] | ((err: any, row: any) => void), callback?: (err: any, row: any) => void) => {
     const convertedQuery = convertSQLiteToMySQL(query);
+    
+    // Handle overloaded signatures: get(query, callback) or get(query, params, callback)
+    let params: any[] = [];
+    let cb: (err: any, row: any) => void;
+    
+    if (typeof paramsOrCallback === 'function') {
+      cb = paramsOrCallback;
+      params = [];
+    } else {
+      params = paramsOrCallback || [];
+      cb = callback || (() => {});
+    }
     
     if (isMySQL && mysqlPool) {
       mysqlPool.query(convertedQuery, params)
         .then(([rows]: any) => {
-          callback(null, Array.isArray(rows) ? rows[0] : null);
+          cb(null, Array.isArray(rows) ? rows[0] : null);
         })
-        .catch(callback);
+        .catch((err) => {
+          cb(err, null);
+        });
     } else if (isSQLite && sqliteDb) {
-      sqliteDb.get(convertedQuery, params, callback);
+      sqliteDb.get(convertedQuery, params, cb);
     } else {
-      callback(new Error('Database not initialized'), null);
+      cb(new Error('Database not initialized'), null);
     }
   },
 
   // Get all rows
-  all: (query: string, params: any[] = [], callback: (err: any, rows: any[]) => void) => {
+  all: (query: string, paramsOrCallback?: any[] | ((err: any, rows: any[]) => void), callback?: (err: any, rows: any[]) => void) => {
     const convertedQuery = convertSQLiteToMySQL(query);
+    
+    // Handle overloaded signatures: all(query, callback) or all(query, params, callback)
+    let params: any[] = [];
+    let cb: (err: any, rows: any[]) => void;
+    
+    if (typeof paramsOrCallback === 'function') {
+      cb = paramsOrCallback;
+      params = [];
+    } else {
+      params = paramsOrCallback || [];
+      cb = callback || (() => {});
+    }
     
     if (isMySQL && mysqlPool) {
       mysqlPool.query(convertedQuery, params)
         .then(([rows]: any) => {
-          callback(null, Array.isArray(rows) ? rows : []);
+          cb(null, Array.isArray(rows) ? rows : []);
         })
-        .catch(callback);
+        .catch((err) => {
+          cb(err, []);
+        });
     } else if (isSQLite && sqliteDb) {
-      sqliteDb.all(convertedQuery, params, callback);
+      sqliteDb.all(convertedQuery, params, cb);
     } else {
-      callback(new Error('Database not initialized'), []);
+      cb(new Error('Database not initialized'), []);
     }
   },
 
   // Run query (INSERT, UPDATE, DELETE)
-  run: (query: string, params: any[] = [], callback?: (err: any) => void) => {
+  run: (query: string, paramsOrCallback?: any[] | ((err: any) => void), callback?: (err: any) => void) => {
     const convertedQuery = convertSQLiteToMySQL(query);
+    
+    // Handle overloaded signatures: run(query, callback) or run(query, params, callback)
+    let params: any[] = [];
+    let cb: ((err: any) => void) | undefined;
+    
+    if (typeof paramsOrCallback === 'function') {
+      cb = paramsOrCallback;
+      params = [];
+    } else {
+      params = paramsOrCallback || [];
+      cb = callback;
+    }
     
     if (isMySQL && mysqlPool) {
       mysqlPool.query(convertedQuery, params)
         .then(([result]: any) => {
-          if (callback) callback(null);
+          if (cb) cb(null);
           return result;
         })
         .catch((err) => {
-          if (callback) callback(err);
+          if (cb) cb(err);
           throw err;
         });
     } else if (isSQLite && sqliteDb) {
-      sqliteDb.run(convertedQuery, params, callback);
+      sqliteDb.run(convertedQuery, params, cb);
     } else {
       const err = new Error('Database not initialized');
-      if (callback) callback(err);
+      if (cb) cb(err);
       throw err;
     }
   },
@@ -246,6 +286,36 @@ export const db = {
       sqliteDb.serialize(callback);
     } else {
       callback();
+    }
+  },
+
+  // Prepare statement (for SQLite - returns a wrapper for MySQL)
+  prepare: (query: string) => {
+    const convertedQuery = convertSQLiteToMySQL(query);
+    
+    if (isMySQL && mysqlPool) {
+      // For MySQL, return a wrapper that mimics SQLite's prepared statement interface
+      return {
+        run: (params: any[] = []) => {
+          return mysqlPool!.query(convertedQuery, params)
+            .then(([result]: any) => {
+              return {
+                lastID: result.insertId,
+                changes: result.affectedRows || 0,
+              };
+            })
+            .catch((err) => {
+              throw err;
+            });
+        },
+        finalize: () => {
+          // No-op for MySQL - prepared statements are automatically finalized
+        },
+      };
+    } else if (isSQLite && sqliteDb) {
+      return sqliteDb.prepare(convertedQuery);
+    } else {
+      throw new Error('Database not initialized');
     }
   },
 
