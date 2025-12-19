@@ -78,9 +78,15 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// -------------------- Initialize SQLite Database --------------------
+// -------------------- Initialize Database --------------------
 (async () => {
   try {
+    // Wait a bit for database connection to be established
+    if (process.env.DATABASE_URL || process.env.MYSQL_URL) {
+      console.log('⏳ Waiting for database connection...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+    
     console.log('🛠 Initializing database tables...');
     await initDatabase();
 
@@ -209,6 +215,8 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
     console.log('✅ Database initialized successfully!');
   } catch (err) {
     console.error('❌ Database initialization error:', err);
+    console.error('⚠️  Server will continue to run, but some features may not work until database is available.');
+    // Don't crash the server - allow it to start and retry later
   }
 })();
 
@@ -259,6 +267,34 @@ import activityLogRoutes from './routes/activity-log';
 import announcementsRoutes from './routes/announcements';
 import notificationsRoutes from './routes/notifications';
 import databaseBackupRoutes from './routes/database-backup';
+
+// Database connection check middleware
+app.use('/api', async (req, res, next) => {
+  // Skip health check
+  if (req.path === '/health') {
+    return next();
+  }
+  
+  try {
+    const { isDatabaseReady } = await import('./database/db');
+    
+    // Check if database is available
+    if (!isDatabaseReady()) {
+      return res.status(503).json({ 
+        error: 'Database connection not available. Please check database service.',
+        code: 'DATABASE_NOT_READY'
+      });
+    }
+    
+    next();
+  } catch (err: any) {
+    console.error('Database check error:', err);
+    return res.status(503).json({ 
+      error: 'Database check failed',
+      code: 'DATABASE_CHECK_ERROR'
+    });
+  }
+});
 
 // Register routes
 app.use('/api/auth', authRoutes);
@@ -312,8 +348,37 @@ app.use('/api/utilities/database-backup', databaseBackupRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // -------------------- Health check (before client serving) --------------------
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'CRM API is running' });
+app.get('/api/health', async (req, res) => {
+  try {
+    // Check database connection
+    const { isMySQL, isSQLite } = await import('./database/db');
+    let dbStatus = 'unknown';
+    
+    if (isMySQL) {
+      const { dbRun } = await import('./database/db');
+      try {
+        await dbRun('SELECT 1');
+        dbStatus = 'connected';
+      } catch (err) {
+        dbStatus = 'disconnected';
+      }
+    } else if (isSQLite) {
+      dbStatus = 'connected'; // SQLite is file-based, assume connected if initialized
+    }
+    
+    res.json({ 
+      status: 'ok', 
+      message: 'CRM API is running',
+      database: dbStatus,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err: any) {
+    res.status(503).json({ 
+      status: 'error', 
+      message: 'CRM API is running but database check failed',
+      error: err.message 
+    });
+  }
 });
 
 // -------------------- Serve client build in production --------------------

@@ -20,6 +20,16 @@ export const isSQLite = !isMySQL;
 // MySQL Connection Pool (if using MySQL)
 let mysqlPool: mysql.Pool | null = null;
 
+// Export function to check if database is ready
+export const isDatabaseReady = (): boolean => {
+  if (isMySQL) {
+    return mysqlPool !== null;
+  } else if (isSQLite) {
+    return sqliteDb !== null;
+  }
+  return false;
+};
+
 if (isMySQL && databaseUrl) {
   try {
     // Parse MySQL URL: mysql://user:password@host:port/database
@@ -539,14 +549,32 @@ export const initDatabase = () => {
     if (isMySQL) {
       // Enable foreign keys for MySQL
       if (!mysqlPool) {
-        reject(new Error('MySQL connection pool not initialized'));
+        console.error('❌ MySQL connection pool not initialized. Retrying in 2 seconds...');
+        // Retry after 2 seconds
+        setTimeout(() => {
+          if (!mysqlPool) {
+            reject(new Error('MySQL connection pool not initialized after retry'));
+          } else {
+            mysqlPool.query('SET FOREIGN_KEY_CHECKS = 1')
+              .then(() => runNext(0))
+              .catch(reject);
+          }
+        }, 2000);
         return;
       }
       mysqlPool.query('SET FOREIGN_KEY_CHECKS = 1')
         .then(() => runNext(0))
-        .catch(reject);
+        .catch((err) => {
+          console.error('❌ Error setting FOREIGN_KEY_CHECKS:', err);
+          // Don't reject - try to continue anyway
+          runNext(0);
+        });
     } else if (isSQLite) {
-      sqliteDb!.serialize(() => {
+      if (!sqliteDb) {
+        reject(new Error('SQLite database not initialized'));
+        return;
+      }
+      sqliteDb.serialize(() => {
         // Enable foreign keys for SQLite
         sqliteDb!.run('PRAGMA foreign_keys = ON', [], (err) => {
           if (err) {
@@ -555,6 +583,8 @@ export const initDatabase = () => {
         });
         runNext(0);
       });
+    } else {
+      reject(new Error('No database connection available'));
     }
   });
 };
