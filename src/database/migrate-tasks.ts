@@ -1,15 +1,54 @@
-import { db, getTableInfoCallback } from './db';
+import { db, getTableInfoCallback, isMySQL, convertSQLiteToMySQL } from './db';
 
 export const migrateTasksTable = () => {
   return new Promise<void>((resolve, reject) => {
     db.serialize(() => {
       // Check if columns exist and add them if they don't
       getTableInfoCallback('tasks', (err, columns: any[]) => {
-        if (err) {
-          console.error('Error getting table info:', err);
-          // Table might not exist yet, that's OK - initDatabase will create it
-          console.log('⚠️  Tasks table not found, will be created by initDatabase');
-          return resolve();
+        if (err || !columns || columns.length === 0) {
+          // Table doesn't exist, create it first
+          console.log('🔄 Creating tasks table...');
+          const createTableSQL = convertSQLiteToMySQL(`
+            CREATE TABLE IF NOT EXISTS tasks (
+              id INT AUTO_INCREMENT PRIMARY KEY,
+              deal_id INT,
+              account_id INT,
+              project_id INT,
+              parent_task_id INT,
+              title VARCHAR(255) NOT NULL,
+              description TEXT,
+              status VARCHAR(50) DEFAULT 'pending',
+              priority VARCHAR(20) DEFAULT 'medium',
+              due_date DATE,
+              start_date DATE,
+              estimated_hours DECIMAL(10, 2),
+              position INT DEFAULT 0,
+              kanban_column VARCHAR(50) DEFAULT 'todo',
+              assigned_to INT,
+              created_by INT,
+              recurrence_pattern TEXT,
+              recurrence_end_date DATE,
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              FOREIGN KEY (deal_id) REFERENCES deals(id) ON DELETE SET NULL,
+              FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE SET NULL,
+              FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL,
+              FOREIGN KEY (parent_task_id) REFERENCES tasks(id) ON DELETE SET NULL,
+              FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL,
+              FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+            )
+          `);
+          
+          db.run(createTableSQL, (createErr: any) => {
+            if (createErr) {
+              console.error('Error creating tasks table:', createErr);
+              reject(createErr);
+              return;
+            }
+            console.log('✅ Created tasks table');
+            resolve();
+          });
+          return;
         }
 
         const columnNames = columns.map((col: any) => col.name);
