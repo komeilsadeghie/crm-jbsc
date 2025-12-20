@@ -75,14 +75,25 @@ const createPaymentTransactions = (resolve: () => void, reject: (err: any) => vo
         }
         console.log('✅ Created payment_transactions table');
         
-        // Create indexes
-        const index1SQL = convertSQLiteToMySQL(`CREATE INDEX IF NOT EXISTS idx_payment_transactions_invoice_id ON payment_transactions(invoice_id)`);
-        const index2SQL = convertSQLiteToMySQL(`CREATE INDEX IF NOT EXISTS idx_payment_transactions_account_id ON payment_transactions(account_id)`);
-        const index3SQL = convertSQLiteToMySQL(`CREATE INDEX IF NOT EXISTS idx_payment_transactions_status ON payment_transactions(status)`);
+        // Create indexes (ignore errors if index already exists)
+        const index1SQL = convertSQLiteToMySQL(`CREATE INDEX idx_payment_transactions_invoice_id ON payment_transactions(invoice_id)`);
+        const index2SQL = convertSQLiteToMySQL(`CREATE INDEX idx_payment_transactions_account_id ON payment_transactions(account_id)`);
+        const index3SQL = convertSQLiteToMySQL(`CREATE INDEX idx_payment_transactions_status ON payment_transactions(status)`);
         
-        db.run(index1SQL, () => {});
-        db.run(index2SQL, () => {});
-        db.run(index3SQL, () => {
+        db.run(index1SQL, (err: any) => {
+          if (err && !err.message.includes('Duplicate key name')) {
+            console.warn('Warning creating index idx_payment_transactions_invoice_id:', err.message);
+          }
+        });
+        db.run(index2SQL, (err: any) => {
+          if (err && !err.message.includes('Duplicate key name')) {
+            console.warn('Warning creating index idx_payment_transactions_account_id:', err.message);
+          }
+        });
+        db.run(index3SQL, (err: any) => {
+          if (err && !err.message.includes('Duplicate key name')) {
+            console.warn('Warning creating index idx_payment_transactions_status:', err.message);
+          }
           resolve();
         });
       });

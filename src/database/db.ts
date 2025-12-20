@@ -197,6 +197,10 @@ export const convertSQLiteToMySQL = (query: string): string => {
   // Handle TEXT with UNIQUE constraints - MySQL requires VARCHAR for UNIQUE
   converted = converted.replace(/\bTEXT\s+UNIQUE/gi, 'VARCHAR(255) UNIQUE');
   
+  // Handle CREATE INDEX IF NOT EXISTS - MySQL doesn't support IF NOT EXISTS for indexes
+  // We'll remove IF NOT EXISTS and handle errors gracefully in the migration code
+  converted = converted.replace(/CREATE INDEX IF NOT EXISTS/gi, 'CREATE INDEX');
+  
   // Handle IF NOT EXISTS in CREATE TABLE (MySQL supports it)
   // No change needed
   

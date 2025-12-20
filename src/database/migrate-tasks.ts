@@ -51,13 +51,13 @@ export const migrateTasksTable = () => {
         // Add project_id if it doesn't exist
         if (!columnNames.includes('project_id')) {
           migrations.push('ALTER TABLE tasks ADD COLUMN project_id INTEGER');
-          migrations.push('CREATE INDEX IF NOT EXISTS idx_tasks_project_id ON tasks(project_id)');
+          migrations.push('CREATE INDEX idx_tasks_project_id ON tasks(project_id)');
         }
 
         // Add parent_task_id if it doesn't exist
         if (!columnNames.includes('parent_task_id')) {
           migrations.push('ALTER TABLE tasks ADD COLUMN parent_task_id INTEGER');
-          migrations.push('CREATE INDEX IF NOT EXISTS idx_tasks_parent_task_id ON tasks(parent_task_id)');
+          migrations.push('CREATE INDEX idx_tasks_parent_task_id ON tasks(parent_task_id)');
         }
 
         // Add start_date if it doesn't exist
@@ -100,10 +100,13 @@ export const migrateTasksTable = () => {
         // Execute migrations sequentially
         let completed = 0;
         migrations.forEach((migration, index) => {
-          db.run(migration, (err) => {
+          const convertedMigration = convertSQLiteToMySQL(migration);
+          db.run(convertedMigration, (err) => {
             if (err) {
-              // Ignore "duplicate column" errors
-              if (!err.message.includes('duplicate column') && !err.message.includes('Duplicate column name')) {
+              // Ignore "duplicate column" and "duplicate key name" errors
+              if (!err.message.includes('duplicate column') && 
+                  !err.message.includes('Duplicate column name') &&
+                  !err.message.includes('Duplicate key name')) {
                 console.error(`Error executing migration ${index + 1}:`, err);
               }
             } else {

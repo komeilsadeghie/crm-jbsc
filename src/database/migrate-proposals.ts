@@ -102,14 +102,25 @@ const createProposalAttachments = (resolve: () => void, reject: (err: any) => vo
     }
     console.log('✅ Created proposal_attachments table');
     
-    // Create indexes
-    const index1SQL = convertSQLiteToMySQL(`CREATE INDEX IF NOT EXISTS idx_proposals_account_id ON proposals(account_id)`);
-    const index2SQL = convertSQLiteToMySQL(`CREATE INDEX IF NOT EXISTS idx_proposals_status ON proposals(status)`);
-    const index3SQL = convertSQLiteToMySQL(`CREATE INDEX IF NOT EXISTS idx_proposals_created_at ON proposals(created_at)`);
+    // Create indexes (ignore errors if index already exists)
+    const index1SQL = convertSQLiteToMySQL(`CREATE INDEX idx_proposals_account_id ON proposals(account_id)`);
+    const index2SQL = convertSQLiteToMySQL(`CREATE INDEX idx_proposals_status ON proposals(status)`);
+    const index3SQL = convertSQLiteToMySQL(`CREATE INDEX idx_proposals_created_at ON proposals(created_at)`);
     
-    db.run(index1SQL, () => {});
-    db.run(index2SQL, () => {});
-    db.run(index3SQL, () => {
+    db.run(index1SQL, (err: any) => {
+      if (err && !err.message.includes('Duplicate key name')) {
+        console.warn('Warning creating index idx_proposals_account_id:', err.message);
+      }
+    });
+    db.run(index2SQL, (err: any) => {
+      if (err && !err.message.includes('Duplicate key name')) {
+        console.warn('Warning creating index idx_proposals_status:', err.message);
+      }
+    });
+    db.run(index3SQL, (err: any) => {
+      if (err && !err.message.includes('Duplicate key name')) {
+        console.warn('Warning creating index idx_proposals_created_at:', err.message);
+      }
       resolve();
     });
   });

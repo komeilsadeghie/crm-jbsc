@@ -151,14 +151,25 @@ const checkActivityLog = (resolve: () => void, reject: (err: any) => void) => {
         }
         console.log('✅ Created activity_log table');
         
-        // Create indexes for better performance
-        const index1SQL = convertSQLiteToMySQL(`CREATE INDEX IF NOT EXISTS idx_activity_log_user_id ON activity_log(user_id)`);
-        const index2SQL = convertSQLiteToMySQL(`CREATE INDEX IF NOT EXISTS idx_activity_log_entity ON activity_log(entity_type, entity_id)`);
-        const index3SQL = convertSQLiteToMySQL(`CREATE INDEX IF NOT EXISTS idx_activity_log_created_at ON activity_log(created_at)`);
+        // Create indexes for better performance (ignore errors if index already exists)
+        const index1SQL = convertSQLiteToMySQL(`CREATE INDEX idx_activity_log_user_id ON activity_log(user_id)`);
+        const index2SQL = convertSQLiteToMySQL(`CREATE INDEX idx_activity_log_entity ON activity_log(entity_type, entity_id)`);
+        const index3SQL = convertSQLiteToMySQL(`CREATE INDEX idx_activity_log_created_at ON activity_log(created_at)`);
         
-        db.run(index1SQL, () => {});
-        db.run(index2SQL, () => {});
-        db.run(index3SQL, () => {
+        db.run(index1SQL, (err: any) => {
+          if (err && !err.message.includes('Duplicate key name')) {
+            console.warn('Warning creating index idx_activity_log_user_id:', err.message);
+          }
+        });
+        db.run(index2SQL, (err: any) => {
+          if (err && !err.message.includes('Duplicate key name')) {
+            console.warn('Warning creating index idx_activity_log_entity:', err.message);
+          }
+        });
+        db.run(index3SQL, (err: any) => {
+          if (err && !err.message.includes('Duplicate key name')) {
+            console.warn('Warning creating index idx_activity_log_created_at:', err.message);
+          }
           resolve();
         });
       });
