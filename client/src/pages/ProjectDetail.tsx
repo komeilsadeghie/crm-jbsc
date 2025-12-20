@@ -46,13 +46,27 @@ const ProjectDetail = () => {
   const [taskSearch, setTaskSearch] = useState<string>('');
   const [showDiscussionModal, setShowDiscussionModal] = useState(false);
 
-  const { data: project, isLoading } = useQuery(
+  const { data: project, isLoading, error } = useQuery(
     ['project-detail', id],
     async () => {
-      const response = await api.get(`/projects/${id}`);
-      return response.data;
+      try {
+        const response = await api.get(`/projects/${id}`);
+        return response.data;
+      } catch (err: any) {
+        console.error('Error fetching project:', err);
+        if (err.response?.status === 404) {
+          throw new Error('پروژه یافت نشد');
+        }
+        throw err;
+      }
     },
-    { enabled: !!id }
+    { 
+      enabled: !!id,
+      retry: 1,
+      onError: (error: any) => {
+        console.error('Error in project detail query:', error);
+      }
+    }
   );
 
   // Fetch tickets for this project

@@ -173,8 +173,13 @@ const Customers = () => {
       onSuccess: (data) => {
         queryClient.invalidateQueries('projects');
         toast.showSuccess(data.data?.message || 'پروژه با موفقیت ایجاد شد');
-        // Navigate to projects page
-        navigate('/projects');
+        // Navigate to the created project detail page if project_id is available
+        if (data.data?.project_id) {
+          navigate(`/projects/${data.data.project_id}`);
+        } else {
+          // Fallback to projects list
+          navigate('/projects');
+        }
       },
       onError: (error: any) => {
         toast.showError('خطا در ایجاد پروژه: ' + (error.response?.data?.error || error.message));

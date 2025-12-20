@@ -88,7 +88,13 @@ router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
     WHERE p.id = ?
   `, [id], (err, project) => {
     if (err) {
-      return res.status(500).json({ error: 'خطا در دریافت پروژه' });
+      console.error('Error fetching project:', err);
+      // If table doesn't exist, return 404
+      if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+        console.warn('Projects table does not exist yet');
+        return res.status(404).json({ error: 'پروژه یافت نشد' });
+      }
+      return res.status(500).json({ error: 'خطا در دریافت پروژه: ' + (err.message || 'خطای نامشخص') });
     }
     if (!project) {
       return res.status(404).json({ error: 'پروژه یافت نشد' });
@@ -97,7 +103,14 @@ router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
     // Get milestones
     db.all('SELECT * FROM project_milestones WHERE project_id = ? ORDER BY target_date', [id], (err, milestones) => {
       if (err) {
-        return res.status(500).json({ error: 'خطا در دریافت milestones' });
+        console.error('Error fetching milestones:', err);
+        // If table doesn't exist, use empty array
+        if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+          console.warn('project_milestones table does not exist, using empty array');
+          milestones = [];
+        } else {
+          return res.status(500).json({ error: 'خطا در دریافت milestones' });
+        }
       }
 
       // Get discussions
@@ -109,19 +122,40 @@ router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
         ORDER BY pd.created_at DESC
       `, [id], (err, discussions) => {
         if (err) {
-          return res.status(500).json({ error: 'خطا در دریافت discussions' });
+          console.error('Error fetching discussions:', err);
+          // If table doesn't exist, use empty array
+          if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+            console.warn('project_discussions table does not exist, using empty array');
+            discussions = [];
+          } else {
+            return res.status(500).json({ error: 'خطا در دریافت discussions' });
+          }
         }
 
         // Get files
         db.all('SELECT * FROM project_files WHERE project_id = ? ORDER BY created_at DESC', [id], (err, files) => {
           if (err) {
-            return res.status(500).json({ error: 'خطا در دریافت فایل‌ها' });
+            console.error('Error fetching files:', err);
+            // If table doesn't exist, use empty array
+            if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+              console.warn('project_files table does not exist, using empty array');
+              files = [];
+            } else {
+              return res.status(500).json({ error: 'خطا در دریافت فایل‌ها' });
+            }
           }
 
           // Get tasks
           db.all('SELECT * FROM tasks WHERE project_id = ?', [id], (err, tasks) => {
             if (err) {
-              return res.status(500).json({ error: 'خطا در دریافت وظایف' });
+              console.error('Error fetching tasks:', err);
+              // If table doesn't exist, use empty array
+              if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+                console.warn('tasks table does not exist, using empty array');
+                tasks = [];
+              } else {
+                return res.status(500).json({ error: 'خطا در دریافت وظایف' });
+              }
             }
 
             // Get time logs for each task
@@ -152,7 +186,14 @@ router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
                 // Get expenses
                 db.all('SELECT * FROM expenses WHERE project_id = ?', [id], (err, expenses) => {
                   if (err) {
-                    return res.status(500).json({ error: 'خطا در دریافت هزینه‌ها' });
+                    console.error('Error fetching expenses:', err);
+                    // If table doesn't exist, use empty array
+                    if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+                      console.warn('expenses table does not exist, using empty array');
+                      expenses = [];
+                    } else {
+                      return res.status(500).json({ error: 'خطا در دریافت هزینه‌ها' });
+                    }
                   }
 
                   res.json({
@@ -169,7 +210,14 @@ router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
               // No tasks, just get expenses
               db.all('SELECT * FROM expenses WHERE project_id = ?', [id], (err, expenses) => {
                 if (err) {
-                  return res.status(500).json({ error: 'خطا در دریافت هزینه‌ها' });
+                  console.error('Error fetching expenses:', err);
+                  // If table doesn't exist, use empty array
+                  if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+                    console.warn('expenses table does not exist, using empty array');
+                    expenses = [];
+                  } else {
+                    return res.status(500).json({ error: 'خطا در دریافت هزینه‌ها' });
+                  }
                 }
 
                 res.json({
