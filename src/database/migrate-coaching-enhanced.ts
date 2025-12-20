@@ -40,6 +40,7 @@ export const migrateCoachingEnhanced = async (): Promise<void> => {
         addColumnsToCoachingSessions();
       });
 
+      // Helper function to add columns to coaching_sessions
       const addColumnsToCoachingSessions = () => {
         // Add new fields to coaching_sessions
         db.run(`
