@@ -274,8 +274,8 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
               if (!account) {
                 return callback(new Error('مشتری انتخاب شده یافت نشد'), null);
               }
-            
-            // Check manager_id if provided
+              
+              // Check manager_id if provided
             if (managerId) {
               db.get('SELECT id FROM users WHERE id = ?', [managerId], (err, manager) => {
                 if (err) {
