@@ -31,9 +31,16 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   const { deal_id, account_id, project_id, assigned_to, status, priority } = req.query;
   
   // Check if related tables exist
-  const dealsExists = await tableExists('deals').catch(() => false);
-  const accountsExists = await tableExists('accounts').catch(() => false);
-  const projectsExists = await tableExists('projects').catch(() => false);
+  let dealsExists = false;
+  let accountsExists = false;
+  let projectsExists = false;
+  try {
+    dealsExists = await tableExists('deals');
+    accountsExists = await tableExists('accounts');
+    projectsExists = await tableExists('projects');
+  } catch (err) {
+    console.warn('Could not check related tables existence, using simpler query');
+  }
   
   let query = `
     SELECT t.*, 
