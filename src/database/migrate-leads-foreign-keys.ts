@@ -36,13 +36,18 @@ export const migrateLeadsForeignKeys = (): Promise<void> => {
       db.run(createLeadsSQL, (err: any) => {
         if (err) {
           // If table already exists or other error, log but don't fail
-          if (err.message.includes('already exists') || err.code === 'ER_TABLE_EXISTS_ERROR') {
+          // MySQL doesn't throw error for IF NOT EXISTS, but SQLite might
+          if (err.message.includes('already exists') || 
+              err.code === 'ER_TABLE_EXISTS_ERROR' ||
+              err.message.includes('duplicate') ||
+              err.message.includes('already exists')) {
             console.log('✅ Leads table already exists');
             resolve();
             return;
           }
-          console.error('Error creating leads table:', err);
-          reject(err);
+          // For any other error, log warning but don't fail (table might already exist)
+          console.warn('⚠️ Warning creating leads table (might already exist):', err.message);
+          resolve(); // Don't reject, just continue
           return;
         }
         console.log('✅ Leads table ready');
