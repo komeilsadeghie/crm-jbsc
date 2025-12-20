@@ -102,33 +102,61 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
   const deal: Deal = req.body;
   const userId = req.user?.id;
 
-  db.run(
-    `INSERT INTO deals (
-      account_id, contact_id, title, stage, budget, probability, services,
-      site_model, designer_id, start_date, expected_delivery_date, notes, created_by
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      deal.account_id || null,
-      deal.contact_id || null,
-      deal.title,
-      deal.stage || 'discovery',
-      deal.budget || null,
-      deal.probability || 0,
-      deal.services || null,
-      deal.site_model || null,
-      deal.designer_id || null,
-      deal.start_date || null,
-      deal.expected_delivery_date || null,
-      deal.notes || null,
-      userId
-    ],
-    function(err) {
+  // Validate account_id if provided
+  if (deal.account_id) {
+    db.get('SELECT id FROM accounts WHERE id = ?', [deal.account_id], (err, account) => {
       if (err) {
-        return res.status(500).json({ error: 'خطا در ثبت پروژه' });
+        console.error('Error checking account:', err);
+        // If table doesn't exist, allow null account_id
+        if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+          console.warn('Accounts table does not exist, creating deal without account_id');
+          deal.account_id = null;
+        } else {
+          return res.status(500).json({ error: 'خطا در بررسی حساب' });
+        }
       }
-      res.status(201).json({ id: this.lastID, message: 'پروژه با موفقیت ثبت شد' });
-    }
-  );
+      if (!account && deal.account_id) {
+        return res.status(404).json({ error: 'حساب انتخاب شده یافت نشد' });
+      }
+      
+      // Continue with insert
+      insertDeal();
+    });
+  } else {
+    insertDeal();
+  }
+  
+  function insertDeal() {
+    db.run(
+      `INSERT INTO deals (
+        account_id, contact_id, customer_id, title, stage, budget, probability, services,
+        site_model, designer_id, start_date, expected_delivery_date, notes, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        deal.account_id || null,
+        deal.contact_id || null,
+        deal.customer_id || null,
+        deal.title,
+        deal.stage || 'discovery',
+        deal.budget || null,
+        deal.probability || 0,
+        deal.services || null,
+        deal.site_model || null,
+        deal.designer_id || null,
+        deal.start_date || null,
+        deal.expected_delivery_date || null,
+        deal.notes || null,
+        userId
+      ],
+      function(err) {
+        if (err) {
+          console.error('Error creating deal:', err);
+          return res.status(500).json({ error: 'خطا در ثبت معامله: ' + (err.message || 'خطای نامشخص') });
+        }
+        res.status(201).json({ id: this.lastID, message: 'معامله با موفقیت ثبت شد' });
+      }
+    );
+  }
 });
 
 // Update deal
