@@ -197,23 +197,61 @@ export const getCustomerById = async (id: string) => {
 
   if (!customer) throw new Error('CUSTOMER_NOT_FOUND');
 
-  // Get tags
-  const tags = await dbAll(
-    `SELECT t.*, et.id as assignment_id
-     FROM entity_tags et
-     JOIN tags t ON et.tag_id = t.id
-     WHERE et.customer_id = ? AND et.entity_type = 'CUSTOMER'`,
-    [id]
-  );
+  // Get tags (only if tables exist)
+  let tags: any[] = [];
+  try {
+    const { tableExists } = await import('../../database/db');
+    const tagsTableExists = await tableExists('tags').catch(() => false);
+    const entityTagsTableExists = await tableExists('entity_tags').catch(() => false);
+    
+    if (tagsTableExists && entityTagsTableExists) {
+      tags = await dbAll(
+        `SELECT t.*, et.id as assignment_id
+         FROM entity_tags et
+         JOIN tags t ON et.tag_id = t.id
+         WHERE et.customer_id = ? AND et.entity_type = 'CUSTOMER'`,
+        [id]
+      );
+    }
+  } catch (err) {
+    console.warn('Could not fetch tags for customer, continuing without tags:', err);
+  }
 
-  // Get deals
-  const deals = await dbAll('SELECT * FROM deals WHERE account_id IN (SELECT id FROM accounts WHERE lead_id IN (SELECT id FROM leads WHERE email = ? OR phone = ?))', [customer.email || '', customer.phone || '']);
+  // Get deals (only if table exists)
+  let deals: any[] = [];
+  try {
+    const { tableExists } = await import('../../database/db');
+    const dealsTableExists = await tableExists('deals').catch(() => false);
+    if (dealsTableExists) {
+      deals = await dbAll('SELECT * FROM deals WHERE customer_id = ?', [id]);
+    }
+  } catch (err) {
+    console.warn('Could not fetch deals for customer, continuing without deals:', err);
+  }
 
-  // Get coaching programs
-  const programs = await dbAll('SELECT * FROM coaching_programs WHERE account_id IN (SELECT id FROM accounts WHERE lead_id IN (SELECT id FROM leads WHERE email = ? OR phone = ?))', [customer.email || '', customer.phone || '']);
+  // Get coaching programs (only if table exists)
+  let programs: any[] = [];
+  try {
+    const { tableExists } = await import('../../database/db');
+    const programsTableExists = await tableExists('coaching_programs').catch(() => false);
+    if (programsTableExists) {
+      programs = await dbAll('SELECT * FROM coaching_programs WHERE customer_id = ?', [id]);
+    }
+  } catch (err) {
+    console.warn('Could not fetch coaching programs for customer, continuing without programs:', err);
+  }
 
-  // Get calendar events
-  const events = await dbAll('SELECT * FROM calendar_events WHERE customer_id = ?', [id]);
+  // Get calendar events (only if table exists)
+  let events: any[] = [];
+  try {
+    const { tableExists } = await import('../../database/db');
+    const eventsTableExists = await tableExists('calendar_events').catch(() => false);
+    if (eventsTableExists) {
+      events = await dbAll('SELECT * FROM calendar_events WHERE customer_id = ?', [id]);
+    }
+  } catch (err) {
+    console.warn('Could not fetch calendar events for customer, continuing without events:', err);
+  }
 
   return {
     ...customer,

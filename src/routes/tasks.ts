@@ -937,6 +937,17 @@ router.get('/kanban/columns', authenticate, (req: AuthRequest, res: Response) =>
     [],
     (err, columns) => {
       if (err) {
+        console.error('Error fetching kanban columns:', err);
+        // If table doesn't exist, return default columns
+        if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+          console.warn('task_kanban_columns table does not exist yet, returning default columns');
+          return res.json([
+            { column_id: 'todo', title: 'انجام نشده', color: '#FEE2E2', position: 0, is_active: 1 },
+            { column_id: 'in_progress', title: 'در حال انجام', color: '#DBEAFE', position: 1, is_active: 1 },
+            { column_id: 'review', title: 'در حال بررسی', color: '#FEF3C7', position: 2, is_active: 1 },
+            { column_id: 'done', title: 'انجام شده', color: '#D1FAE5', position: 3, is_active: 1 },
+          ]);
+        }
         return res.status(500).json({ error: 'خطا در دریافت ستون‌های کانبان' });
       }
       res.json(columns || []);
@@ -1031,8 +1042,18 @@ router.delete('/kanban/columns/:id', authenticate, (req: AuthRequest, res: Respo
 });
 
 // Kanban view
-router.get('/kanban/board', authenticate, (req: AuthRequest, res: Response) => {
+router.get('/kanban/board', authenticate, async (req: AuthRequest, res: Response) => {
   const { project_id, account_id } = req.query;
+
+  // Check if related tables exist
+  let accountsExists = false;
+  let projectsExists = false;
+  try {
+    accountsExists = await tableExists('accounts');
+    projectsExists = await tableExists('projects');
+  } catch (err) {
+    console.warn('Could not check related tables existence');
+  }
 
   // Get active columns
   db.all(
@@ -1040,11 +1061,15 @@ router.get('/kanban/board', authenticate, (req: AuthRequest, res: Response) => {
     [],
     (err, columns: any[]) => {
       if (err) {
-        return res.status(500).json({ error: 'خطا در دریافت ستون‌های کانبان' });
+        console.error('Error fetching kanban columns:', err);
+        // If table doesn't exist, use defaults
+        if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+          console.warn('task_kanban_columns table does not exist yet, using default columns');
+        }
       }
 
       // If no columns, use defaults
-      const columnList = columns.length > 0 
+      const columnList = (columns && columns.length > 0)
         ? columns 
         : [
             { column_id: 'todo', title: 'انجام نشده', color: '#FEE2E2' },
@@ -1055,12 +1080,12 @@ router.get('/kanban/board', authenticate, (req: AuthRequest, res: Response) => {
 
       let query = `
         SELECT t.*, 
-               a.name as account_name,
-               p.name as project_name,
+               ${accountsExists ? 'a.name as account_name,' : 'NULL as account_name,'}
+               ${projectsExists ? 'p.name as project_name,' : 'NULL as project_name,'}
                u.full_name as assigned_to_name
         FROM tasks t
-        LEFT JOIN accounts a ON t.account_id = a.id
-        LEFT JOIN projects p ON t.project_id = p.id
+        ${accountsExists ? 'LEFT JOIN accounts a ON t.account_id = a.id' : ''}
+        ${projectsExists ? 'LEFT JOIN projects p ON t.project_id = p.id' : ''}
         LEFT JOIN users u ON t.assigned_to = u.id
         WHERE 1=1
       `;
@@ -1080,6 +1105,16 @@ router.get('/kanban/board', authenticate, (req: AuthRequest, res: Response) => {
 
       db.all(query, params, (err, tasks: any[]) => {
         if (err) {
+          console.error('Error fetching tasks for kanban:', err);
+          // If table doesn't exist, return empty board
+          if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+            console.warn('Tasks table does not exist yet, returning empty board');
+            const emptyBoard: Record<string, any[]> = {};
+            columnList.forEach((col: any) => {
+              emptyBoard[col.column_id] = [];
+            });
+            return res.json({ columns: columnList, tasks: emptyBoard });
+          }
           return res.status(500).json({ error: 'خطا در دریافت تسک‌ها' });
         }
 

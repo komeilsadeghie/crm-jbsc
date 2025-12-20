@@ -1,56 +1,57 @@
-import { db, getTableInfoCallback } from './db';
+import { db, isMySQL, convertSQLiteToMySQL } from './db';
 
 export const migrateTaskKanbanColumnsTable = (): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    db.serialize(() => {
-      // Check if task_kanban_columns table exists
-      getTableInfoCallback('task_kanban_columns', (err: any, info: any[]) => {
-        if (err || !info || info.length === 0) {
-          // Create task_kanban_columns table
-          db.run(`
-            CREATE TABLE IF NOT EXISTS task_kanban_columns (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              column_id TEXT UNIQUE NOT NULL,
-              title TEXT NOT NULL,
-              color TEXT DEFAULT '#E5E7EB',
-              position INTEGER DEFAULT 0,
-              is_active INTEGER DEFAULT 1,
-              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-          `, (err) => {
-            if (err) {
-              console.error('Error creating task_kanban_columns table:', err);
-              reject(err);
-              return;
-            }
-            console.log('✅ Created task_kanban_columns table');
-            
-            // Create default columns
-            createDefaultColumns().then(() => {
-              resolve();
-            }).catch(reject);
-          });
+  return new Promise((resolve) => {
+    // Always try to create table using IF NOT EXISTS (safer approach)
+    console.log('🔄 Ensuring task_kanban_columns table exists...');
+    
+    const createTableSQL = convertSQLiteToMySQL(`
+      CREATE TABLE IF NOT EXISTS task_kanban_columns (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        column_id VARCHAR(50) UNIQUE NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        color VARCHAR(50) DEFAULT '#E5E7EB',
+        position INT DEFAULT 0,
+        is_active INT DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    db.run(createTableSQL, (createErr: any) => {
+      if (createErr) {
+        console.error('Error creating task_kanban_columns table:', createErr);
+        if (createErr.code !== 'ER_TABLE_EXISTS_ERROR' && !createErr.message.includes('already exists')) {
+          console.error('❌ Failed to create task_kanban_columns table:', createErr.message);
         } else {
           console.log('✅ task_kanban_columns table already exists');
-          resolve();
         }
+      } else {
+        console.log('✅ task_kanban_columns table created or already exists');
+      }
+      
+      // Try to create default columns
+      createDefaultColumns().then(() => {
+        resolve();
+      }).catch((err) => {
+        console.warn('⚠️ Could not create default columns, continuing anyway:', err.message);
+        resolve(); // Don't fail migration if default columns fail
       });
     });
   });
 };
 
 const createDefaultColumns = (): Promise<void> => {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     // Check if default columns exist
     db.get('SELECT COUNT(*) as count FROM task_kanban_columns', [], (err: any, row: any) => {
       if (err) {
-        console.error('Error checking default columns:', err);
-        reject(err);
+        console.warn('Could not check default columns, skipping:', err.message);
+        resolve();
         return;
       }
       
-      if (row.count === 0) {
+      if (row && row.count === 0) {
         // Create default columns
         const defaultColumns = [
           { column_id: 'todo', title: 'انجام نشده', color: '#FEE2E2', position: 0 }, // red
@@ -64,12 +65,12 @@ const createDefaultColumns = (): Promise<void> => {
 
         defaultColumns.forEach((col) => {
           db.run(
-            `INSERT INTO task_kanban_columns (column_id, title, color, position, is_active)
+            `INSERT IGNORE INTO task_kanban_columns (column_id, title, color, position, is_active)
              VALUES (?, ?, ?, ?, ?)`,
             [col.column_id, col.title, col.color, col.position, 1],
             (err) => {
               if (err) {
-                console.error(`Error creating default column ${col.column_id}:`, err);
+                console.warn(`Could not create default column ${col.column_id}:`, err.message);
               } else {
                 console.log(`✅ Created default column: ${col.column_id}`);
               }
