@@ -57,9 +57,15 @@ router.get('/', authenticate, (req: AuthRequest, res: Response) => {
 
   db.all(query, params, (err, tickets) => {
     if (err) {
+      console.error('Error fetching tickets:', err);
+      // If table doesn't exist, return empty array instead of error
+      if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+        console.warn('Tickets table or related tables do not exist yet, returning empty array');
+        return res.json([]);
+      }
       return res.status(500).json({ error: 'خطا در دریافت تیکت‌ها' });
     }
-    res.json(tickets);
+    res.json(Array.isArray(tickets) ? tickets : []);
   });
 });
 

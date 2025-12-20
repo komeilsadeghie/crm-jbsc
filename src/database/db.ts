@@ -242,6 +242,9 @@ export const db = {
           cb(null, Array.isArray(rows) ? rows[0] : null);
         })
         .catch((err) => {
+          console.error('Database query error (db.get):', err);
+          console.error('Query:', convertedQuery);
+          console.error('Params:', params);
           cb(err, null);
         });
     } else if (isSQLite && sqliteDb) {
@@ -273,6 +276,9 @@ export const db = {
           cb(null, Array.isArray(rows) ? rows : []);
         })
         .catch((err) => {
+          console.error('Database query error (db.all):', err);
+          console.error('Query:', convertedQuery);
+          console.error('Params:', params);
           cb(err, []);
         });
     } else if (isSQLite && sqliteDb) {

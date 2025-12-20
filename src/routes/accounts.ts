@@ -34,6 +34,11 @@ router.get('/', authenticate, (req: AuthRequest, res: Response) => {
   db.all(accountsQuery, accountsParams, (err, accounts: any[]) => {
     if (err) {
       console.error('Error fetching accounts:', err);
+      // If table doesn't exist, return empty array instead of error
+      if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+        console.warn('Accounts table does not exist yet, returning empty array');
+        return res.json([]);
+      }
       return res.status(500).json({ error: 'خطا در دریافت حساب‌ها' });
     }
 
@@ -61,6 +66,10 @@ router.get('/', authenticate, (req: AuthRequest, res: Response) => {
     db.all(customersQuery, customersParams, (err, customers: any[]) => {
       if (err) {
         console.error('Error fetching customers:', err);
+        // If table doesn't exist, just return accounts
+        if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+          console.warn('Customers table does not exist yet, returning accounts only');
+        }
         // Return accounts only if customers query fails
         const result = Array.isArray(accounts) ? accounts : [];
         console.log(`Fetched ${result.length} accounts (customers query failed)`);
@@ -93,6 +102,11 @@ router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
 
   db.get('SELECT * FROM accounts WHERE id = ?', [id], (err, account) => {
     if (err) {
+      console.error('Error fetching account:', err);
+      // If table doesn't exist, return 404
+      if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+        return res.status(404).json({ error: 'حساب یافت نشد' });
+      }
       return res.status(500).json({ error: 'خطا در دریافت حساب' });
     }
     if (!account) {
@@ -102,13 +116,25 @@ router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
     // Get contacts
     db.all('SELECT * FROM contacts WHERE account_id = ?', [id], (err, contacts) => {
       if (err) {
-        return res.status(500).json({ error: 'خطا در دریافت مخاطبین' });
+        console.error('Error fetching contacts:', err);
+        // If table doesn't exist, use empty array
+        if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+          contacts = [];
+        } else {
+          return res.status(500).json({ error: 'خطا در دریافت مخاطبین' });
+        }
       }
 
       // Get deals
       db.all('SELECT * FROM deals WHERE account_id = ?', [id], (err, deals) => {
         if (err) {
-          return res.status(500).json({ error: 'خطا در دریافت پروژه‌ها' });
+          console.error('Error fetching deals:', err);
+          // If table doesn't exist, use empty array
+          if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+            deals = [];
+          } else {
+            return res.status(500).json({ error: 'خطا در دریافت پروژه‌ها' });
+          }
         }
 
         res.json({
