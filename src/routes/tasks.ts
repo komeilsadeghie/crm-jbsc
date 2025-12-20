@@ -1,5 +1,5 @@
 import express, { Response } from 'express';
-import { db, dbRun } from '../database/db';
+import { db, dbRun, tableExists } from '../database/db';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { Task, Activity } from '../types/extended';
 import { logActivity, getClientInfo } from '../utils/activityLogger';
@@ -27,19 +27,24 @@ const upload = multer({
 });
 
 // ========== Tasks ==========
-router.get('/', authenticate, (req: AuthRequest, res: Response) => {
+router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   const { deal_id, account_id, project_id, assigned_to, status, priority } = req.query;
+  
+  // Check if related tables exist
+  const dealsExists = await tableExists('deals').catch(() => false);
+  const accountsExists = await tableExists('accounts').catch(() => false);
+  const projectsExists = await tableExists('projects').catch(() => false);
   
   let query = `
     SELECT t.*, 
-           a.name as account_name,
-           d.title as deal_title,
-           p.name as project_name,
+           ${accountsExists ? 'a.name as account_name,' : 'NULL as account_name,'}
+           ${dealsExists ? 'd.title as deal_title,' : 'NULL as deal_title,'}
+           ${projectsExists ? 'p.name as project_name,' : 'NULL as project_name,'}
            u.full_name as assigned_to_name
     FROM tasks t
-    LEFT JOIN accounts a ON t.account_id = a.id
-    LEFT JOIN deals d ON t.deal_id = d.id
-    LEFT JOIN projects p ON t.project_id = p.id
+    ${accountsExists ? 'LEFT JOIN accounts a ON t.account_id = a.id' : ''}
+    ${dealsExists ? 'LEFT JOIN deals d ON t.deal_id = d.id' : ''}
+    ${projectsExists ? 'LEFT JOIN projects p ON t.project_id = p.id' : ''}
     LEFT JOIN users u ON t.assigned_to = u.id
     WHERE 1=1
   `;

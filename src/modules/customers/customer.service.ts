@@ -49,6 +49,12 @@ const validateCustomerModel = (customerModel?: number | null) => {
 export const listCustomers = async (filters: CustomerFilters) => {
   const { tagIds, customerModels, search, category, status, type, createdById, dateFrom, dateTo, journey_stage, coach_id } = filters;
 
+  // Check if tags tables exist, if not, use simpler query
+  const { tableExists } = await import('../../database/db');
+  const tagsTableExists = await tableExists('tags').catch(() => false);
+  const entityTagsTableExists = await tableExists('entity_tags').catch(() => false);
+  const useTags = tagsTableExists && entityTagsTableExists;
+
   // Use CONCAT for MySQL, || for SQLite
   const concatExpr = isMySQL 
     ? "CONCAT(t.id, ':', t.name, ':', t.color)"
@@ -59,14 +65,21 @@ export const listCustomers = async (filters: CustomerFilters) => {
     ? `GROUP_CONCAT(DISTINCT ${concatExpr} SEPARATOR ',')`
     : `GROUP_CONCAT(DISTINCT ${concatExpr})`;
 
-  let query = `
-    SELECT DISTINCT c.*,
-           ${groupConcatExpr} as tags_data
-    FROM customers c
-    LEFT JOIN entity_tags et ON et.customer_id = c.id
-    LEFT JOIN tags t ON et.tag_id = t.id
-    WHERE 1=1
-  `;
+  let query = useTags
+    ? `
+      SELECT DISTINCT c.*,
+             ${groupConcatExpr} as tags_data
+      FROM customers c
+      LEFT JOIN entity_tags et ON et.customer_id = c.id
+      LEFT JOIN tags t ON et.tag_id = t.id
+      WHERE 1=1
+    `
+    : `
+      SELECT c.*,
+             NULL as tags_data
+      FROM customers c
+      WHERE 1=1
+    `;
   const params: any[] = [];
 
   if (type) {
@@ -120,11 +133,13 @@ export const listCustomers = async (filters: CustomerFilters) => {
     params.push(...customerModels);
   }
 
-  query += ' GROUP BY c.id';
+  if (useTags) {
+    query += ' GROUP BY c.id';
 
-  if (tagIds && tagIds.length > 0) {
-    query += ' HAVING COUNT(CASE WHEN et.tag_id IN (' + tagIds.map(() => '?').join(',') + ') THEN 1 END) = ?';
-    params.push(...tagIds, tagIds.length);
+    if (tagIds && tagIds.length > 0) {
+      query += ' HAVING COUNT(CASE WHEN et.tag_id IN (' + tagIds.map(() => '?').join(',') + ') THEN 1 END) = ?';
+      params.push(...tagIds, tagIds.length);
+    }
   }
 
   query += ' ORDER BY c.created_at DESC';
