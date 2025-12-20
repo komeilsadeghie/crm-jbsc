@@ -109,25 +109,30 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
     console.log('🛠 Initializing database tables...');
     await initDatabase();
 
+    // Critical migrations - must run first
+    console.log('🔄 Migrating tags and entity_tags tables (CRITICAL)...');
+    try {
+      await migrateTagsTable();
+      console.log('✅ Tags migration completed');
+    } catch (e: any) {
+      console.error('❌ migrateTagsTable failed:', e.message);
+      console.error('Stack:', e.stack);
+    }
+
+    console.log('🔄 Migrating deals table (CRITICAL)...');
+    try {
+      await migrateDealsTable();
+      console.log('✅ Deals migration completed');
+    } catch (e: any) {
+      console.error('❌ migrateDealsTable failed:', e.message);
+      console.error('Stack:', e.stack);
+    }
+
     console.log('🔄 Migrating settings table...');
     try {
       await migrateSettingsTable();
     } catch (e: any) {
       console.warn('⚠️ migrateSettingsTable failed:', e.message);
-    }
-
-    console.log('🔄 Migrating tags and entity_tags tables...');
-    try {
-      await migrateTagsTable();
-    } catch (e: any) {
-      console.warn('⚠️ migrateTagsTable failed:', e.message);
-    }
-
-    console.log('🔄 Migrating deals table...');
-    try {
-      await migrateDealsTable();
-    } catch (e: any) {
-      console.warn('⚠️ migrateDealsTable failed:', e.message);
     }
 
     console.log('🔄 Migrating estimates table...');

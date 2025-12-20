@@ -21,7 +21,10 @@ export const migrateTagsTable = (): Promise<void> => {
           if (createErr) {
             console.error('Error creating tags table:', createErr);
             if (createErr.code !== 'ER_TABLE_EXISTS_ERROR' && !createErr.message.includes('already exists')) {
-              console.warn('⚠️ Could not create tags table, continuing anyway:', createErr.message);
+              console.error('❌ Failed to create tags table:', createErr.message);
+              // Still try to create entity_tags, but log the error
+            } else {
+              console.log('✅ Tags table already exists or created');
             }
           } else {
             console.log('✅ Created tags table');
@@ -52,7 +55,10 @@ export const migrateTagsTable = (): Promise<void> => {
                 if (createErr2) {
                   console.error('Error creating entity_tags table:', createErr2);
                   if (createErr2.code !== 'ER_TABLE_EXISTS_ERROR' && !createErr2.message.includes('already exists')) {
-                    console.warn('⚠️ Could not create entity_tags table, continuing anyway:', createErr2.message);
+                    console.error('❌ Failed to create entity_tags table:', createErr2.message);
+                    // Still resolve to continue, but log the error
+                  } else {
+                    console.log('✅ Entity_tags table already exists or created');
                   }
                 } else {
                   console.log('✅ Created entity_tags table');

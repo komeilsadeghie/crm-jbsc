@@ -35,7 +35,10 @@ export const migrateDealsTable = (): Promise<void> => {
             console.error('Error creating deals table:', createErr);
             // Don't reject - table might already exist or foreign keys might fail
             if (createErr.code !== 'ER_TABLE_EXISTS_ERROR' && !createErr.message.includes('already exists')) {
-              console.warn('⚠️ Could not create deals table, continuing anyway:', createErr.message);
+              console.error('❌ Failed to create deals table:', createErr.message);
+              // Still resolve to continue, but log the error
+            } else {
+              console.log('✅ Deals table already exists or created');
             }
             resolve();
             return;
