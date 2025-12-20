@@ -11,6 +11,7 @@
     "start": "node dist/server.js",
     "init:db": "ts-node src/database/init.ts",
     "create-user": "ts-node src/scripts/create-user.ts",
+    "check-admin": "ts-node src/scripts/check-admin.ts",
     "migrate:customer-fields": "ts-node src/scripts/migrate-customer-fields.ts"
   },
   "dependencies": {

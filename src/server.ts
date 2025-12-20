@@ -280,11 +280,12 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
       if (!existingAdmin) {
         const hashedPassword = await bcrypt.default.hash('admin123', 10);
         const insertQuery = isMySQL
-          ? `INSERT IGNORE INTO users (username, email, password, role, full_name) VALUES (?, ?, ?, ?, ?)`
-          : `INSERT OR IGNORE INTO users (username, email, password, role, full_name) VALUES (?, ?, ?, ?, ?)`;
+          ? `INSERT INTO users (username, email, password, role, full_name) VALUES (?, ?, ?, ?, ?)`
+          : `INSERT INTO users (username, email, password, role, full_name) VALUES (?, ?, ?, ?, ?)`;
         
+        // Use lowercase username to match login normalization
         await dbRun(insertQuery, [
-          'admin',
+          'admin',  // Already lowercase
           'admin@crm.com',
           hashedPassword,
           'admin',
@@ -294,6 +295,19 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
         console.log('✅ Default admin user created: admin / admin123');
       } else {
         console.log('ℹ️  Admin user already exists');
+        
+        // Verify password is correct
+        const testPassword = 'admin123';
+        const isValid = await bcrypt.default.compare(testPassword, existingAdmin.password);
+        if (!isValid) {
+          console.log('⚠️  Admin password mismatch - resetting...');
+          const hashedPassword = await bcrypt.default.hash(testPassword, 10);
+          await dbRun(
+            'UPDATE users SET password = ? WHERE username = ? OR email = ?',
+            [hashedPassword, 'admin', 'admin@crm.com']
+          );
+          console.log('✅ Admin password reset to: admin123');
+        }
       }
     } catch (adminError: any) {
       console.warn('⚠️  Could not create admin user:', adminError.message);
