@@ -1,5 +1,5 @@
 import express, { Response } from 'express';
-import { db } from '../database/db';
+import { db, isMySQL } from '../database/db';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { Customer } from '../types';
 
@@ -155,9 +155,12 @@ router.post('/bulk-delete', authenticate, async (req: AuthRequest, res: Response
     await dbRun(`DELETE FROM interactions WHERE customer_id IN (${placeholders})`, ids);
 
     // Delete related leads
+    const leadNameExpr = isMySQL 
+      ? 'CONCAT(first_name, " ", last_name)'
+      : 'first_name || " " || last_name';
     for (const customer of customers) {
       const accountName = customer.company_name || customer.name;
-      await dbRun('DELETE FROM leads WHERE first_name || " " || last_name = ? OR company_name = ?', 
+      await dbRun(`DELETE FROM leads WHERE ${leadNameExpr} = ? OR company_name = ?`, 
         [customer.name, accountName]);
     }
 
@@ -467,7 +470,10 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     await dbRun('DELETE FROM interactions WHERE customer_id = ?', [id]);
 
     // Delete leads that might be related (by name or company)
-    await dbRun('DELETE FROM leads WHERE first_name || " " || last_name = ? OR company_name = ?', 
+    const leadNameExpr = isMySQL 
+      ? 'CONCAT(first_name, " ", last_name)'
+      : 'first_name || " " || last_name';
+    await dbRun(`DELETE FROM leads WHERE ${leadNameExpr} = ? OR company_name = ?`, 
       [customer.name, accountName]);
 
     // Finally, delete the customer

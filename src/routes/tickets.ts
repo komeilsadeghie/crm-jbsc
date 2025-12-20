@@ -1,5 +1,5 @@
 import express, { Response } from 'express';
-import { db } from '../database/db';
+import { db, isMySQL } from '../database/db';
 import { authenticate, AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
@@ -8,10 +8,15 @@ const router = express.Router();
 router.get('/', authenticate, (req: AuthRequest, res: Response) => {
   const { account_id, status, priority, department_id, assigned_to } = req.query;
   
+  // Use CONCAT for MySQL, || for SQLite
+  const contactNameExpr = isMySQL 
+    ? "CONCAT(c.first_name, ' ', c.last_name)"
+    : "c.first_name || ' ' || c.last_name";
+  
   let query = `
     SELECT t.*, 
            a.name as account_name,
-           c.first_name || ' ' || c.last_name as contact_name,
+           ${contactNameExpr} as contact_name,
            d.name as department_name,
            u.username as assigned_username
     FROM tickets t
@@ -81,10 +86,15 @@ router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
     }
 
     // Get replies
+    // Use CONCAT for MySQL, || for SQLite
+    const contactNameExpr = isMySQL 
+      ? "CONCAT(c.first_name, ' ', c.last_name)"
+      : "c.first_name || ' ' || c.last_name";
+    
     db.all(`
       SELECT tr.*, 
              u.username as user_username, u.full_name as user_full_name, u.role as user_role,
-             c.first_name || ' ' || c.last_name as contact_name
+             ${contactNameExpr} as contact_name
       FROM ticket_replies tr
       LEFT JOIN users u ON tr.user_id = u.id
       LEFT JOIN contacts c ON tr.contact_id = c.id

@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 import jalaliday from 'jalaliday';
-import { db } from '../../database/db';
+import { db, isMySQL } from '../../database/db';
 import { CustomerFilters, CustomerPayload } from './customer.types';
 
 dayjs.extend(jalaliday);
@@ -49,9 +49,14 @@ const validateCustomerModel = (customerModel?: number | null) => {
 export const listCustomers = async (filters: CustomerFilters) => {
   const { tagIds, customerModels, search, category, status, type, createdById, dateFrom, dateTo, journey_stage, coach_id } = filters;
 
+  // Use CONCAT for MySQL, || for SQLite
+  const concatExpr = isMySQL 
+    ? "CONCAT(t.id, ':', t.name, ':', t.color)"
+    : "t.id || ':' || t.name || ':' || t.color";
+
   let query = `
     SELECT DISTINCT c.*,
-           GROUP_CONCAT(DISTINCT t.id || ':' || t.name || ':' || t.color) as tags_data
+           GROUP_CONCAT(DISTINCT ${concatExpr}) as tags_data
     FROM customers c
     LEFT JOIN entity_tags et ON et.customer_id = c.id
     LEFT JOIN tags t ON et.tag_id = t.id
@@ -348,7 +353,10 @@ export const deleteCustomer = async (id: string) => {
   await dbRun('DELETE FROM interactions WHERE customer_id = ?', [id]);
 
   // Delete leads that might be related (by name or company)
-  await dbRun('DELETE FROM leads WHERE first_name || " " || last_name = ? OR company_name = ?', 
+  const leadNameExpr = isMySQL 
+    ? 'CONCAT(first_name, " ", last_name)'
+    : 'first_name || " " || last_name';
+  await dbRun(`DELETE FROM leads WHERE ${leadNameExpr} = ? OR company_name = ?`, 
     [customer.name, accountName]);
 
   // Delete tags
@@ -437,9 +445,12 @@ export const bulkDeleteCustomers = async (ids: string[]): Promise<number> => {
   await dbRun(`DELETE FROM interactions WHERE customer_id IN (${placeholders})`, ids);
 
   // Delete related leads
+  const leadNameExpr = isMySQL 
+    ? 'CONCAT(first_name, " ", last_name)'
+    : 'first_name || " " || last_name';
   for (const customer of customers) {
     const accountName = customer.company_name || customer.name;
-    await dbRun('DELETE FROM leads WHERE first_name || " " || last_name = ? OR company_name = ?', 
+    await dbRun(`DELETE FROM leads WHERE ${leadNameExpr} = ? OR company_name = ?`, 
       [customer.name, accountName]);
   }
 

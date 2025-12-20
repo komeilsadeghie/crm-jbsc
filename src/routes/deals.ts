@@ -1,5 +1,5 @@
 import express, { Response } from 'express';
-import { db } from '../database/db';
+import { db, isMySQL } from '../database/db';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { Deal } from '../types/extended';
 
@@ -9,10 +9,15 @@ const router = express.Router();
 router.get('/', authenticate, (req: AuthRequest, res: Response) => {
   const { stage, account_id, designer_id, search, sortBy = 'created_at', order = 'DESC' } = req.query;
   
+  // Use CONCAT for MySQL, || for SQLite
+  const contactNameExpr = isMySQL 
+    ? "CONCAT(c.first_name, ' ', c.last_name)"
+    : "c.first_name || ' ' || c.last_name";
+  
   let query = `
     SELECT d.*, 
            a.name as account_name,
-           c.first_name || ' ' || c.last_name as contact_name,
+           ${contactNameExpr} as contact_name,
            u.full_name as designer_name
     FROM deals d
     LEFT JOIN accounts a ON d.account_id = a.id
@@ -58,10 +63,15 @@ router.get('/', authenticate, (req: AuthRequest, res: Response) => {
 router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
   const { id } = req.params;
 
+  // Use CONCAT for MySQL, || for SQLite
+  const contactNameExpr = isMySQL 
+    ? "CONCAT(c.first_name, ' ', c.last_name)"
+    : "c.first_name || ' ' || c.last_name";
+
   db.get(
     `SELECT d.*, 
             a.name as account_name,
-            c.first_name || ' ' || c.last_name as contact_name,
+            ${contactNameExpr} as contact_name,
             u.full_name as designer_name
      FROM deals d
      LEFT JOIN accounts a ON d.account_id = a.id
