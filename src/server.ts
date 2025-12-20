@@ -23,6 +23,8 @@ import { migrateContactPermissionsTable } from './database/migrate-contact-permi
 import { migrateRfmScoresTable } from './database/migrate-rfm-scores';
 import { migrateCustomFieldsTable } from './database/migrate-custom-fields';
 import { migrateIndexesOptimization } from './database/migrate-indexes-optimization';
+import { migrateTagsTable } from './database/migrate-tags';
+import { migrateDealsTable } from './database/migrate-deals';
 
 // Load ENV
 dotenv.config();
@@ -112,6 +114,20 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
       await migrateSettingsTable();
     } catch (e: any) {
       console.warn('⚠️ migrateSettingsTable failed:', e.message);
+    }
+
+    console.log('🔄 Migrating tags and entity_tags tables...');
+    try {
+      await migrateTagsTable();
+    } catch (e: any) {
+      console.warn('⚠️ migrateTagsTable failed:', e.message);
+    }
+
+    console.log('🔄 Migrating deals table...');
+    try {
+      await migrateDealsTable();
+    } catch (e: any) {
+      console.warn('⚠️ migrateDealsTable failed:', e.message);
     }
 
     console.log('🔄 Migrating estimates table...');
