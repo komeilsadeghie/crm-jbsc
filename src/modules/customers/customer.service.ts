@@ -49,6 +49,18 @@ const validateCustomerModel = (customerModel?: number | null) => {
 export const listCustomers = async (filters: CustomerFilters) => {
   const { tagIds, customerModels, search, category, status, type, createdById, dateFrom, dateTo, journey_stage, coach_id } = filters;
 
+  // First, check if customers table exists
+  try {
+    const customersTableExists = await tableExists('customers');
+    if (!customersTableExists) {
+      console.warn('Customers table does not exist, returning empty array');
+      return [];
+    }
+  } catch (err) {
+    console.warn('Could not check customers table existence:', err);
+    // Continue anyway, let the query fail gracefully
+  }
+
   // Check if tags tables exist, if not, use simpler query
   let tagsTableExists = false;
   let entityTagsTableExists = false;
