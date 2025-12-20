@@ -73,9 +73,15 @@ router.get('/', authenticate, (req: AuthRequest, res: Response) => {
 router.get('/departments', authenticate, (req: AuthRequest, res: Response) => {
   db.all('SELECT * FROM ticket_departments ORDER BY name', [], (err, departments) => {
     if (err) {
-      return res.status(500).json({ error: 'خطا در دریافت دپارتمان‌ها' });
+      console.error('Error fetching departments:', err);
+      // If table doesn't exist, return empty array instead of error
+      if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+        console.warn('ticket_departments table does not exist yet, returning empty array');
+        return res.json([]);
+      }
+      return res.status(500).json({ error: 'خطا در دریافت دپارتمان‌ها: ' + (err.message || 'خطای نامشخص') });
     }
-    res.json(departments);
+    res.json(Array.isArray(departments) ? departments : []);
   });
 });
 
@@ -274,10 +280,14 @@ router.post('/departments', authenticate, (req: AuthRequest, res: Response) => {
     function(err) {
       if (err) {
         console.error('Error inserting department:', err);
-        if (err.message.includes('UNIQUE constraint')) {
+        // If table doesn't exist, return helpful error
+        if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+          return res.status(500).json({ error: 'جدول دپارتمان‌ها وجود ندارد. لطفاً دیتابیس را migrate کنید.' });
+        }
+        if (err.message?.includes('UNIQUE constraint') || err.message?.includes('Duplicate entry')) {
           return res.status(400).json({ error: 'دپارتمانی با این نام قبلاً ثبت شده است' });
         }
-        return res.status(500).json({ error: 'خطا در ثبت دپارتمان: ' + err.message });
+        return res.status(500).json({ error: 'خطا در ثبت دپارتمان: ' + (err.message || 'خطای نامشخص') });
       }
       // Return the created department data
       db.get('SELECT * FROM ticket_departments WHERE id = ?', [this.lastID], (err, dept) => {
