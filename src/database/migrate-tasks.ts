@@ -29,13 +29,7 @@ export const migrateTasksTable = () => {
               recurrence_pattern TEXT,
               recurrence_end_date DATE,
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-              FOREIGN KEY (deal_id) REFERENCES deals(id) ON DELETE SET NULL,
-              FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE SET NULL,
-              FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL,
-              FOREIGN KEY (parent_task_id) REFERENCES tasks(id) ON DELETE SET NULL,
-              FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL,
-              FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
           `);
           

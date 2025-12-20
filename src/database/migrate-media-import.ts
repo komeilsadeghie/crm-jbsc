@@ -191,15 +191,11 @@ const checkProjectsSettlements = (resolve: () => void, reject: (err: any) => voi
           payment_stage_4_date DATE,
           settlement_kamil DECIMAL(10, 2),
           settlement_asdan DECIMAL(10, 2),
-          settlement_soleimani DECIMAL(10, 2),
-          created_by INT,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE SET NULL,
-          FOREIGN KEY (deal_id) REFERENCES deals(id) ON DELETE SET NULL,
-          FOREIGN KEY (manager_id) REFERENCES users(id) ON DELETE SET NULL,
-          FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
-        )
+              settlement_soleimani DECIMAL(10, 2),
+              created_by INT,
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
       `);
       
       db.run(createTableSQL, (createErr: any) => {

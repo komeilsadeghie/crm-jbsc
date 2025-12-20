@@ -34,11 +34,7 @@ export const migrateProjectPayments = (): Promise<void> => {
               settlement_soleimani DECIMAL(10, 2),
               created_by INT,
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-              FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE SET NULL,
-              FOREIGN KEY (deal_id) REFERENCES deals(id) ON DELETE SET NULL,
-              FOREIGN KEY (manager_id) REFERENCES users(id) ON DELETE SET NULL,
-              FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
           `);
           

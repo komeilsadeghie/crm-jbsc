@@ -21,9 +21,7 @@ export const migrateInvoicesTable = (): Promise<void> => {
               payment_stage VARCHAR(50),
               notes TEXT,
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-              FOREIGN KEY (deal_id) REFERENCES deals(id) ON DELETE SET NULL,
-              FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE SET NULL
+              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
           `);
           
@@ -64,8 +62,7 @@ const createRelatedTables = (resolve: () => void, reject: (err: any) => void) =>
           tax_amount DECIMAL(10, 2) DEFAULT 0,
           total_amount DECIMAL(10, 2) NOT NULL,
           position INT DEFAULT 0,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `);
       
@@ -106,10 +103,7 @@ const checkRecurringInvoices = (resolve: () => void, reject: (err: any) => void)
           is_active INT DEFAULT 1,
           created_by INT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE,
-          FOREIGN KEY (template_invoice_id) REFERENCES invoices(id) ON DELETE SET NULL,
-          FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `);
       
@@ -145,8 +139,7 @@ const checkActivityLog = (resolve: () => void, reject: (err: any) => void) => {
           ip_address VARCHAR(45),
           user_agent TEXT,
           metadata TEXT,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `);
       

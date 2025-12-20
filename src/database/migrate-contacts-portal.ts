@@ -22,8 +22,7 @@ export const migrateContactsPortal = (): Promise<void> => {
             portal_enabled INT DEFAULT 0,
             portal_password TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
           )
         `);
         

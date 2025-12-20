@@ -39,10 +39,7 @@ export const migrateContractsTable = (): Promise<void> => {
             warranty_months INT,
             project_id INT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE SET NULL,
-            FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
-            FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
           )
         `);
         

@@ -31,9 +31,7 @@ export const migrateEstimatesTable = (): Promise<void> => {
             delivery_days INT,
             warranty_months INT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (deal_id) REFERENCES deals(id) ON DELETE SET NULL,
-            FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE SET NULL
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
           )
         `);
         
