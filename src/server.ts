@@ -17,6 +17,8 @@ import { migratePaymentGatewaysTable } from './database/migrate-payment-gateways
 import { migrateSurveysTable } from './database/migrate-surveys';
 import { migrateMediaImportFields } from './database/migrate-media-import';
 import { fixUniqueIdColumn } from './database/fix-unique-id';
+import { migrateAccountsTable } from './database/migrate-accounts';
+import { migrateSettingsTable } from './database/migrate-settings';
 
 // Load ENV
 dotenv.config();
@@ -100,6 +102,20 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
     
     console.log('🛠 Initializing database tables...');
     await initDatabase();
+
+    console.log('🔄 Migrating accounts table...');
+    try {
+      await migrateAccountsTable();
+    } catch (e: any) {
+      console.warn('⚠️ migrateAccountsTable failed:', e.message);
+    }
+
+    console.log('🔄 Migrating settings table...');
+    try {
+      await migrateSettingsTable();
+    } catch (e: any) {
+      console.warn('⚠️ migrateSettingsTable failed:', e.message);
+    }
 
     console.log('🔄 Migrating estimates table...');
     try {

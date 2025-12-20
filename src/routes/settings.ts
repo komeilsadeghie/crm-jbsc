@@ -69,7 +69,7 @@ const dbRun = (query: string, params: any[]): Promise<void> => {
 // Get all settings (public endpoint for logo and company name, full settings for admin)
 router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const settings = await dbAll('SELECT key, value FROM settings', []);
+    const settings = await dbAll('SELECT `key`, value FROM settings', []);
     const settingsObj: Record<string, string> = {};
     settings.forEach((s: any) => {
       settingsObj[s.key] = s.value || '';
@@ -99,7 +99,7 @@ router.get('/:key', authenticate, async (req: AuthRequest, res: Response) => {
   }
 
   try {
-    const setting = await dbGet('SELECT key, value FROM settings WHERE key = ?', [req.params.key]);
+    const setting = await dbGet('SELECT `key`, value FROM settings WHERE `key` = ?', [req.params.key]);
     if (!setting) {
       return res.status(404).json({ error: 'تنظیمات یافت نشد' });
     }
@@ -121,12 +121,13 @@ router.put('/', authenticate, async (req: AuthRequest, res: Response) => {
     const updates: Promise<void>[] = [];
 
     for (const [key, value] of Object.entries(settings)) {
+      const valueStr = String(value);
       updates.push(
         dbRun(
-          `INSERT INTO settings (key, value, updated_at) 
+          `INSERT INTO settings (\`key\`, value, updated_at) 
            VALUES (?, ?, CURRENT_TIMESTAMP) 
-           ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP`,
-          [key, String(value)]
+           ON DUPLICATE KEY UPDATE value = ?, updated_at = CURRENT_TIMESTAMP`,
+          [key, valueStr, valueStr]
         )
       );
     }
@@ -154,9 +155,9 @@ router.post('/upload-logo', authenticate, upload.single('logo'), async (req: Aut
     const logoPath = `/uploads/logos/${req.file.filename}`;
     
     await dbRun(
-      `INSERT INTO settings (key, value, updated_at) 
+      `INSERT INTO settings (\`key\`, value, updated_at) 
        VALUES (?, ?, CURRENT_TIMESTAMP) 
-       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP`,
+       ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = CURRENT_TIMESTAMP`,
       [`logo_${logoType}`, logoPath]
     );
 
@@ -179,7 +180,7 @@ router.delete('/logo/:type', authenticate, async (req: AuthRequest, res: Respons
 
   try {
     const logoType = req.params.type; // main, text, favicon
-    const setting = await dbGet('SELECT value FROM settings WHERE key = ?', [`logo_${logoType}`]);
+    const setting = await dbGet('SELECT value FROM settings WHERE `key` = ?', [`logo_${logoType}`]);
     
     if (setting && setting.value) {
       const filePath = path.join(__dirname, '../../', setting.value);
@@ -189,7 +190,7 @@ router.delete('/logo/:type', authenticate, async (req: AuthRequest, res: Respons
     }
 
     await dbRun(
-      `UPDATE settings SET value = '', updated_at = CURRENT_TIMESTAMP WHERE key = ?`,
+      `UPDATE settings SET value = '', updated_at = CURRENT_TIMESTAMP WHERE \`key\` = ?`,
       [`logo_${logoType}`]
     );
 
