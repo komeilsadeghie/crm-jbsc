@@ -56,7 +56,7 @@ export const listCustomers = async (filters: CustomerFilters) => {
     tagsTableExists = await tableExists('tags');
     entityTagsTableExists = await tableExists('entity_tags');
   } catch (err) {
-    console.warn('Could not check tags tables existence, using simpler query');
+    console.warn('Could not check tags tables existence, using simpler query:', err);
   }
   const useTags = tagsTableExists && entityTagsTableExists;
 
@@ -152,6 +152,12 @@ export const listCustomers = async (filters: CustomerFilters) => {
   try {
     const customers = await dbAll(query, params);
 
+    // Ensure we always return an array
+    if (!Array.isArray(customers)) {
+      console.warn('dbAll returned non-array, converting to array');
+      return [];
+    }
+
     // Parse tags data
     return customers.map((customer: any) => {
       let tags = [];
@@ -183,12 +189,18 @@ export const listCustomers = async (filters: CustomerFilters) => {
     console.error('Error in listCustomers:', error);
     console.error('Query:', query);
     console.error('Params:', params);
+    console.error('Error code:', error.code);
+    console.error('Error message:', error.message);
+    
     // If table doesn't exist, return empty array instead of throwing
-    if (error.code === 'ER_NO_SUCH_TABLE' || error.message?.includes("doesn't exist")) {
+    if (error.code === 'ER_NO_SUCH_TABLE' || error.message?.includes("doesn't exist") || error.message?.includes('Table') && error.message?.includes("doesn't exist")) {
       console.warn('Customers or related tables do not exist yet, returning empty array');
       return [];
     }
-    throw error;
+    
+    // For any other error, log it but still return empty array to prevent frontend crash
+    console.error('Unexpected error in listCustomers, returning empty array to prevent crash');
+    return [];
   }
 };
 
