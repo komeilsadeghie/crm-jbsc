@@ -306,7 +306,7 @@ export const db = {
         })
         .catch((err) => {
           if (cb) cb(err);
-          throw err;
+          // Don't throw - error is handled by callback
         });
     } else if (isSQLite && sqliteDb) {
       sqliteDb.run(convertedQuery, params, cb);
