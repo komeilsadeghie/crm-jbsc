@@ -235,13 +235,45 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
         
         // Check account_id if provided
         if (accountId) {
-          db.get('SELECT id FROM accounts WHERE id = ?', [accountId], (err, account) => {
-            if (err) {
-              return callback(err, null);
+          // First check if accounts table exists
+          db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='accounts'", [], async (tableErr, tableRow) => {
+            if (tableErr || !tableRow) {
+              // Table doesn't exist or error, allow null account_id
+              console.warn('Accounts table may not exist, allowing null account_id');
+              if (managerId) {
+                db.get('SELECT id FROM users WHERE id = ?', [managerId], (err, manager) => {
+                  if (err) return callback(err, null);
+                  if (!manager) return callback(new Error('مدیر انتخاب شده یافت نشد'), null);
+                  callback(null, finalCreatedBy);
+                });
+              } else {
+                callback(null, finalCreatedBy);
+              }
+              return;
             }
-            if (!account) {
-              return callback(new Error('مشتری انتخاب شده یافت نشد'), null);
-            }
+            
+            db.get('SELECT id FROM accounts WHERE id = ?', [accountId], (err, account) => {
+              if (err) {
+                console.error('Error checking account:', err);
+                // If table doesn't exist error, allow null account_id
+                if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+                  console.warn('Accounts table does not exist, allowing null account_id');
+                  if (managerId) {
+                    db.get('SELECT id FROM users WHERE id = ?', [managerId], (err, manager) => {
+                      if (err) return callback(err, null);
+                      if (!manager) return callback(new Error('مدیر انتخاب شده یافت نشد'), null);
+                      callback(null, finalCreatedBy);
+                    });
+                  } else {
+                    callback(null, finalCreatedBy);
+                  }
+                  return;
+                }
+                return callback(err, null);
+              }
+              if (!account) {
+                return callback(new Error('مشتری انتخاب شده یافت نشد'), null);
+              }
             
             // Check manager_id if provided
             if (managerId) {

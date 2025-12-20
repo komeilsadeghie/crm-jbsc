@@ -340,26 +340,40 @@ router.post('/:id/convert-to-project', authenticate, async (req: AuthRequest, re
     const accountName = customer.company_name || customer.name;
     let accountId: number | null = null;
 
-    // Try to find existing account by name
-    const existingAccount = await dbGet(
-      'SELECT id FROM accounts WHERE name = ?',
-      [accountName]
-    );
+    // Check if accounts table exists
+    try {
+      const { tableExists } = await import('../database/db');
+      const accountsTableExists = await tableExists('accounts').catch(() => false);
+      
+      if (accountsTableExists) {
+        // Try to find existing account by name
+        const existingAccount = await dbGet(
+          'SELECT id FROM accounts WHERE name = ?',
+          [accountName]
+        );
 
-    if (existingAccount) {
-      accountId = existingAccount.id;
-    } else {
-      // Create new account
-      const accountResult = await dbRun(
-        `INSERT INTO accounts (name, website, status, created_at)
-         VALUES (?, ?, ?, CURRENT_TIMESTAMP)`,
-        [
-          accountName,
-          customer.website || null,
-          'active'
-        ]
-      );
-      accountId = accountResult.lastID || null;
+        if (existingAccount) {
+          accountId = existingAccount.id;
+        } else {
+          // Create new account
+          const accountResult = await dbRun(
+            `INSERT INTO accounts (name, website, status, created_at)
+             VALUES (?, ?, ?, CURRENT_TIMESTAMP)`,
+            [
+              accountName,
+              customer.website || null,
+              'active'
+            ]
+          );
+          accountId = accountResult.lastID || accountResult.insertId || null;
+        }
+      } else {
+        // If accounts table doesn't exist, create it first
+        console.warn('Accounts table does not exist, creating account will fail');
+      }
+    } catch (err) {
+      console.error('Error checking/finding/creating account:', err);
+      // Continue anyway, accountId will be null
     }
 
     if (!accountId) {
