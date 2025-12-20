@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 import jalaliday from 'jalaliday';
-import { db, isMySQL } from '../../database/db';
+import { db, isMySQL, tableExists } from '../../database/db';
 import { CustomerFilters, CustomerPayload } from './customer.types';
 
 dayjs.extend(jalaliday);
@@ -50,9 +50,14 @@ export const listCustomers = async (filters: CustomerFilters) => {
   const { tagIds, customerModels, search, category, status, type, createdById, dateFrom, dateTo, journey_stage, coach_id } = filters;
 
   // Check if tags tables exist, if not, use simpler query
-  const { tableExists } = await import('../../database/db');
-  const tagsTableExists = await tableExists('tags').catch(() => false);
-  const entityTagsTableExists = await tableExists('entity_tags').catch(() => false);
+  let tagsTableExists = false;
+  let entityTagsTableExists = false;
+  try {
+    tagsTableExists = await tableExists('tags');
+    entityTagsTableExists = await tableExists('entity_tags');
+  } catch (err) {
+    console.warn('Could not check tags tables existence, using simpler query');
+  }
   const useTags = tagsTableExists && entityTagsTableExists;
 
   // Use CONCAT for MySQL, || for SQLite
