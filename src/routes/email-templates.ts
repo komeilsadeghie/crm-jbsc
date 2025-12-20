@@ -30,9 +30,15 @@ router.get('/', authenticate, (req: AuthRequest, res: Response) => {
 
   db.all(query, params, (err, templates) => {
     if (err) {
+      console.error('Error fetching email templates:', err);
+      // If table doesn't exist, return empty array instead of error
+      if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+        console.warn('email_templates table does not exist yet, returning empty array');
+        return res.json([]);
+      }
       return res.status(500).json({ error: 'خطا در دریافت قالب‌ها' });
     }
-    res.json(templates);
+    res.json(Array.isArray(templates) ? templates : []);
   });
 });
 
@@ -70,7 +76,12 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
     ],
     function(err) {
       if (err) {
-        return res.status(500).json({ error: 'خطا در ثبت قالب' });
+        console.error('Error creating email template:', err);
+        // If table doesn't exist, return helpful error
+        if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+          return res.status(500).json({ error: 'جدول قالب‌های ایمیل وجود ندارد. لطفاً دیتابیس را migrate کنید.' });
+        }
+        return res.status(500).json({ error: 'خطا در ثبت قالب: ' + (err.message || 'خطای نامشخص') });
       }
       res.status(201).json({ id: this.lastID, message: 'قالب با موفقیت ثبت شد' });
     }
