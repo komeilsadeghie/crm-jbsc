@@ -26,6 +26,8 @@ import { migrateIndexesOptimization } from './database/migrate-indexes-optimizat
 import { migrateTagsTable } from './database/migrate-tags';
 import { migrateDealsTable } from './database/migrate-deals';
 import { migrateInteractionsTable } from './database/migrate-interactions';
+import { migrateTicketDepartmentsTable } from './database/migrate-ticket-departments';
+import { migrateNotificationsTable } from './database/migrate-notifications';
 
 // Load ENV
 dotenv.config();
