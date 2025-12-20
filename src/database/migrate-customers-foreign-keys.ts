@@ -1,4 +1,4 @@
-import { db } from './db';
+import { db, getForeignKeyListCallback } from './db';
 
 export const migrateCustomersForeignKeys = (): Promise<void> => {
   return new Promise((resolve, reject) => {
@@ -6,7 +6,7 @@ export const migrateCustomersForeignKeys = (): Promise<void> => {
       // SQLite doesn't support ALTER TABLE to modify foreign key constraints
       // We need to check if the table exists and if it needs migration
       
-      db.all(`PRAGMA foreign_key_list(customers)`, [], (err: any, fkList: any[]) => {
+      getForeignKeyListCallback('customers', (err: any, fkList: any[]) => {
         if (err) {
           // Table might not exist yet, that's OK
           console.log('✓ Customers table does not exist yet or foreign keys not enabled, skipping migration');

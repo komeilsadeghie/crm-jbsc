@@ -1,9 +1,9 @@
-import { db } from './db';
+import { db, getTableInfoCallback } from './db';
 
 // Migration script to add new columns to estimates table if they don't exist
 export const migrateEstimatesTable = (): Promise<void> => {
   return new Promise((resolve, reject) => {
-    db.all(`PRAGMA table_info(estimates)`, [], (err: any, info: any[]) => {
+    getTableInfoCallback('estimates', (err: any, info: any[]) => {
       if (err) {
         // Table might not exist yet, that's OK - initDatabase will create it
         console.log('⚠️  Estimates table not found, will be created by initDatabase');

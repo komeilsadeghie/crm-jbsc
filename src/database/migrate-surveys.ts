@@ -1,10 +1,10 @@
-import { db } from './db';
+import { db, getTableInfoCallback } from './db';
 
 export const migrateSurveysTable = (): Promise<void> => {
   return new Promise((resolve, reject) => {
     db.serialize(() => {
       // Check if surveys table exists
-      db.all(`PRAGMA table_info(surveys)`, [], (err: any, info: any[]) => {
+      getTableInfoCallback('surveys', (err: any, info: any[]) => {
         if (err || !info || info.length === 0) {
           // Create surveys table
           db.run(`
@@ -37,7 +37,7 @@ export const migrateSurveysTable = (): Promise<void> => {
       });
 
       // Check if survey_questions table exists
-      db.all(`PRAGMA table_info(survey_questions)`, [], (err: any, info: any[]) => {
+      getTableInfoCallback('survey_questions', (err: any, info: any[]) => {
         if (err || !info || info.length === 0) {
           // Create survey_questions table
           db.run(`
@@ -66,7 +66,7 @@ export const migrateSurveysTable = (): Promise<void> => {
       });
 
       // Check if survey_responses table exists
-      db.all(`PRAGMA table_info(survey_responses)`, [], (err: any, info: any[]) => {
+      getTableInfoCallback('survey_responses', (err: any, info: any[]) => {
         if (err || !info || info.length === 0) {
           // Create survey_responses table
           db.run(`

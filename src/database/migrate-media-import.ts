@@ -1,9 +1,9 @@
-import { db } from './db';
+import { db, getTableInfoCallback } from './db';
 
 export const migrateMediaImportFields = (): Promise<void> => {
   return new Promise((resolve, reject) => {
     // Add code, designer, and unique_id fields to customers table
-    db.all(`PRAGMA table_info(customers)`, [], (err: any, columns: any[]) => {
+    getTableInfoCallback('customers', (err: any, columns: any[]) => {
       if (err) {
         console.error('Error checking customers table:', err);
         reject(err);
@@ -164,7 +164,7 @@ const generateUniqueIdsForExistingCustomers = (): Promise<void> => {
 
 // Check and add settlements to projects
 const checkProjectsSettlements = (resolve: () => void, reject: (err: any) => void) => {
-  db.all(`PRAGMA table_info(projects)`, [], (err: any, projectColumns: any[]) => {
+  getTableInfoCallback('projects', (err: any, projectColumns: any[]) => {
     if (err) {
       console.error('Error checking projects table:', err);
       reject(err);

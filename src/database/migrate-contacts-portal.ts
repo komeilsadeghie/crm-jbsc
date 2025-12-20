@@ -1,9 +1,9 @@
-import { db } from './db';
+import { db, getTableInfoCallback } from './db';
 
 // Migration script to add portal fields to contacts table
 export const migrateContactsPortal = (): Promise<void> => {
   return new Promise((resolve, reject) => {
-    db.all(`PRAGMA table_info(contacts)`, [], (err: any, info: any[]) => {
+    getTableInfoCallback('contacts', (err: any, info: any[]) => {
       if (err) {
         console.log('⚠️  Contacts table not found, will be created by initDatabase');
         resolve();

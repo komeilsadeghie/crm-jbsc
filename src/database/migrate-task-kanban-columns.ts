@@ -1,10 +1,10 @@
-import { db } from './db';
+import { db, getTableInfoCallback } from './db';
 
 export const migrateTaskKanbanColumnsTable = (): Promise<void> => {
   return new Promise((resolve, reject) => {
     db.serialize(() => {
       // Check if task_kanban_columns table exists
-      db.all(`PRAGMA table_info(task_kanban_columns)`, [], (err: any, info: any[]) => {
+      getTableInfoCallback('task_kanban_columns', (err: any, info: any[]) => {
         if (err || !info || info.length === 0) {
           // Create task_kanban_columns table
           db.run(`

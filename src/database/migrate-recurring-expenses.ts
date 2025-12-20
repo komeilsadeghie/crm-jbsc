@@ -1,8 +1,8 @@
-import { db } from './db';
+import { db, getTableInfoCallback } from './db';
 
 export const migrateRecurringExpensesTable = (): Promise<void> => {
   return new Promise((resolve, reject) => {
-    db.all(`PRAGMA table_info(expenses)`, [], (err: any, info: any[]) => {
+    getTableInfoCallback('expenses', (err: any, info: any[]) => {
       if (err) {
         reject(err);
         return;

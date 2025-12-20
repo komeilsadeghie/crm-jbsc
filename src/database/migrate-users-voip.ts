@@ -1,8 +1,8 @@
-import { db } from './db';
+import { db, getTableInfoCallback } from './db';
 
 export const migrateUsersVoipExtension = (): Promise<void> => {
   return new Promise((resolve, reject) => {
-    db.all(`PRAGMA table_info(users)`, [], (err: any, info: any[]) => {
+    getTableInfoCallback('users', (err: any, info: any[]) => {
       if (err) {
         console.log('⚠️  Users table not found');
         resolve();

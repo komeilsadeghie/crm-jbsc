@@ -1,10 +1,10 @@
-import { db } from './db';
+import { db, getTableInfoCallback } from './db';
 
 export const migrateProjectPayments = (): Promise<void> => {
   return new Promise((resolve, reject) => {
     db.serialize(() => {
       // Check existing columns
-      db.all(`PRAGMA table_info(projects)`, [], (err: any, columns: any[]) => {
+      getTableInfoCallback('projects', (err: any, columns: any[]) => {
         if (err) {
           console.error('Error checking projects table:', err);
           reject(err);

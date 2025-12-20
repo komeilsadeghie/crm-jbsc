@@ -1,10 +1,10 @@
-import { db } from './db';
+import { db, getTableInfoCallback } from './db';
 
 export const migrateInvoicesTable = (): Promise<void> => {
   return new Promise((resolve, reject) => {
     db.serialize(() => {
       // Check if invoice_items table exists
-      db.all(`PRAGMA table_info(invoice_items)`, [], (err: any, info: any[]) => {
+      getTableInfoCallback('invoice_items', (err: any, info: any[]) => {
         if (err || !info || info.length === 0) {
           // Create invoice_items table
           db.run(`
@@ -36,7 +36,7 @@ export const migrateInvoicesTable = (): Promise<void> => {
       });
 
       // Check if recurring_invoices table exists
-      db.all(`PRAGMA table_info(recurring_invoices)`, [], (err: any, info: any[]) => {
+      getTableInfoCallback('recurring_invoices', (err: any, info: any[]) => {
         if (err || !info || info.length === 0) {
           // Create recurring_invoices table
           db.run(`
@@ -74,7 +74,7 @@ export const migrateInvoicesTable = (): Promise<void> => {
       });
 
       // Check if activity_log table exists
-      db.all(`PRAGMA table_info(activity_log)`, [], (err: any, info: any[]) => {
+      getTableInfoCallback('activity_log', (err: any, info: any[]) => {
         if (err || !info || info.length === 0) {
           // Create activity_log table
           db.run(`

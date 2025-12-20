@@ -1,10 +1,10 @@
-import { db } from './db';
+import { db, getTableInfoCallback } from './db';
 
 export const migratePaymentGatewaysTable = (): Promise<void> => {
   return new Promise((resolve, reject) => {
     db.serialize(() => {
       // Check if payment_gateways table exists
-      db.all(`PRAGMA table_info(payment_gateways)`, [], (err: any, info: any[]) => {
+      getTableInfoCallback('payment_gateways', (err: any, info: any[]) => {
         if (err || !info || info.length === 0) {
           // Create payment_gateways table
           db.run(`
@@ -36,7 +36,7 @@ export const migratePaymentGatewaysTable = (): Promise<void> => {
       });
 
       // Check if payment_transactions table exists
-      db.all(`PRAGMA table_info(payment_transactions)`, [], (err: any, info: any[]) => {
+      getTableInfoCallback('payment_transactions', (err: any, info: any[]) => {
         if (err || !info || info.length === 0) {
           // Create payment_transactions table
           db.run(`

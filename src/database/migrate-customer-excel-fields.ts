@@ -1,10 +1,10 @@
-import { db } from './db';
+import { db, getTableInfoCallback } from './db';
 
 export const migrateCustomerExcelFields = (): Promise<void> => {
   return new Promise((resolve, reject) => {
     db.serialize(() => {
       // Check existing columns in customers table
-      db.all(`PRAGMA table_info(customers)`, [], (err: any, columns: any[]) => {
+      getTableInfoCallback('customers', (err: any, columns: any[]) => {
         if (err) {
           console.error('Error checking customers table:', err);
           reject(err);
@@ -53,7 +53,7 @@ export const migrateCustomerExcelFields = (): Promise<void> => {
 
       const checkProjectsFields = () => {
         // Check projects table for settlement fields
-        db.all(`PRAGMA table_info(projects)`, [], (err: any, projectColumns: any[]) => {
+        getTableInfoCallback('projects', (err: any, projectColumns: any[]) => {
           if (err) {
             console.error('Error checking projects table:', err);
             reject(err);

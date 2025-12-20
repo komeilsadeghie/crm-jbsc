@@ -1,8 +1,8 @@
-import { db } from './db';
+import { db, getTableInfoCallback } from './db';
 
 export const migrateProposalsTable = (): Promise<void> => {
   return new Promise((resolve, reject) => {
-    db.all(`PRAGMA table_info(proposals)`, [], (err: any, info: any[]) => {
+    getTableInfoCallback('proposals', (err: any, info: any[]) => {
       if (err || !info || info.length === 0) {
         // Create proposals table
         db.run(`

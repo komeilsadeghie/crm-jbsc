@@ -223,6 +223,39 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
       console.warn('⚠️ Optional migrations not available or failed; continuing without them.', e);
     }
 
+    // Create default admin user if it doesn't exist
+    try {
+      const { dbGet, dbRun, isMySQL } = await import('./database/db');
+      const bcrypt = await import('bcryptjs');
+      
+      const existingAdmin = await dbGet(
+        'SELECT id FROM users WHERE username = ? OR email = ?',
+        ['admin', 'admin@crm.com']
+      );
+      
+      if (!existingAdmin) {
+        const hashedPassword = await bcrypt.default.hash('admin123', 10);
+        const insertQuery = isMySQL
+          ? `INSERT IGNORE INTO users (username, email, password, role, full_name) VALUES (?, ?, ?, ?, ?)`
+          : `INSERT OR IGNORE INTO users (username, email, password, role, full_name) VALUES (?, ?, ?, ?, ?)`;
+        
+        await dbRun(insertQuery, [
+          'admin',
+          'admin@crm.com',
+          hashedPassword,
+          'admin',
+          'مدیر سیستم'
+        ]);
+        
+        console.log('✅ Default admin user created: admin / admin123');
+      } else {
+        console.log('ℹ️  Admin user already exists');
+      }
+    } catch (adminError: any) {
+      console.warn('⚠️  Could not create admin user:', adminError.message);
+      // Don't fail the server startup if admin user creation fails
+    }
+
     console.log('✅ Database initialized successfully!');
   } catch (err) {
     console.error('❌ Database initialization error:', err);

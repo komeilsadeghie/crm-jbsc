@@ -17,6 +17,9 @@ export const isMySQL = !!databaseUrl && (
 );
 export const isSQLite = !isMySQL;
 
+// Export databaseUrl for debugging
+export const getDatabaseUrlValue = () => databaseUrl;
+
 // MySQL Connection Pool (if using MySQL)
 let mysqlPool: mysql.Pool | null = null;
 
@@ -415,6 +418,68 @@ export const tableExists = async (tableName: string): Promise<boolean> => {
     });
   }
   return false;
+};
+
+// Callback-based helper function to get table info (for migration files that use callbacks)
+export const getTableInfoCallback = (tableName: string, callback: (err: any, info: any[]) => void) => {
+  if (isMySQL && mysqlPool) {
+    mysqlPool.query(
+      `SELECT COLUMN_NAME as name, DATA_TYPE as type, COLUMN_DEFAULT as dflt_value, IS_NULLABLE as notnull 
+       FROM INFORMATION_SCHEMA.COLUMNS 
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?`,
+      [tableName]
+    )
+      .then(([rows]: any) => {
+        const mappedRows = rows.map((row: any) => ({
+          name: row.name,
+          type: row.type,
+          dflt_value: row.dflt_value,
+          notnull: row.notnull === 'NO' ? 1 : 0,
+        }));
+        callback(null, mappedRows);
+      })
+      .catch((err) => {
+        callback(err, []);
+      });
+  } else if (isSQLite && sqliteDb) {
+    sqliteDb.all(`PRAGMA table_info(${tableName})`, [], (err, rows) => {
+      if (err) callback(err, []);
+      else callback(null, rows || []);
+    });
+  } else {
+    callback(new Error('Database not initialized'), []);
+  }
+};
+
+// Callback-based helper function to get foreign key list (for migration files that use callbacks)
+export const getForeignKeyListCallback = (tableName: string, callback: (err: any, fkList: any[]) => void) => {
+  if (isMySQL && mysqlPool) {
+    mysqlPool.query(
+      `SELECT 
+        CONSTRAINT_NAME as id,
+        COLUMN_NAME as from,
+        REFERENCED_TABLE_NAME as 'table',
+        REFERENCED_COLUMN_NAME as 'to'
+       FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+       WHERE TABLE_SCHEMA = DATABASE() 
+         AND TABLE_NAME = ?
+         AND REFERENCED_TABLE_NAME IS NOT NULL`,
+      [tableName]
+    )
+      .then(([rows]: any) => {
+        callback(null, rows || []);
+      })
+      .catch((err) => {
+        callback(err, []);
+      });
+  } else if (isSQLite && sqliteDb) {
+    sqliteDb.all(`PRAGMA foreign_key_list(${tableName})`, [], (err, rows) => {
+      if (err) callback(err, []);
+      else callback(null, rows || []);
+    });
+  } else {
+    callback(new Error('Database not initialized'), []);
+  }
 };
 
 // Helper functions for Promise-based operations (used throughout the codebase)
