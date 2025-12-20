@@ -11,10 +11,54 @@ router.get('/categories', (req: AuthRequest, res: Response) => {
     ORDER BY position, name
   `, [], (err, categories) => {
     if (err) {
+      console.error('Error fetching kb categories:', err);
+      // If table doesn't exist, return empty array instead of error
+      if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+        console.warn('kb_categories table does not exist yet, returning empty array');
+        return res.json([]);
+      }
       return res.status(500).json({ error: 'خطا در دریافت دسته‌بندی‌ها' });
     }
-    res.json(categories);
+    res.json(Array.isArray(categories) ? categories : []);
   });
+});
+
+// Create category (admin only)
+router.post('/categories', authenticate, (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ error: 'فقط مدیر سیستم می‌تواند دسته‌بندی ایجاد کند' });
+  }
+
+  const { name, description, icon, color, position } = req.body;
+
+  if (!name || name.trim() === '') {
+    return res.status(400).json({ error: 'نام دسته‌بندی الزامی است' });
+  }
+
+  db.run(
+    `INSERT INTO kb_categories (name, description, icon, color, position) VALUES (?, ?, ?, ?, ?)`,
+    [
+      name.trim(),
+      description || null,
+      icon || null,
+      color || '#3B82F6',
+      position || 0
+    ],
+    function(err) {
+      if (err) {
+        console.error('Error creating kb category:', err);
+        // If table doesn't exist, return helpful error
+        if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+          return res.status(500).json({ error: 'جدول دسته‌بندی‌ها وجود ندارد. لطفاً دیتابیس را migrate کنید.' });
+        }
+        if (err.message?.includes('UNIQUE constraint') || err.message?.includes('Duplicate entry')) {
+          return res.status(400).json({ error: 'دسته‌بندی با این نام قبلاً وجود دارد' });
+        }
+        return res.status(500).json({ error: 'خطا در ثبت دسته‌بندی: ' + (err.message || 'خطای نامشخص') });
+      }
+      res.status(201).json({ id: this.lastID, message: 'دسته‌بندی با موفقیت ثبت شد' });
+    }
+  );
 });
 
 // Get articles
@@ -110,7 +154,12 @@ router.post('/articles', authenticate, (req: AuthRequest, res: Response) => {
     ],
     function(err) {
       if (err) {
-        return res.status(500).json({ error: 'خطا در ثبت مقاله' });
+        console.error('Error creating kb article:', err);
+        // If table doesn't exist, return helpful error
+        if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+          return res.status(500).json({ error: 'جدول مقالات وجود ندارد. لطفاً دیتابیس را migrate کنید.' });
+        }
+        return res.status(500).json({ error: 'خطا در ثبت مقاله: ' + (err.message || 'خطای نامشخص') });
       }
       res.status(201).json({ id: this.lastID, message: 'مقاله با موفقیت ثبت شد' });
     }
