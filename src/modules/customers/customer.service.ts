@@ -135,18 +135,21 @@ export const listCustomers = async (filters: CustomerFilters) => {
     // Parse tags data
     return customers.map((customer: any) => {
       let tags = [];
-      if (customer.tags_data) {
+      if (customer.tags_data && customer.tags_data !== null && customer.tags_data !== '') {
         try {
-          tags = customer.tags_data.split(',').map((tagStr: string) => {
-            const parts = tagStr.split(':');
+          const tagStrings = String(customer.tags_data).split(',');
+          tags = tagStrings.map((tagStr: string) => {
+            const trimmed = tagStr.trim();
+            if (!trimmed) return null;
+            const parts = trimmed.split(':');
             if (parts.length >= 3) {
               const [id, name, color] = parts;
-              return { id, name, color, tag: { id, name, color } };
+              return { id: id.trim(), name: name.trim(), color: color.trim(), tag: { id: id.trim(), name: name.trim(), color: color.trim() } };
             }
             return null;
           }).filter(Boolean);
         } catch (err) {
-          console.error('Error parsing tags_data:', err);
+          console.error('Error parsing tags_data:', err, 'tags_data:', customer.tags_data);
           tags = [];
         }
       }
@@ -158,6 +161,8 @@ export const listCustomers = async (filters: CustomerFilters) => {
     });
   } catch (error: any) {
     console.error('Error in listCustomers:', error);
+    console.error('Query:', query);
+    console.error('Params:', params);
     throw error;
   }
 };

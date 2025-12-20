@@ -79,9 +79,12 @@ router.get('/', authenticate, (req: AuthRequest, res: Response) => {
 
   db.all(query, params, (err, tasks) => {
     if (err) {
+      console.error('Error fetching tasks:', err);
+      console.error('Query:', query);
+      console.error('Params:', params);
       return res.status(500).json({ error: 'خطا در دریافت تسک‌ها' });
     }
-    res.json(tasks);
+    res.json(Array.isArray(tasks) ? tasks : []);
   });
 });
 
