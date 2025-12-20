@@ -157,8 +157,8 @@ router.post('/upload-logo', authenticate, upload.single('logo'), async (req: Aut
     await dbRun(
       `INSERT INTO settings (\`key\`, value, updated_at) 
        VALUES (?, ?, CURRENT_TIMESTAMP) 
-       ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = CURRENT_TIMESTAMP`,
-      [`logo_${logoType}`, logoPath]
+       ON DUPLICATE KEY UPDATE value = ?, updated_at = CURRENT_TIMESTAMP`,
+      [`logo_${logoType}`, logoPath, logoPath]
     );
 
     res.json({ 

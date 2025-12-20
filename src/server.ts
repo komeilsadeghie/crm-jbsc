@@ -103,13 +103,6 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
     console.log('🛠 Initializing database tables...');
     await initDatabase();
 
-    console.log('🔄 Migrating accounts table...');
-    try {
-      await migrateAccountsTable();
-    } catch (e: any) {
-      console.warn('⚠️ migrateAccountsTable failed:', e.message);
-    }
-
     console.log('🔄 Migrating settings table...');
     try {
       await migrateSettingsTable();
