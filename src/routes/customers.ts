@@ -157,8 +157,16 @@ router.post('/bulk-delete', authenticate, async (req: AuthRequest, res: Response
       }
     }
 
-    // Delete interactions
-    await dbRun(`DELETE FROM interactions WHERE customer_id IN (${placeholders})`, ids);
+    // Delete interactions (only if table exists)
+    try {
+      const { tableExists } = await import('../database/db');
+      const interactionsTableExists = await tableExists('interactions').catch(() => false);
+      if (interactionsTableExists) {
+        await dbRun(`DELETE FROM interactions WHERE customer_id IN (${placeholders})`, ids);
+      }
+    } catch (err) {
+      console.warn('Could not delete interactions for customers, continuing anyway:', err);
+    }
 
     // Delete related leads
     const leadNameExpr = isMySQL 
@@ -472,8 +480,16 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
       await dbRun(`DELETE FROM accounts WHERE id IN (${accountPlaceholders})`, accountIds);
     }
 
-    // Delete interactions
-    await dbRun('DELETE FROM interactions WHERE customer_id = ?', [id]);
+    // Delete interactions (only if table exists)
+    try {
+      const { tableExists } = await import('../database/db');
+      const interactionsTableExists = await tableExists('interactions').catch(() => false);
+      if (interactionsTableExists) {
+        await dbRun('DELETE FROM interactions WHERE customer_id = ?', [id]);
+      }
+    } catch (err) {
+      console.warn('Could not delete interactions for customer, continuing anyway:', err);
+    }
 
     // Delete leads that might be related (by name or company)
     const leadNameExpr = isMySQL 
