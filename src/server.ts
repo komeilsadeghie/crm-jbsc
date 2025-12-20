@@ -102,37 +102,81 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
     await initDatabase();
 
     console.log('🔄 Migrating estimates table...');
-    await migrateEstimatesTable();
+    try {
+      await migrateEstimatesTable();
+    } catch (e: any) {
+      console.warn('⚠️ migrateEstimatesTable failed:', e.message);
+    }
 
     console.log('🔄 Migrating contacts table...');
-    await migrateContactsPortal();
+    try {
+      await migrateContactsPortal();
+    } catch (e: any) {
+      console.warn('⚠️ migrateContactsPortal failed:', e.message);
+    }
 
     console.log('🔄 Migrating tasks table...');
-    await migrateTasksTable();
+    try {
+      await migrateTasksTable();
+    } catch (e: any) {
+      console.warn('⚠️ migrateTasksTable failed:', e.message);
+    }
 
     console.log('🔄 Migrating contracts table...');
-    await migrateContractsTable();
+    try {
+      await migrateContractsTable();
+    } catch (e: any) {
+      console.warn('⚠️ migrateContractsTable failed:', e.message);
+    }
 
     console.log('🔄 Migrating users table...');
-    await migrateUsersTable();
+    try {
+      await migrateUsersTable();
+    } catch (e: any) {
+      console.warn('⚠️ migrateUsersTable failed:', e.message);
+    }
 
     console.log('🔄 Migrating invoices table...');
-    await migrateInvoicesTable();
+    try {
+      await migrateInvoicesTable();
+    } catch (e: any) {
+      console.warn('⚠️ migrateInvoicesTable failed:', e.message);
+    }
 
     console.log('🔄 Migrating expenses table...');
-    await migrateRecurringExpensesTable();
+    try {
+      await migrateRecurringExpensesTable();
+    } catch (e: any) {
+      console.warn('⚠️ migrateRecurringExpensesTable failed:', e.message);
+    }
 
     console.log('🔄 Migrating proposals table...');
-    await migrateProposalsTable();
+    try {
+      await migrateProposalsTable();
+    } catch (e: any) {
+      console.warn('⚠️ migrateProposalsTable failed:', e.message);
+    }
 
     console.log('🔄 Migrating tasks enhanced features...');
-    await migrateTasksEnhancedTable();
+    try {
+      await migrateTasksEnhancedTable();
+    } catch (e: any) {
+      console.warn('⚠️ migrateTasksEnhancedTable failed:', e.message);
+    }
 
     console.log('🔄 Migrating payment gateways...');
-    await migratePaymentGatewaysTable();
+    try {
+      await migratePaymentGatewaysTable();
+    } catch (e: any) {
+      console.warn('⚠️ migratePaymentGatewaysTable failed:', e.message);
+    }
 
     console.log('🔄 Migrating surveys...');
-    await migrateSurveysTable();
+    try {
+      await migrateSurveysTable();
+    } catch (e: any) {
+      console.warn('⚠️ migrateSurveysTable failed:', e.message);
+    }
 
     console.log('🔄 Migrating media import fields (code, designer, settlements)...');
     try {
