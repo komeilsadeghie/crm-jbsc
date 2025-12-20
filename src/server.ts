@@ -25,6 +25,7 @@ import { migrateCustomFieldsTable } from './database/migrate-custom-fields';
 import { migrateIndexesOptimization } from './database/migrate-indexes-optimization';
 import { migrateTagsTable } from './database/migrate-tags';
 import { migrateDealsTable } from './database/migrate-deals';
+import { migrateInteractionsTable } from './database/migrate-interactions';
 
 // Load ENV
 dotenv.config();
