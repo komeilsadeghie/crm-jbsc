@@ -163,6 +163,11 @@ export const listCustomers = async (filters: CustomerFilters) => {
     console.error('Error in listCustomers:', error);
     console.error('Query:', query);
     console.error('Params:', params);
+    // If table doesn't exist, return empty array instead of throwing
+    if (error.code === 'ER_NO_SUCH_TABLE' || error.message?.includes("doesn't exist")) {
+      console.warn('Customers or related tables do not exist yet, returning empty array');
+      return [];
+    }
     throw error;
   }
 };
