@@ -1,4 +1,4 @@
-import { db, getForeignKeyListCallback } from './db';
+import { db, getForeignKeyListCallback, convertSQLiteToMySQL } from './db';
 
 export const migrateCustomersForeignKeys = (): Promise<void> => {
   return new Promise((resolve, reject) => {
@@ -25,27 +25,28 @@ export const migrateCustomersForeignKeys = (): Promise<void> => {
         console.log('🔄 Migrating customers table foreign keys...');
         
         // Step 1: Create new table with updated foreign keys
-        db.run(`
+        const createCustomersNewSQL = convertSQLiteToMySQL(`
           CREATE TABLE IF NOT EXISTS customers_new (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            type TEXT NOT NULL CHECK(type IN ('company', 'individual', 'export', 'import', 'coaching')),
-            email TEXT,
-            phone TEXT,
-            company_name TEXT,
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            type VARCHAR(50) NOT NULL,
+            email VARCHAR(255),
+            phone VARCHAR(50),
+            company_name VARCHAR(255),
             address TEXT,
-            website TEXT,
-            score INTEGER DEFAULT 0,
-            status TEXT DEFAULT 'active' CHECK(status IN ('active', 'inactive', 'lead', 'customer', 'partner')),
-            category TEXT,
+            website VARCHAR(255),
+            score INT DEFAULT 0,
+            status VARCHAR(50) DEFAULT 'active',
+            category VARCHAR(255),
             notes TEXT,
-            customer_model INTEGER,
-            created_by INTEGER,
+            customer_model INT,
+            created_by INT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
           )
-        `, (err: any) => {
+        `);
+        
+        db.run(createCustomersNewSQL, (err: any) => {
           if (err) {
             console.error('Error creating new customers table:', err);
             reject(err);
@@ -53,10 +54,12 @@ export const migrateCustomersForeignKeys = (): Promise<void> => {
           }
 
           // Step 2: Copy data from old table to new table
-          db.run(`
+          const copyDataSQL = convertSQLiteToMySQL(`
             INSERT INTO customers_new 
             SELECT * FROM customers
-          `, (err: any) => {
+          `);
+          
+          db.run(copyDataSQL, (err: any) => {
             if (err) {
               console.error('Error copying data:', err);
               // If table doesn't exist or is empty, that's OK
@@ -78,7 +81,8 @@ export const migrateCustomersForeignKeys = (): Promise<void> => {
               }
 
               // Step 4: Rename new table to original name
-              db.run('ALTER TABLE customers_new RENAME TO customers', (err: any) => {
+              const renameTableSQL = convertSQLiteToMySQL('ALTER TABLE customers_new RENAME TO customers');
+              db.run(renameTableSQL, (err: any) => {
                 if (err) {
                   console.error('Error renaming table:', err);
                   reject(err);

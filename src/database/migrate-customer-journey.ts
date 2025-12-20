@@ -1,17 +1,21 @@
-import { db } from './db';
+import { db, convertSQLiteToMySQL } from './db';
 
 export const migrateCustomerJourney = () => {
   return new Promise<void>((resolve, reject) => {
     db.serialize(() => {
       // Add customer journey stage to customers table
-      db.run(`
+      const alterJourneyStageSQL = convertSQLiteToMySQL(`
         ALTER TABLE customers 
-        ADD COLUMN journey_stage TEXT DEFAULT 'code_executed'
-      `, (err) => {
-        if (err && !err.message.includes('duplicate column name')) {
+        ADD COLUMN journey_stage VARCHAR(50)
+      `);
+      
+      db.run(alterJourneyStageSQL, (err) => {
+        if (err && !err.message.includes('duplicate column name') && !err.message.includes('Duplicate column name')) {
           console.error('Error adding journey_stage column:', err);
         } else if (!err) {
           console.log('✅ Added journey_stage column to customers');
+          // Set default value for existing rows
+          db.run(`UPDATE customers SET journey_stage = 'code_executed' WHERE journey_stage IS NULL`, () => {});
         }
       });
 
@@ -41,14 +45,18 @@ export const migrateCustomerJourney = () => {
       });
 
       // Add kanban column to coaching_sessions
-      db.run(`
+      const alterKanbanColumnSQL = convertSQLiteToMySQL(`
         ALTER TABLE coaching_sessions 
-        ADD COLUMN kanban_column TEXT DEFAULT 'scheduled'
-      `, (err) => {
-        if (err && !err.message.includes('duplicate column name')) {
+        ADD COLUMN kanban_column VARCHAR(50)
+      `);
+      
+      db.run(alterKanbanColumnSQL, (err) => {
+        if (err && !err.message.includes('duplicate column name') && !err.message.includes('Duplicate column name')) {
           console.error('Error adding kanban_column column:', err);
         } else if (!err) {
           console.log('✅ Added kanban_column to coaching_sessions');
+          // Set default value for existing rows
+          db.run(`UPDATE coaching_sessions SET kanban_column = 'scheduled' WHERE kanban_column IS NULL`, () => {});
         }
       });
 

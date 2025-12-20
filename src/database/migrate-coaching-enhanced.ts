@@ -106,22 +106,22 @@ export const migrateCoachingEnhanced = async (): Promise<void> => {
       });
 
       // Create coaching_programs table
-      db.run(`
+      const createCoachingProgramsSQL = convertSQLiteToMySQL(`
         CREATE TABLE IF NOT EXISTS coaching_programs (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          customer_id INTEGER NOT NULL,
-          title TEXT NOT NULL,
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          customer_id INT NOT NULL,
+          title VARCHAR(255) NOT NULL,
           description TEXT,
           start_date DATE NOT NULL,
           end_date DATE,
-          status TEXT DEFAULT 'active' CHECK(status IN ('active', 'completed', 'cancelled', 'on_hold')),
-          coach_id INTEGER NOT NULL,
+          status VARCHAR(50) DEFAULT 'active',
+          coach_id INT NOT NULL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
-          FOREIGN KEY (coach_id) REFERENCES users(id)
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
-      `, (err) => {
+      `);
+      
+      db.run(createCoachingProgramsSQL, (err) => {
         if (err && !err.message.includes('already exists')) {
           console.error('Error creating coaching_programs table:', err);
         } else if (!err) {

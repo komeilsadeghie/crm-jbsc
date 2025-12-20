@@ -1,4 +1,4 @@
-import { db } from './db';
+import { db, convertSQLiteToMySQL } from './db';
 
 export const migrateLeadsForeignKeys = (): Promise<void> => {
   return new Promise((resolve, reject) => {
@@ -7,33 +7,33 @@ export const migrateLeadsForeignKeys = (): Promise<void> => {
       // We need to recreate the table with the new constraints
       
       // Step 1: Create new table with updated foreign keys
-      db.run(`
+      const createLeadsNewSQL = convertSQLiteToMySQL(`
         CREATE TABLE IF NOT EXISTS leads_new (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          first_name TEXT NOT NULL,
-          last_name TEXT,
-          email TEXT,
-          phone TEXT,
-          whatsapp TEXT,
-          company_name TEXT,
-          source TEXT,
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          first_name VARCHAR(255) NOT NULL,
+          last_name VARCHAR(255),
+          email VARCHAR(255),
+          phone VARCHAR(50),
+          whatsapp VARCHAR(50),
+          company_name VARCHAR(255),
+          source VARCHAR(100),
           tags TEXT,
-          lead_score INTEGER DEFAULT 0,
-          status TEXT DEFAULT 'new' CHECK(status IN ('new', 'contacted', 'qualified', 'disqualified', 'converted')),
-          kanban_stage TEXT DEFAULT 'new',
-          position INTEGER DEFAULT 0,
-          industry TEXT,
-          budget_range TEXT,
-          decision_maker_role TEXT,
+          lead_score INT DEFAULT 0,
+          status VARCHAR(50) DEFAULT 'new',
+          kanban_stage VARCHAR(50) DEFAULT 'new',
+          position INT DEFAULT 0,
+          industry VARCHAR(100),
+          budget_range VARCHAR(100),
+          decision_maker_role VARCHAR(100),
           notes TEXT,
-          assigned_to INTEGER,
-          created_by INTEGER,
+          assigned_to INT,
+          created_by INT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL,
-          FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
-      `, (err: any) => {
+      `);
+      
+      db.run(createLeadsNewSQL, (err: any) => {
         if (err) {
           console.error('Error creating new leads table:', err);
           reject(err);
@@ -41,10 +41,12 @@ export const migrateLeadsForeignKeys = (): Promise<void> => {
         }
 
         // Step 2: Copy data from old table to new table
-        db.run(`
+        const copyDataSQL = convertSQLiteToMySQL(`
           INSERT INTO leads_new 
           SELECT * FROM leads
-        `, (err: any) => {
+        `);
+        
+        db.run(copyDataSQL, (err: any) => {
           if (err) {
             console.error('Error copying data:', err);
             // If table doesn't exist or is empty, that's OK
@@ -64,7 +66,8 @@ export const migrateLeadsForeignKeys = (): Promise<void> => {
             }
 
             // Step 4: Rename new table to original name
-            db.run('ALTER TABLE leads_new RENAME TO leads', (err: any) => {
+            const renameTableSQL = convertSQLiteToMySQL('ALTER TABLE leads_new RENAME TO leads');
+            db.run(renameTableSQL, (err: any) => {
               if (err) {
                 console.error('Error renaming table:', err);
                 reject(err);

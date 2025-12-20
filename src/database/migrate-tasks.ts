@@ -77,7 +77,7 @@ export const migrateTasksTable = () => {
 
         // Add kanban_column if it doesn't exist
         if (!columnNames.includes('kanban_column')) {
-          migrations.push('ALTER TABLE tasks ADD COLUMN kanban_column TEXT DEFAULT \'todo\'');
+          migrations.push('ALTER TABLE tasks ADD COLUMN kanban_column VARCHAR(50)');
         }
 
         // Add recurrence_pattern if it doesn't exist
@@ -115,6 +115,10 @@ export const migrateTasksTable = () => {
             completed++;
             if (completed === migrations.length) {
               console.log('✅ Tasks table migration completed');
+              // Set default value for kanban_column if it was just added
+              if (migrations.some(m => m.includes('kanban_column'))) {
+                db.run(`UPDATE tasks SET kanban_column = 'todo' WHERE kanban_column IS NULL`, () => {});
+              }
               resolve();
             }
           });
