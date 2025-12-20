@@ -40,6 +40,19 @@ export const migrateCoachingEnhanced = async (): Promise<void> => {
         addColumnsToCoachingSessions();
       });
 
+      // Helper function to check if error is about duplicate column
+      const isDuplicateColumnError = (err: any): boolean => {
+        if (!err) return false;
+        return (
+          err.code === 'ER_DUP_FIELDNAME' ||
+          err.errno === 1060 ||
+          err.message?.toLowerCase().includes('duplicate column name') ||
+          err.message?.toLowerCase().includes('duplicate column') ||
+          err.sqlMessage?.toLowerCase().includes('duplicate column name') ||
+          err.sqlMessage?.toLowerCase().includes('duplicate column')
+        );
+      };
+
       // Helper function to add columns to coaching_sessions
       const addColumnsToCoachingSessions = () => {
         // Add new fields to coaching_sessions
@@ -47,10 +60,12 @@ export const migrateCoachingEnhanced = async (): Promise<void> => {
           ALTER TABLE coaching_sessions 
           ADD COLUMN session_type TEXT CHECK(session_type IN ('online', 'in_person'))
         `, (err) => {
-          if (err && !err.message.includes('duplicate column name') && !err.message.includes('Duplicate column name')) {
+          if (err && !isDuplicateColumnError(err)) {
             console.error('Error adding session_type to coaching_sessions:', err);
           } else if (!err) {
             console.log('✅ Added session_type to coaching_sessions');
+          } else {
+            console.log('ℹ️  Column session_type already exists');
           }
         });
 
@@ -58,10 +73,12 @@ export const migrateCoachingEnhanced = async (): Promise<void> => {
           ALTER TABLE coaching_sessions 
           ADD COLUMN meeting_link TEXT
         `, (err) => {
-          if (err && !err.message.includes('duplicate column name') && !err.message.includes('Duplicate column name')) {
+          if (err && !isDuplicateColumnError(err)) {
             console.error('Error adding meeting_link to coaching_sessions:', err);
           } else if (!err) {
             console.log('✅ Added meeting_link to coaching_sessions');
+          } else {
+            console.log('ℹ️  Column meeting_link already exists');
           }
         });
 
@@ -69,10 +86,12 @@ export const migrateCoachingEnhanced = async (): Promise<void> => {
           ALTER TABLE coaching_sessions 
           ADD COLUMN attendance TEXT CHECK(attendance IN ('attended', 'absent', 'late'))
         `, (err) => {
-          if (err && !err.message.includes('duplicate column name') && !err.message.includes('Duplicate column name')) {
+          if (err && !isDuplicateColumnError(err)) {
             console.error('Error adding attendance to coaching_sessions:', err);
           } else if (!err) {
             console.log('✅ Added attendance to coaching_sessions');
+          } else {
+            console.log('ℹ️  Column attendance already exists');
           }
         });
 
@@ -80,10 +99,12 @@ export const migrateCoachingEnhanced = async (): Promise<void> => {
           ALTER TABLE coaching_sessions 
           ADD COLUMN rating INTEGER CHECK(rating >= 1 AND rating <= 5)
         `, (err) => {
-          if (err && !err.message.includes('duplicate column name') && !err.message.includes('Duplicate column name')) {
+          if (err && !isDuplicateColumnError(err)) {
             console.error('Error adding rating to coaching_sessions:', err);
           } else if (!err) {
             console.log('✅ Added rating to coaching_sessions');
+          } else {
+            console.log('ℹ️  Column rating already exists');
           }
         });
 
@@ -91,10 +112,12 @@ export const migrateCoachingEnhanced = async (): Promise<void> => {
           ALTER TABLE coaching_sessions 
           ADD COLUMN tags TEXT
         `, (err) => {
-          if (err && !err.message.includes('duplicate column name') && !err.message.includes('Duplicate column name')) {
+          if (err && !isDuplicateColumnError(err)) {
             console.error('Error adding tags to coaching_sessions:', err);
           } else if (!err) {
             console.log('✅ Added tags to coaching_sessions');
+          } else {
+            console.log('ℹ️  Column tags already exists');
           }
         });
 
@@ -102,10 +125,12 @@ export const migrateCoachingEnhanced = async (): Promise<void> => {
           ALTER TABLE coaching_sessions 
           ADD COLUMN color TEXT
         `, (err) => {
-          if (err && !err.message.includes('duplicate column name') && !err.message.includes('Duplicate column name')) {
+          if (err && !isDuplicateColumnError(err)) {
             console.error('Error adding color to coaching_sessions:', err);
           } else if (!err) {
             console.log('✅ Added color to coaching_sessions');
+          } else {
+            console.log('ℹ️  Column color already exists');
           }
         });
 
@@ -114,10 +139,12 @@ export const migrateCoachingEnhanced = async (): Promise<void> => {
           ALTER TABLE coaching_sessions 
           ADD COLUMN reminder_sent INTEGER DEFAULT 0
         `, (err) => {
-          if (err && !err.message.includes('duplicate column name') && !err.message.includes('Duplicate column name')) {
+          if (err && !isDuplicateColumnError(err)) {
             console.error('Error adding reminder_sent to coaching_sessions:', err);
           } else if (!err) {
             console.log('✅ Added reminder_sent to coaching_sessions');
+          } else {
+            console.log('ℹ️  Column reminder_sent already exists');
           }
         });
 
@@ -126,10 +153,12 @@ export const migrateCoachingEnhanced = async (): Promise<void> => {
           ALTER TABLE exercises 
           ADD COLUMN reminder_sent INTEGER DEFAULT 0
         `, (err) => {
-          if (err && !err.message.includes('duplicate column name') && !err.message.includes('Duplicate column name') && !err.message.includes("doesn't exist")) {
+          if (err && !isDuplicateColumnError(err) && !err.message?.includes("doesn't exist") && err.code !== 'ER_NO_SUCH_TABLE') {
             console.error('Error adding reminder_sent to exercises:', err);
           } else if (!err) {
             console.log('✅ Added reminder_sent to exercises');
+          } else if (isDuplicateColumnError(err)) {
+            console.log('ℹ️  Column reminder_sent already exists in exercises');
           }
         });
 
@@ -137,10 +166,12 @@ export const migrateCoachingEnhanced = async (): Promise<void> => {
           ALTER TABLE exercises 
           ADD COLUMN tags TEXT
         `, (err) => {
-          if (err && !err.message.includes('duplicate column name') && !err.message.includes('Duplicate column name') && !err.message.includes("doesn't exist")) {
+          if (err && !isDuplicateColumnError(err) && !err.message?.includes("doesn't exist") && err.code !== 'ER_NO_SUCH_TABLE') {
             console.error('Error adding tags to exercises:', err);
           } else if (!err) {
             console.log('✅ Added tags to exercises');
+          } else if (isDuplicateColumnError(err)) {
+            console.log('ℹ️  Column tags already exists in exercises');
           }
         });
 
