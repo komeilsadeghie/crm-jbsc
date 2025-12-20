@@ -21,7 +21,7 @@ export const isSQLite = !isMySQL;
 export const getDatabaseUrlValue = () => databaseUrl;
 
 // MySQL Connection Pool (if using MySQL)
-let mysqlPool: mysql.Pool | null = null;
+export let mysqlPool: mysql.Pool | null = null;
 
 // Export function to check if database is ready
 export const isDatabaseReady = (): boolean => {
@@ -102,7 +102,7 @@ if (isMySQL && databaseUrl) {
 }
 
 // SQLite Database (if using SQLite)
-let sqliteDb: sqlite3.Database | null = null;
+export let sqliteDb: sqlite3.Database | null = null;
 
 if (isSQLite) {
 // Get the correct database path
