@@ -409,10 +409,11 @@ router.post('/:id/convert-to-project', authenticate, async (req: AuthRequest, re
       ]
     );
 
-    const projectId = projectResult.lastID;
+    const projectId = projectResult.lastID || (projectResult as any).insertId;
 
     if (!projectId) {
-      return res.status(500).json({ error: 'خطا در ایجاد پروژه' });
+      console.error('Failed to get project ID from insert result:', projectResult);
+      return res.status(500).json({ error: 'خطا در ایجاد پروژه: نتوانست ID پروژه را دریافت کند' });
     }
 
     res.status(201).json({
