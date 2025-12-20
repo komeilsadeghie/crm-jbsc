@@ -1,10 +1,10 @@
-import { db } from './db';
+import { db, getTableInfoCallback } from './db';
 
 export const migratePdfTemplatesTable = (): Promise<void> => {
   return new Promise((resolve, reject) => {
     db.serialize(() => {
       // Check if pdf_templates table exists
-      db.all(`PRAGMA table_info(pdf_templates)`, [], (err: any, info: any[]) => {
+      getTableInfoCallback('pdf_templates', (err: any, info: any[]) => {
         if (err || !info || info.length === 0) {
           // Create pdf_templates table
           db.run(`

@@ -22,8 +22,8 @@ export const migrateUsersTable = async (): Promise<void> => {
       { name: 'linkedin', type: 'TEXT' },
       { name: 'skype', type: 'TEXT' },
       { name: 'email_signature', type: 'TEXT' },
-      { name: 'default_language', type: 'TEXT DEFAULT "fa"' },
-      { name: 'direction', type: 'TEXT DEFAULT "rtl"' },
+      { name: 'default_language', type: 'VARCHAR(10)' },
+      { name: 'direction', type: 'VARCHAR(10)' },
       { name: 'is_admin', type: 'INTEGER DEFAULT 0' },
       { name: 'is_staff', type: 'INTEGER DEFAULT 1' },
       { name: 'avatar_url', type: 'TEXT' },
@@ -39,6 +39,21 @@ export const migrateUsersTable = async (): Promise<void> => {
         try {
           await dbRun(`ALTER TABLE users ADD COLUMN ${column.name} ${column.type}`);
           console.log(`✅ Added column: ${column.name}`);
+          
+          // Set default values for default_language and direction after adding column
+          if (column.name === 'default_language') {
+            try {
+              await dbRun(`UPDATE users SET default_language = 'fa' WHERE default_language IS NULL`);
+            } catch (updateErr: any) {
+              // Ignore update errors
+            }
+          } else if (column.name === 'direction') {
+            try {
+              await dbRun(`UPDATE users SET direction = 'rtl' WHERE direction IS NULL`);
+            } catch (updateErr: any) {
+              // Ignore update errors
+            }
+          }
         } catch (alterErr: any) {
           console.log(`⚠️  Could not add column ${column.name}:`, alterErr.message);
         }
@@ -58,9 +73,9 @@ async function createPermissionsTables(): Promise<void> {
     try {
       await dbRun(`
         CREATE TABLE IF NOT EXISTS permissions (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          module TEXT NOT NULL,
-          capability TEXT NOT NULL,
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          module VARCHAR(100) NOT NULL,
+          capability VARCHAR(100) NOT NULL,
           description TEXT,
           UNIQUE(module, capability)
         )
@@ -74,12 +89,10 @@ async function createPermissionsTables(): Promise<void> {
     try {
       await dbRun(`
         CREATE TABLE IF NOT EXISTS user_permissions (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          user_id INTEGER NOT NULL,
-          permission_id INTEGER NOT NULL,
-          granted INTEGER DEFAULT 1,
-          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-          FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE,
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          user_id INT NOT NULL,
+          permission_id INT NOT NULL,
+          granted INT DEFAULT 1,
           UNIQUE(user_id, permission_id)
         )
       `);
@@ -92,11 +105,9 @@ async function createPermissionsTables(): Promise<void> {
     try {
       await dbRun(`
         CREATE TABLE IF NOT EXISTS user_departments (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          user_id INTEGER NOT NULL,
-          department_id INTEGER NOT NULL,
-          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-          FOREIGN KEY (department_id) REFERENCES ticket_departments(id) ON DELETE CASCADE,
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          user_id INT NOT NULL,
+          department_id INT NOT NULL,
           UNIQUE(user_id, department_id)
         )
       `);

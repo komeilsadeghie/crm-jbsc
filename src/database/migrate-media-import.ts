@@ -1,9 +1,9 @@
-import { db } from './db';
+import { db, getTableInfoCallback, isMySQL, convertSQLiteToMySQL } from './db';
 
 export const migrateMediaImportFields = (): Promise<void> => {
   return new Promise((resolve, reject) => {
     // Add code, designer, and unique_id fields to customers table
-    db.all(`PRAGMA table_info(customers)`, [], (err: any, columns: any[]) => {
+    getTableInfoCallback('customers', (err: any, columns: any[]) => {
       if (err) {
         console.error('Error checking customers table:', err);
         reject(err);
@@ -164,20 +164,65 @@ const generateUniqueIdsForExistingCustomers = (): Promise<void> => {
 
 // Check and add settlements to projects
 const checkProjectsSettlements = (resolve: () => void, reject: (err: any) => void) => {
-  db.all(`PRAGMA table_info(projects)`, [], (err: any, projectColumns: any[]) => {
-    if (err) {
-      console.error('Error checking projects table:', err);
-      reject(err);
+  getTableInfoCallback('projects', (err: any, projectColumns: any[]) => {
+    if (err || !projectColumns || projectColumns.length === 0) {
+      // Table doesn't exist, create it first
+      console.log('🔄 Creating projects table...');
+      const createTableSQL = convertSQLiteToMySQL(`
+        CREATE TABLE IF NOT EXISTS projects (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          account_id INT,
+          deal_id INT,
+          name VARCHAR(255) NOT NULL,
+          description TEXT,
+          status VARCHAR(50) DEFAULT 'planning',
+          start_date DATE,
+          end_date DATE,
+          budget DECIMAL(10, 2),
+          manager_id INT,
+          settlements TEXT,
+          payment_stage_1 DECIMAL(10, 2),
+          payment_stage_1_date DATE,
+          payment_stage_2 DECIMAL(10, 2),
+          payment_stage_2_date DATE,
+          payment_stage_3 DECIMAL(10, 2),
+          payment_stage_3_date DATE,
+          payment_stage_4 DECIMAL(10, 2),
+          payment_stage_4_date DATE,
+          settlement_kamil DECIMAL(10, 2),
+          settlement_asdan DECIMAL(10, 2),
+              settlement_soleimani DECIMAL(10, 2),
+              created_by INT,
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+      `);
+      
+      db.run(createTableSQL, (createErr: any) => {
+        if (createErr) {
+          console.error('Error creating projects table:', createErr);
+          reject(createErr);
+          return;
+        }
+        console.log('✅ Created projects table');
+        resolve();
+      });
       return;
     }
 
+    // Table exists, add settlements column if it doesn't exist
     const projectColumnNames = projectColumns.map((col: any) => col.name);
 
     if (!projectColumnNames.includes('settlements')) {
       db.run(`ALTER TABLE projects ADD COLUMN settlements TEXT`, (err: any) => {
         if (err) {
-          console.error('Error adding settlements column:', err);
-          reject(err);
+          if (!err.message.includes('duplicate column') && !err.message.includes('Duplicate column name')) {
+            console.error('Error adding settlements column:', err);
+            reject(err);
+          } else {
+            console.log('✓ Projects settlements column already exists');
+            resolve();
+          }
         } else {
           console.log('✓ Added settlements column to projects table');
           resolve();

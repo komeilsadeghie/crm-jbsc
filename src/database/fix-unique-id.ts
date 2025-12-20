@@ -1,11 +1,11 @@
-import { db } from './db';
+import { db, getTableInfoCallback } from './db';
 
 // Script to manually add unique_id column if it doesn't exist
 export const fixUniqueIdColumn = (): Promise<void> => {
   return new Promise((resolve, reject) => {
     console.log('🔧 Checking for unique_id column...');
     
-    db.all(`PRAGMA table_info(customers)`, [], (err: any, columns: any[]) => {
+    getTableInfoCallback('customers', (err: any, columns: any[]) => {
       if (err) {
         console.error('Error checking customers table:', err);
         reject(err);

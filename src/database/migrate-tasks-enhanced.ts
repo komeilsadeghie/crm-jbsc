@@ -1,10 +1,10 @@
-import { db } from './db';
+import { db, getTableInfoCallback } from './db';
 
 export const migrateTasksEnhancedTable = (): Promise<void> => {
   return new Promise((resolve, reject) => {
     db.serialize(() => {
       // Check if task_followers table exists
-      db.all(`PRAGMA table_info(task_followers)`, [], (err: any, info: any[]) => {
+      getTableInfoCallback('task_followers', (err: any, info: any[]) => {
         if (err || !info || info.length === 0) {
           // Create task_followers table (many-to-many)
           db.run(`
@@ -31,7 +31,7 @@ export const migrateTasksEnhancedTable = (): Promise<void> => {
       });
 
       // Check if task_assignees table exists (for multi-assign)
-      db.all(`PRAGMA table_info(task_assignees)`, [], (err: any, info: any[]) => {
+      getTableInfoCallback('task_assignees', (err: any, info: any[]) => {
         if (err || !info || info.length === 0) {
           // Create task_assignees table (many-to-many for multi-assign)
           db.run(`
@@ -59,7 +59,7 @@ export const migrateTasksEnhancedTable = (): Promise<void> => {
       });
 
       // Check if task_comments table exists
-      db.all(`PRAGMA table_info(task_comments)`, [], (err: any, info: any[]) => {
+      getTableInfoCallback('task_comments', (err: any, info: any[]) => {
         if (err || !info || info.length === 0) {
           // Create task_comments table
           db.run(`
@@ -88,7 +88,7 @@ export const migrateTasksEnhancedTable = (): Promise<void> => {
       });
 
       // Check if task_attachments table exists
-      db.all(`PRAGMA table_info(task_attachments)`, [], (err: any, info: any[]) => {
+      getTableInfoCallback('task_attachments', (err: any, info: any[]) => {
         if (err || !info || info.length === 0) {
           // Create task_attachments table
           db.run(`

@@ -1,18 +1,25 @@
-import { db } from './db';
+import { db, getForeignKeyListCallback, getTableInfoCallback, convertSQLiteToMySQL } from './db';
 
 export const migrateCustomersForeignKeys = (): Promise<void> => {
   return new Promise((resolve, reject) => {
     db.serialize(() => {
-      // SQLite doesn't support ALTER TABLE to modify foreign key constraints
-      // We need to check if the table exists and if it needs migration
-      
-      db.all(`PRAGMA foreign_key_list(customers)`, [], (err: any, fkList: any[]) => {
-        if (err) {
-          // Table might not exist yet, that's OK
-          console.log('✓ Customers table does not exist yet or foreign keys not enabled, skipping migration');
+      // First check if table exists
+      getTableInfoCallback('customers', (err: any, info: any[]) => {
+        if (err || !info || info.length === 0) {
+          // Table doesn't exist, that's OK - it will be created by initDatabase
+          console.log('✓ Customers table does not exist yet, will be created by initDatabase');
           resolve();
           return;
         }
+        
+        // Table exists, check foreign keys
+        getForeignKeyListCallback('customers', (fkErr: any, fkList: any[]) => {
+          if (fkErr) {
+            // Foreign keys not enabled or can't check, that's OK
+            console.log('✓ Cannot check customers foreign keys, skipping migration');
+            resolve();
+            return;
+          }
 
         // Check if ON DELETE SET NULL is already set for created_by
         const createdByFK = fkList.find((fk: any) => fk.from === 'created_by' && fk.to === 'id');
@@ -25,27 +32,28 @@ export const migrateCustomersForeignKeys = (): Promise<void> => {
         console.log('🔄 Migrating customers table foreign keys...');
         
         // Step 1: Create new table with updated foreign keys
-        db.run(`
+        const createCustomersNewSQL = convertSQLiteToMySQL(`
           CREATE TABLE IF NOT EXISTS customers_new (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            type TEXT NOT NULL CHECK(type IN ('company', 'individual', 'export', 'import', 'coaching')),
-            email TEXT,
-            phone TEXT,
-            company_name TEXT,
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            type VARCHAR(50) NOT NULL,
+            email VARCHAR(255),
+            phone VARCHAR(50),
+            company_name VARCHAR(255),
             address TEXT,
-            website TEXT,
-            score INTEGER DEFAULT 0,
-            status TEXT DEFAULT 'active' CHECK(status IN ('active', 'inactive', 'lead', 'customer', 'partner')),
-            category TEXT,
+            website VARCHAR(255),
+            score INT DEFAULT 0,
+            status VARCHAR(50) DEFAULT 'active',
+            category VARCHAR(255),
             notes TEXT,
-            customer_model INTEGER,
-            created_by INTEGER,
+            customer_model INT,
+            created_by INT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
           )
-        `, (err: any) => {
+        `);
+        
+        db.run(createCustomersNewSQL, (err: any) => {
           if (err) {
             console.error('Error creating new customers table:', err);
             reject(err);
@@ -53,20 +61,32 @@ export const migrateCustomersForeignKeys = (): Promise<void> => {
           }
 
           // Step 2: Copy data from old table to new table
-          db.run(`
+          const copyDataSQL = convertSQLiteToMySQL(`
             INSERT INTO customers_new 
             SELECT * FROM customers
-          `, (err: any) => {
+          `);
+          
+          db.run(copyDataSQL, (err: any) => {
             if (err) {
               console.error('Error copying data:', err);
-              // If table doesn't exist or is empty, that's OK
-              if (err.message.includes('no such table')) {
-                console.log('✓ Customers table does not exist yet, skipping migration');
-                resolve();
+              // If table doesn't exist or other error, that's OK - just rename the new table
+              if (err.message.includes('no such table') || err.message.includes("doesn't exist") || err.code === 'ER_NO_SUCH_TABLE') {
+                console.log('✓ Customers table does not exist yet, skipping data copy');
+                // Just rename the new table to original name
+                const renameTableSQL = convertSQLiteToMySQL('ALTER TABLE customers_new RENAME TO customers');
+                db.run(renameTableSQL, (renameErr: any) => {
+                  if (renameErr) {
+                    console.error('Error renaming table:', renameErr);
+                    reject(renameErr);
+                    return;
+                  }
+                  console.log('✓ Customers table created successfully');
+                  resolve();
+                });
                 return;
               }
-              reject(err);
-              return;
+              // For other errors, still try to rename
+              console.warn('⚠️ Error copying data, but continuing with table rename:', err.message);
             }
 
             // Step 3: Drop old table
@@ -78,7 +98,8 @@ export const migrateCustomersForeignKeys = (): Promise<void> => {
               }
 
               // Step 4: Rename new table to original name
-              db.run('ALTER TABLE customers_new RENAME TO customers', (err: any) => {
+              const renameTableSQL = convertSQLiteToMySQL('ALTER TABLE customers_new RENAME TO customers');
+              db.run(renameTableSQL, (err: any) => {
                 if (err) {
                   console.error('Error renaming table:', err);
                   reject(err);
@@ -90,6 +111,7 @@ export const migrateCustomersForeignKeys = (): Promise<void> => {
               });
             });
           });
+        });
         });
       });
     });

@@ -1,10 +1,45 @@
-import { db } from './db';
+import { db, getTableInfoCallback, isMySQL, convertSQLiteToMySQL } from './db';
 
 export const migrateRecurringExpensesTable = (): Promise<void> => {
   return new Promise((resolve, reject) => {
-    db.all(`PRAGMA table_info(expenses)`, [], (err: any, info: any[]) => {
-      if (err) {
-        reject(err);
+    getTableInfoCallback('expenses', (err: any, info: any[]) => {
+      if (err || !info || info.length === 0) {
+        // Table doesn't exist, create it first
+        console.log('🔄 Creating expenses table...');
+        const createTableSQL = convertSQLiteToMySQL(`
+          CREATE TABLE IF NOT EXISTS expenses (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            account_id INT,
+            project_id INT,
+            category VARCHAR(100),
+            amount DECIMAL(10, 2) NOT NULL,
+            currency VARCHAR(10) DEFAULT 'IRR',
+            expense_date DATE NOT NULL,
+            description TEXT,
+            receipt_file_path TEXT,
+            billable INT DEFAULT 0,
+            is_recurring INT DEFAULT 0,
+            recurring_frequency VARCHAR(20),
+            recurring_interval INT DEFAULT 1,
+            recurring_start_date DATE,
+            recurring_end_date DATE,
+            next_expense_date DATE,
+            parent_expense_id INT,
+            created_by INT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+        
+        db.run(createTableSQL, (createErr: any) => {
+          if (createErr) {
+            console.error('Error creating expenses table:', createErr);
+            reject(createErr);
+            return;
+          }
+          console.log('✅ Created expenses table');
+          resolve();
+        });
         return;
       }
       
