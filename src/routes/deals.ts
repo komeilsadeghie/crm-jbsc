@@ -127,12 +127,21 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
   }
   
   function insertDeal() {
+    // customer_id is required in deals table, use account_id as fallback or create a default
+    // If no customer_id or account_id, we need to handle this - for now use account_id
+    const customerId = deal.customer_id || deal.account_id;
+    
+    if (!customerId) {
+      return res.status(400).json({ error: 'مشتری یا حساب الزامی است' });
+    }
+    
     db.run(
       `INSERT INTO deals (
-        account_id, contact_id, title, stage, budget, probability, services,
+        customer_id, account_id, contact_id, title, stage, budget, probability, services,
         site_model, designer_id, start_date, expected_delivery_date, notes, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
+        customerId,
         deal.account_id || null,
         deal.contact_id || null,
         deal.title,
