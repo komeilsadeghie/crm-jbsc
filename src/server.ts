@@ -19,6 +19,10 @@ import { migrateMediaImportFields } from './database/migrate-media-import';
 import { fixUniqueIdColumn } from './database/fix-unique-id';
 import { migrateAccountsTable } from './database/migrate-accounts';
 import { migrateSettingsTable } from './database/migrate-settings';
+import { migrateContactPermissionsTable } from './database/migrate-contact-permissions';
+import { migrateRfmScoresTable } from './database/migrate-rfm-scores';
+import { migrateCustomFieldsTable } from './database/migrate-custom-fields';
+import { migrateIndexesOptimization } from './database/migrate-indexes-optimization';
 
 // Load ENV
 dotenv.config();
@@ -230,6 +234,34 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
       await migrateAccountsTable();
     } catch (e: any) {
       console.warn('⚠️ migrateAccountsTable failed:', e.message);
+    }
+
+    console.log('🔄 Migrating contact_permissions table...');
+    try {
+      await migrateContactPermissionsTable();
+    } catch (e: any) {
+      console.warn('⚠️ migrateContactPermissionsTable failed:', e.message);
+    }
+
+    console.log('🔄 Migrating rfm_scores table...');
+    try {
+      await migrateRfmScoresTable();
+    } catch (e: any) {
+      console.warn('⚠️ migrateRfmScoresTable failed:', e.message);
+    }
+
+    console.log('🔄 Migrating custom_fields tables...');
+    try {
+      await migrateCustomFieldsTable();
+    } catch (e: any) {
+      console.warn('⚠️ migrateCustomFieldsTable failed:', e.message);
+    }
+
+    console.log('🔄 Creating performance indexes...');
+    try {
+      await migrateIndexesOptimization();
+    } catch (e: any) {
+      console.warn('⚠️ migrateIndexesOptimization failed:', e.message);
     }
 
     // Essential migrations (always run, not optional)

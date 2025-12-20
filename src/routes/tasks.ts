@@ -375,7 +375,7 @@ router.post('/:id/assignees', authenticate, (req: AuthRequest, res: Response) =>
   }
 
   db.run(
-    `INSERT OR IGNORE INTO task_assignees (task_id, user_id, is_primary)
+    `INSERT IGNORE INTO task_assignees (task_id, user_id, is_primary)
      VALUES (?, ?, ?)`,
     [id, user_id, is_primary ? 1 : 0],
     function(err) {
@@ -516,7 +516,7 @@ router.post('/:id/followers', authenticate, (req: AuthRequest, res: Response) =>
   }
 
   db.run(
-    `INSERT OR IGNORE INTO task_followers (task_id, user_id)
+    `INSERT IGNORE INTO task_followers (task_id, user_id)
      VALUES (?, ?)`,
     [id, user_id],
     function(err) {

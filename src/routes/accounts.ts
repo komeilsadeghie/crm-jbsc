@@ -232,9 +232,10 @@ router.get('/:id/rfm', authenticate, (req: AuthRequest, res: Response) => {
 
       // Save RFM score
       db.run(
-        `INSERT OR REPLACE INTO rfm_scores (account_id, recency_score, frequency_score, monetary_score, segment, calculated_at)
-         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-        [id, recencyScore, frequencyScore, monetaryScore, segment],
+        `INSERT INTO rfm_scores (account_id, recency_score, frequency_score, monetary_score, segment, calculated_at)
+         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+         ON DUPLICATE KEY UPDATE recency_score = ?, frequency_score = ?, monetary_score = ?, segment = ?, calculated_at = CURRENT_TIMESTAMP`,
+        [id, recencyScore, frequencyScore, monetaryScore, segment, recencyScore, frequencyScore, monetaryScore, segment],
         () => {
           res.json({
             recency_score: recencyScore,

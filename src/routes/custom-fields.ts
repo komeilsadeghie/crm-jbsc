@@ -73,9 +73,10 @@ router.post('/values', authenticate, (req: AuthRequest, res: Response) => {
   const { field_id, entity_type, entity_id, field_value } = req.body;
 
   db.run(
-    `INSERT OR REPLACE INTO custom_field_values (field_id, entity_type, entity_id, field_value)
-     VALUES (?, ?, ?, ?)`,
-    [field_id, entity_type, entity_id, field_value],
+    `INSERT INTO custom_field_values (field_id, entity_type, entity_id, field_value)
+     VALUES (?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE field_value = ?`,
+    [field_id, entity_type, entity_id, field_value, field_value],
     function(err) {
       if (err) {
         return res.status(500).json({ error: 'خطا در ثبت مقدار' });
