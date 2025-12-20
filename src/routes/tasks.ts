@@ -1,5 +1,5 @@
 import express, { Response } from 'express';
-import { db } from '../database/db';
+import { db, dbRun } from '../database/db';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { Task, Activity } from '../types/extended';
 import { logActivity, getClientInfo } from '../utils/activityLogger';
@@ -85,65 +85,64 @@ router.get('/', authenticate, (req: AuthRequest, res: Response) => {
   });
 });
 
-router.post('/', authenticate, (req: AuthRequest, res: Response) => {
+router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
   const task: any = req.body;
   const userId = req.user?.id;
 
-  db.run(
-    `INSERT INTO tasks (
-      deal_id, account_id, project_id, parent_task_id, title, description, status, priority,
-      due_date, start_date, estimated_hours, position, kanban_column, assigned_to, created_by,
-      recurrence_pattern, recurrence_end_date
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      task.deal_id || null,
-      task.account_id || null,
-      task.project_id || null,
-      task.parent_task_id || null,
-      task.title,
-      task.description || null,
-      task.status || 'todo',
-      task.priority || 'medium',
-      task.due_date || null,
-      task.start_date || null,
-      task.estimated_hours || null,
-      task.position || 0,
-      task.kanban_column || 'todo',
-      task.assigned_to || null,
-      userId,
-      task.recurrence_pattern || null,
-      task.recurrence_end_date || null
-    ],
-    function(err) {
-      if (err) {
-        console.error('Error creating task:', err);
-        return res.status(500).json({ error: 'خطا در ثبت تسک: ' + err.message });
+  try {
+    const result = await dbRun(
+      `INSERT INTO tasks (
+        deal_id, account_id, project_id, parent_task_id, title, description, status, priority,
+        due_date, start_date, estimated_hours, position, kanban_column, assigned_to, created_by,
+        recurrence_pattern, recurrence_end_date
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        task.deal_id || null,
+        task.account_id || null,
+        task.project_id || null,
+        task.parent_task_id || null,
+        task.title,
+        task.description || null,
+        task.status || 'todo',
+        task.priority || 'medium',
+        task.due_date || null,
+        task.start_date || null,
+        task.estimated_hours || null,
+        task.position || 0,
+        task.kanban_column || 'todo',
+        task.assigned_to || null,
+        userId,
+        task.recurrence_pattern || null,
+        task.recurrence_end_date || null
+      ]
+    );
+    
+    const taskId = result.lastID || result.insertId;
+    
+    // Insert checklist items if provided
+    if (task.checklist && Array.isArray(task.checklist) && task.checklist.length > 0) {
+      for (const [index, item] of task.checklist.entries()) {
+        try {
+          await dbRun(
+            `INSERT INTO task_checklists (task_id, item, is_completed, position)
+             VALUES (?, ?, ?, ?)`,
+            [
+              taskId,
+              item.item || item,
+              item.is_completed ? 1 : 0,
+              index
+            ]
+          );
+        } catch (err) {
+          console.error('Error creating checklist item:', err);
+        }
       }
-      
-      const taskId = this.lastID;
-      
-      // Insert checklist items if provided
-      if (task.checklist && Array.isArray(task.checklist) && task.checklist.length > 0) {
-        const stmt = db.prepare(`
-          INSERT INTO task_checklists (task_id, item, is_completed, position)
-          VALUES (?, ?, ?, ?)
-        `);
-        
-        task.checklist.forEach((item: any, index: number) => {
-          stmt.run([
-            taskId,
-            item.item || item,
-            item.is_completed ? 1 : 0,
-            index
-          ]);
-        });
-        
-        stmt.finalize();
-      }
-      
-      // Log activity
-      const clientInfo = getClientInfo(req);
-      if (userId) {
+    }
+    
+    // Log activity
+    const clientInfo = getClientInfo(req);
+    if (userId) {
+      try {
         logActivity({
           userId: parseInt(userId),
           action: 'create',
@@ -153,11 +152,15 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
           metadata: { status: task.status || 'todo', priority: task.priority || 'medium' },
           ...clientInfo
         });
+      } catch (err) {
+        console.error('Error logging activity:', err);
       }
+    }
 
-      // Create notification for assigned user if task is assigned
-      if (task.assigned_to && task.assigned_to !== userId) {
-        db.run(
+    // Create notification for assigned user if task is assigned
+    if (task.assigned_to && task.assigned_to !== userId) {
+      try {
+        await dbRun(
           `INSERT INTO notifications (user_id, type, title, message, entity_type, entity_id, is_read, created_at)
            VALUES (?, ?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP)`,
           [
@@ -167,16 +170,18 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
             `تسک "${task.title}" به شما اختصاص داده شد`,
             'task',
             taskId
-          ],
-          (err) => {
-            if (err) console.error('Error creating notification:', err);
-          }
+          ]
         );
+      } catch (err) {
+        console.error('Error creating notification:', err);
       }
-
-      res.status(201).json({ id: taskId, message: 'تسک با موفقیت ثبت شد' });
     }
-  );
+
+    res.status(201).json({ id: taskId, message: 'تسک با موفقیت ثبت شد' });
+  } catch (err: any) {
+    console.error('Error creating task:', err);
+    return res.status(500).json({ error: 'خطا در ثبت تسک: ' + (err.message || 'خطای نامشخص') });
+  }
 });
 
 router.put('/:id', authenticate, (req: AuthRequest, res: Response) => {

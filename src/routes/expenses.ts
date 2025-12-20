@@ -1,5 +1,5 @@
 import express, { Response } from 'express';
-import { db } from '../database/db';
+import { db, dbRun } from '../database/db';
 import { authenticate, AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
@@ -60,7 +60,7 @@ router.get('/categories', authenticate, (req: AuthRequest, res: Response) => {
 });
 
 // Create expense category (admin only)
-router.post('/categories', authenticate, (req: AuthRequest, res: Response) => {
+router.post('/categories', authenticate, async (req: AuthRequest, res: Response) => {
   if (req.user?.role !== 'admin') {
     return res.status(403).json({ error: 'دسترسی محدود' });
   }
@@ -71,19 +71,22 @@ router.post('/categories', authenticate, (req: AuthRequest, res: Response) => {
     return res.status(400).json({ error: 'نام دسته‌بندی الزامی است' });
   }
 
-  db.run(
-    'INSERT INTO expense_categories (name, description, color) VALUES (?, ?, ?)',
-    [name, description || null, color || '#00A3FF'],
-    function(err) {
-      if (err) {
-        if (err.message.includes('UNIQUE constraint')) {
-          return res.status(400).json({ error: 'این دسته‌بندی قبلاً وجود دارد' });
-        }
-        return res.status(500).json({ error: 'خطا در ایجاد دسته‌بندی' });
-      }
-      res.status(201).json({ id: this.lastID, message: 'دسته‌بندی با موفقیت ایجاد شد' });
+  try {
+    const result = await dbRun(
+      'INSERT INTO expense_categories (name, description, color) VALUES (?, ?, ?)',
+      [name, description || null, color || '#00A3FF']
+    );
+    res.status(201).json({ 
+      id: result.lastID || result.insertId, 
+      message: 'دسته‌بندی با موفقیت ایجاد شد' 
+    });
+  } catch (err: any) {
+    if (err.message?.includes('UNIQUE constraint') || err.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({ error: 'این دسته‌بندی قبلاً وجود دارد' });
     }
-  );
+    console.error('Error creating expense category:', err);
+    return res.status(500).json({ error: 'خطا در ایجاد دسته‌بندی' });
+  }
 });
 
 // Update expense category (admin only)
@@ -141,33 +144,36 @@ router.delete('/categories/:id', authenticate, (req: AuthRequest, res: Response)
 });
 
 // Create expense
-router.post('/', authenticate, (req: AuthRequest, res: Response) => {
+router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
   const expense = req.body;
 
-  db.run(
-    `INSERT INTO expenses (
-      account_id, project_id, category, amount, currency,
-      expense_date, description, receipt_file_path, billable, created_by
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      expense.account_id || null,
-      expense.project_id || null,
-      expense.category,
-      expense.amount,
-      expense.currency || 'IRR',
-      expense.expense_date,
-      expense.description || null,
-      expense.receipt_file_path || null,
-      expense.billable ? 1 : 0,
-      req.user?.id
-    ],
-    function(err) {
-      if (err) {
-        return res.status(500).json({ error: 'خطا در ثبت هزینه' });
-      }
-      res.status(201).json({ id: this.lastID, message: 'هزینه با موفقیت ثبت شد' });
-    }
-  );
+  try {
+    const result = await dbRun(
+      `INSERT INTO expenses (
+        account_id, project_id, category, amount, currency,
+        expense_date, description, receipt_file_path, billable, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        expense.account_id || null,
+        expense.project_id || null,
+        expense.category,
+        expense.amount,
+        expense.currency || 'IRR',
+        expense.expense_date,
+        expense.description || null,
+        expense.receipt_file_path || null,
+        expense.billable ? 1 : 0,
+        req.user?.id
+      ]
+    );
+    res.status(201).json({ 
+      id: result.lastID || result.insertId, 
+      message: 'هزینه با موفقیت ثبت شد' 
+    });
+  } catch (err: any) {
+    console.error('Error creating expense:', err);
+    return res.status(500).json({ error: 'خطا در ثبت هزینه' });
+  }
 });
 
 // Update expense
