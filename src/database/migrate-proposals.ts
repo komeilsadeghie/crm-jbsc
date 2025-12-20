@@ -113,11 +113,5 @@ const createProposalAttachments = (resolve: () => void, reject: (err: any) => vo
       resolve();
     });
   });
-      } else {
-        console.log('✅ proposals table already exists');
-        resolve();
-      }
-    });
-  });
 };
 
