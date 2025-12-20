@@ -1,4 +1,4 @@
-import { db } from './db';
+import { db, convertSQLiteToMySQL } from './db';
 
 export const migrateCoachingEnhanced = async (): Promise<void> => {
   return new Promise((resolve, reject) => {
