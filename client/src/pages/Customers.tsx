@@ -624,9 +624,19 @@ const Customers = () => {
               </tbody>
             </table>
           </div>
-          {customersArray.length === 0 && (
+          {!isLoading && !error && customersArray.length === 0 && (
             <div className="text-center py-12 text-neutral-500">
               مشتری‌ای یافت نشد
+            </div>
+          )}
+          {isLoading && (
+            <div className="text-center py-12 text-neutral-500">
+              در حال بارگذاری...
+            </div>
+          )}
+          {error && (
+            <div className="text-center py-12 text-danger-500">
+              خطا در بارگذاری مشتریان: {error instanceof Error ? error.message : 'خطای نامشخص'}
             </div>
           )}
           
