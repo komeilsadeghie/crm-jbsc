@@ -93,7 +93,7 @@ const checkRecurringInvoices = (resolve: () => void, reject: (err: any) => void)
           account_id INT NOT NULL,
           template_invoice_id INT,
           frequency VARCHAR(20) NOT NULL,
-          interval INT DEFAULT 1,
+          \`interval\` INT DEFAULT 1,
           start_date DATE NOT NULL,
           end_date DATE,
           next_invoice_date DATE NOT NULL,
