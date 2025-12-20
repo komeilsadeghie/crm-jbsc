@@ -159,6 +159,69 @@ console.log(`🗄️  Database path: ${DB_PATH}`);
 });
 }
 
+// Helper function to convert SQLite string concatenation (||) to MySQL CONCAT
+const convertStringConcatenation = (query: string): string => {
+  // Convert || to CONCAT
+  // Simple recursive approach: find all || patterns and convert to CONCAT
+  
+  let result = query;
+  let changed = true;
+  let iterations = 0;
+  const maxIterations = 10; // Prevent infinite loops
+  
+  // Keep replacing until no more || found (handles nested cases)
+  while (changed && iterations < maxIterations) {
+    iterations++;
+    const before = result;
+    
+    // Match: something || something
+    // where "something" can be: identifier, table.column, or string literal
+    result = result.replace(
+      /([a-zA-Z_][a-zA-Z0-9_.]*|\'[^\']*\'|\"[^\"]*\")\s*\|\|\s*([a-zA-Z_][a-zA-Z0-9_.]*|\'[^\']*\'|\"[^\"]*\")/g,
+      (match, part1, part2) => {
+        // Only replace if it looks like concatenation
+        // (has string literals or is clearly a column concatenation pattern)
+        if (match.includes("'") || match.includes('"') || 
+            /[a-zA-Z_][a-zA-Z0-9_.]*\s*\|\|\s*[a-zA-Z_][a-zA-Z0-9_.]*/.test(match)) {
+          return `CONCAT(${part1}, ${part2})`;
+        }
+        return match;
+      }
+    );
+    
+    // Also handle CONCAT(...) || something patterns (for multiple concatenations)
+    result = result.replace(
+      /(CONCAT\([^)]+\))\s*\|\|\s*([a-zA-Z_][a-zA-Z0-9_.]*|\'[^\']*\'|\"[^\"]*\")/g,
+      (match, concatPart, part2) => {
+        // Extract the inner parts of CONCAT and add the new part
+        const innerMatch = concatPart.match(/CONCAT\((.+)\)/);
+        if (innerMatch) {
+          const innerParts = innerMatch[1];
+          return `CONCAT(${innerParts}, ${part2})`;
+        }
+        return match;
+      }
+    );
+    
+    // Handle something || CONCAT(...) patterns
+    result = result.replace(
+      /([a-zA-Z_][a-zA-Z0-9_.]*|\'[^\']*\'|\"[^\"]*\")\s*\|\|\s*(CONCAT\([^)]+\))/g,
+      (match, part1, concatPart) => {
+        const innerMatch = concatPart.match(/CONCAT\((.+)\)/);
+        if (innerMatch) {
+          const innerParts = innerMatch[1];
+          return `CONCAT(${part1}, ${innerParts})`;
+        }
+        return match;
+      }
+    );
+    
+    changed = (before !== result);
+  }
+  
+  return result;
+};
+
 // Helper function to convert SQLite syntax to MySQL
 export const convertSQLiteToMySQL = (query: string): string => {
   if (!isMySQL) return query;
@@ -184,10 +247,11 @@ export const convertSQLiteToMySQL = (query: string): string => {
     .replace(/\bBOOLEAN\b/gi, 'TINYINT(1)')
     // Date functions
     .replace(/\bdatetime\('now'\)/gi, 'NOW()')
-    .replace(/\bCURRENT_TIMESTAMP\b/gi, 'CURRENT_TIMESTAMP')
-    // String concatenation (SQLite uses ||, MySQL uses CONCAT)
-    // Note: This is a simple replacement, may need more complex handling for edge cases
-    .replace(/\|\|/g, 'CONCAT')
+    .replace(/\bCURRENT_TIMESTAMP\b/gi, 'CURRENT_TIMESTAMP');
+  
+  // String concatenation (SQLite uses ||, MySQL uses CONCAT)
+  // Convert: expr1 || expr2 || expr3 to CONCAT(expr1, expr2, expr3)
+  converted = convertStringConcatenation(converted);
     // LIMIT and OFFSET syntax (mostly compatible, but ensure proper format)
     // MySQL supports: LIMIT offset, count or LIMIT count OFFSET offset
     // SQLite supports both formats, so no change needed
