@@ -129,13 +129,12 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
   function insertDeal() {
     db.run(
       `INSERT INTO deals (
-        account_id, contact_id, customer_id, title, stage, budget, probability, services,
+        account_id, contact_id, title, stage, budget, probability, services,
         site_model, designer_id, start_date, expected_delivery_date, notes, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         deal.account_id || null,
         deal.contact_id || null,
-        deal.customer_id || null,
         deal.title,
         deal.stage || 'discovery',
         deal.budget || null,
