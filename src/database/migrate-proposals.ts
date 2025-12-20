@@ -114,4 +114,3 @@ const createProposalAttachments = (resolve: () => void, reject: (err: any) => vo
     });
   });
 };
-
