@@ -276,19 +276,20 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
               }
               
               // Check manager_id if provided
-            if (managerId) {
-              db.get('SELECT id FROM users WHERE id = ?', [managerId], (err, manager) => {
-                if (err) {
-                  return callback(err, null);
-                }
-                if (!manager) {
-                  return callback(new Error('مدیر انتخاب شده یافت نشد'), null);
-                }
+              if (managerId) {
+                db.get('SELECT id FROM users WHERE id = ?', [managerId], (err, manager) => {
+                  if (err) {
+                    return callback(err, null);
+                  }
+                  if (!manager) {
+                    return callback(new Error('مدیر انتخاب شده یافت نشد'), null);
+                  }
+                  callback(null, finalCreatedBy);
+                });
+              } else {
                 callback(null, finalCreatedBy);
-              });
-            } else {
-              callback(null, finalCreatedBy);
-            }
+              }
+            });
           });
         } else {
           // No account_id, just check manager_id if provided

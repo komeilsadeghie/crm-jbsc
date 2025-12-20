@@ -365,7 +365,7 @@ router.post('/:id/convert-to-project', authenticate, async (req: AuthRequest, re
               'active'
             ]
           );
-          accountId = accountResult.lastID || accountResult.insertId || null;
+          accountId = accountResult.lastID || null;
         }
       } else {
         // If accounts table doesn't exist, create it first
