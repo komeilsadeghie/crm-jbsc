@@ -418,9 +418,7 @@ router.post('/:id/convert-to-project', authenticate, async (req: AuthRequest, re
     res.status(201).json({
       message: 'پروژه با موفقیت ایجاد شد',
       project_id: projectId,
-      project_id: projectId,
-      account_id: accountId,
-      project_name: projectName
+      account_id: accountId
     });
   } catch (error: any) {
     console.error('Error converting customer to project:', error);

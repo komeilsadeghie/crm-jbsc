@@ -200,11 +200,16 @@ const ProjectDetail = () => {
     );
   }
 
-  if (!project) {
+  if (error || (!isLoading && !project)) {
     return (
       <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 p-6 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-xl font-medium text-neutral-700 dark:text-neutral-300">پروژه یافت نشد</div>
+          <div className="text-xl font-medium text-danger-600 dark:text-danger-400 mb-2">
+            {error?.message || 'پروژه یافت نشد'}
+          </div>
+          <div className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
+            {error?.message?.includes('یافت نشد') ? 'پروژه مورد نظر در سیستم وجود ندارد یا حذف شده است.' : 'خطا در بارگذاری اطلاعات پروژه'}
+          </div>
           <button onClick={() => navigate('/projects')} className="btn btn-primary mt-4">
             بازگشت به لیست پروژه‌ها
           </button>
