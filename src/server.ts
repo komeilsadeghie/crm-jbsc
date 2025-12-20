@@ -225,6 +225,13 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
       console.error('⚠️ Error in migrateCustomersForeignKeys:', migrationError);
     }
 
+    console.log('🔄 Migrating accounts table...');
+    try {
+      await migrateAccountsTable();
+    } catch (e: any) {
+      console.warn('⚠️ migrateAccountsTable failed:', e.message);
+    }
+
     // Essential migrations (always run, not optional)
     console.log('🔄 Migrating coaching enhanced features...');
     try {
