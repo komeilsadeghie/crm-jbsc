@@ -28,6 +28,7 @@ import { migrateDealsTable } from './database/migrate-deals';
 import { migrateInteractionsTable } from './database/migrate-interactions';
 import { migrateTicketDepartmentsTable } from './database/migrate-ticket-departments';
 import { migrateNotificationsTable } from './database/migrate-notifications';
+import { migrateTicketsTable } from './database/migrate-tickets';
 
 // Load ENV
 dotenv.config();
