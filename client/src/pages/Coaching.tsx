@@ -1264,8 +1264,8 @@ const CoachingModal = ({ type, item, customers, goals, sessions, clickedDate: pr
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-neutral-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white dark:bg-neutral-800 rounded-lg max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-xl">
         <div className="p-6 border-b border-neutral-200 dark:border-neutral-700 flex justify-between items-center">
           <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-100">
             {item ? 'ویرایش' : 'افزودن'} {
