@@ -189,6 +189,19 @@ router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
   });
 });
 
+// Helper function to convert settlement values from 'true'/'false' to number or null
+const convertSettlementValue = (value: any): number | null => {
+  if (!value || value === '' || value === 'false') {
+    return null;
+  }
+  if (value === 'true' || value === true) {
+    return null; // Settlement fields are DECIMAL, so we use null for boolean true
+  }
+  // If it's a number, parse and return it
+  const num = parseFloat(String(value));
+  return isNaN(num) ? null : num;
+};
+
 // Create project
 router.post('/', authenticate, (req: AuthRequest, res: Response) => {
   const project = req.body;
@@ -341,9 +354,9 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
         project.payment_stage_3_date || null,
         project.payment_stage_4 || null,
         project.payment_stage_4_date || null,
-        project.settlement_kamil || null,
-        project.settlement_asdan || null,
-        project.settlement_soleimani || null,
+        convertSettlementValue(project.settlement_kamil),
+        convertSettlementValue(project.settlement_asdan),
+        convertSettlementValue(project.settlement_soleimani),
         finalCreatedBy
       ],
       function(err) {
@@ -398,9 +411,9 @@ router.put('/:id', authenticate, (req: AuthRequest, res: Response) => {
       project.payment_stage_3_date || null,
       project.payment_stage_4 || null,
       project.payment_stage_4_date || null,
-      project.settlement_kamil || null,
-      project.settlement_asdan || null,
-      project.settlement_soleimani || null,
+      convertSettlementValue(project.settlement_kamil),
+      convertSettlementValue(project.settlement_asdan),
+      convertSettlementValue(project.settlement_soleimani),
       id
     ],
     function(err) {

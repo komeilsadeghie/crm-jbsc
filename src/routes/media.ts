@@ -863,9 +863,21 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
             const paymentStage4Date = mappedRow['payment_stage_4_date'] || null;
             
             // Extract settlements (use system field names only)
-            const settlementKamil = mappedRow['settlement_kamil'] || null;
-            const settlementAsdan = mappedRow['settlement_asdan'] || null;
-            const settlementSoleimani = mappedRow['settlement_soleimani'] || null;
+            // Helper to convert settlement values: 'true'/'false' -> null, numbers -> parseFloat
+            const convertSettlementValue = (value: any): number | null => {
+              if (!value || value === '' || value === 'false') {
+                return null;
+              }
+              if (value === 'true' || value === true) {
+                return null; // DECIMAL columns, so null for boolean true
+              }
+              const num = parseFloat(String(value).replace(/,/g, ''));
+              return isNaN(num) ? null : num;
+            };
+            
+            const settlementKamil = convertSettlementValue(mappedRow['settlement_kamil']);
+            const settlementAsdan = convertSettlementValue(mappedRow['settlement_asdan']);
+            const settlementSoleimani = convertSettlementValue(mappedRow['settlement_soleimani']);
             
             // Create settlements JSON
             const settlementsObj: any = {
@@ -942,9 +954,9 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
                   paymentStage3Date || null,
                   paymentStage4 ? parseFloat(String(paymentStage4).replace(/,/g, '')) : null,
                   paymentStage4Date || null,
-                  settlementKamil || null,
-                  settlementAsdan || null,
-                  settlementSoleimani || null,
+                  settlementKamil,
+                  settlementAsdan,
+                  settlementSoleimani,
                   existingProject.id,
                 ]
               );
@@ -988,9 +1000,9 @@ router.post('/import/customers', authenticate, async (req: AuthRequest, res: Res
                   paymentStage3Date || null,
                   paymentStage4 ? parseFloat(String(paymentStage4).replace(/,/g, '')) : null,
                   paymentStage4Date || null,
-                  settlementKamil || null,
-                  settlementAsdan || null,
-                  settlementSoleimani || null,
+                  settlementKamil,
+                  settlementAsdan,
+                  settlementSoleimani,
                   projectCreatedBy,
                 ]
               );

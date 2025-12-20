@@ -54,9 +54,14 @@ export const listCustomers = async (filters: CustomerFilters) => {
     ? "CONCAT(t.id, ':', t.name, ':', t.color)"
     : "t.id || ':' || t.name || ':' || t.color";
 
+  // Use SEPARATOR for MySQL GROUP_CONCAT
+  const groupConcatExpr = isMySQL
+    ? `GROUP_CONCAT(DISTINCT ${concatExpr} SEPARATOR ',')`
+    : `GROUP_CONCAT(DISTINCT ${concatExpr})`;
+
   let query = `
     SELECT DISTINCT c.*,
-           GROUP_CONCAT(DISTINCT ${concatExpr}) as tags_data
+           ${groupConcatExpr} as tags_data
     FROM customers c
     LEFT JOIN entity_tags et ON et.customer_id = c.id
     LEFT JOIN tags t ON et.tag_id = t.id
@@ -124,22 +129,37 @@ export const listCustomers = async (filters: CustomerFilters) => {
 
   query += ' ORDER BY c.created_at DESC';
 
-  const customers = await dbAll(query, params);
+  try {
+    const customers = await dbAll(query, params);
 
-  // Parse tags data
-  return customers.map((customer: any) => {
-    const tags = customer.tags_data
-      ? customer.tags_data.split(',').map((tagStr: string) => {
-          const [id, name, color] = tagStr.split(':');
-          return { id, name, color, tag: { id, name, color } };
-        })
-      : [];
+    // Parse tags data
+    return customers.map((customer: any) => {
+      let tags = [];
+      if (customer.tags_data) {
+        try {
+          tags = customer.tags_data.split(',').map((tagStr: string) => {
+            const parts = tagStr.split(':');
+            if (parts.length >= 3) {
+              const [id, name, color] = parts;
+              return { id, name, color, tag: { id, name, color } };
+            }
+            return null;
+          }).filter(Boolean);
+        } catch (err) {
+          console.error('Error parsing tags_data:', err);
+          tags = [];
+        }
+      }
 
-    return {
-      ...customer,
-      tags,
-    };
-  });
+      return {
+        ...customer,
+        tags,
+      };
+    });
+  } catch (error: any) {
+    console.error('Error in listCustomers:', error);
+    throw error;
+  }
 };
 
 export const getCustomerById = async (id: string) => {
