@@ -129,6 +129,14 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
       console.error('Stack:', e.stack);
     }
 
+    console.log('🔄 Migrating interactions table...');
+    try {
+      await migrateInteractionsTable();
+      console.log('✅ Interactions migration completed');
+    } catch (e: any) {
+      console.warn('⚠️ migrateInteractionsTable failed:', e.message);
+    }
+
     console.log('🔄 Migrating settings table...');
     try {
       await migrateSettingsTable();
