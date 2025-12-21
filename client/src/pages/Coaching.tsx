@@ -71,6 +71,8 @@ const Coaching = () => {
     {
       refetchOnWindowFocus: true,
       staleTime: 0,
+      refetchInterval: 60 * 1000, // ✅ هر 60 ثانیه یکبار refresh
+      keepPreviousData: true, // ✅ نمایش داده قبلی
     }
   );
 
@@ -85,6 +87,8 @@ const Coaching = () => {
       enabled: activeTab === 'kanban',
       refetchOnWindowFocus: true,
       staleTime: 0,
+      refetchInterval: 30 * 1000, // ✅ هر 30 ثانیه یکبار refresh (برای بورد کوچینگ)
+      keepPreviousData: true, // ✅ نمایش داده قبلی
     }
   );
 
@@ -95,6 +99,10 @@ const Coaching = () => {
       const response = await api.get(`/coaching/goals${params}`);
       const data = response.data;
       return Array.isArray(data) ? data : [];
+    },
+    {
+      refetchOnWindowFocus: true, // ✅ اضافه شد
+      staleTime: 30 * 1000, // ✅ 30 ثانیه
     }
   );
 
@@ -105,6 +113,10 @@ const Coaching = () => {
       const response = await api.get(`/coaching/exercises${params}`);
       const data = response.data;
       return Array.isArray(data) ? data : [];
+    },
+    {
+      refetchOnWindowFocus: true, // ✅ اضافه شد
+      staleTime: 30 * 1000, // ✅ 30 ثانیه
     }
   );
 

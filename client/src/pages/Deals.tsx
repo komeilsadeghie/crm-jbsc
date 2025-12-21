@@ -34,6 +34,8 @@ const Deals = () => {
     },
     {
       retry: 1,
+      refetchInterval: 60 * 1000, // ✅ هر 60 ثانیه یکبار refresh
+      keepPreviousData: true, // ✅ نمایش داده قبلی
       onError: (error) => {
         console.error('Error fetching deals:', error);
       }
@@ -50,6 +52,8 @@ const Deals = () => {
     },
     {
       retry: 1,
+      refetchInterval: 60 * 1000, // ✅ هر 60 ثانیه یکبار refresh
+      keepPreviousData: true, // ✅ نمایش داده قبلی
       onError: (error) => {
         console.error('Error fetching pipeline:', error);
       }

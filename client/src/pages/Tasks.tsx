@@ -33,6 +33,8 @@ const Tasks = () => {
     },
     {
       retry: 1,
+      refetchInterval: 30 * 1000, // ✅ هر 30 ثانیه یکبار refresh (برای بورد Kanban)
+      keepPreviousData: true, // ✅ نمایش داده قبلی
       onError: (error) => {
         console.error('Error fetching kanban board:', error);
       }
@@ -70,6 +72,10 @@ const Tasks = () => {
       const params = projectFilter ? `?project_id=${projectFilter}` : '';
       const response = await api.get(`/tasks${params}`);
       return Array.isArray(response.data) ? response.data : [];
+    },
+    {
+      refetchInterval: 60 * 1000, // ✅ هر 60 ثانیه یکبار refresh
+      keepPreviousData: true, // ✅ نمایش داده قبلی
     }
   );
 

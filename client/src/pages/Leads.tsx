@@ -35,6 +35,8 @@ const Leads = () => {
     },
     {
       retry: 1,
+      refetchInterval: 60 * 1000, // ✅ هر 60 ثانیه یکبار refresh
+      keepPreviousData: true, // ✅ نمایش داده قبلی
       onError: (error) => {
         console.error('Error fetching leads:', error);
       }
@@ -72,7 +74,11 @@ const Leads = () => {
       const response = await api.get('/leads/kanban/board');
       return response.data;
     },
-    { enabled: viewMode === 'kanban' }
+    {
+      enabled: viewMode === 'kanban',
+      refetchInterval: 30 * 1000, // ✅ هر 30 ثانیه یکبار refresh (برای بورد Kanban)
+      keepPreviousData: true, // ✅ نمایش داده قبلی
+    }
   );
 
   const convertMutation = useMutation(

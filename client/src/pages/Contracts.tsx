@@ -12,15 +12,29 @@ const Contracts = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingContract, setEditingContract] = useState<any>(null);
 
-  const { data: contracts } = useQuery('contracts', async () => {
-    const response = await api.get('/contracts');
-    return response.data || [];
-  });
+  const { data: contracts } = useQuery(
+    'contracts', 
+    async () => {
+      const response = await api.get('/contracts');
+      return response.data || [];
+    },
+    {
+      refetchInterval: 60 * 1000, // ✅ هر 60 ثانیه یکبار refresh
+      keepPreviousData: true, // ✅ نمایش داده قبلی تا داده جدید بیاید
+    }
+  );
 
-  const { data: expiringContracts } = useQuery('contracts-expiring', async () => {
-    const response = await api.get('/contracts/expiring-soon?days=30');
-    return response.data || [];
-  });
+  const { data: expiringContracts } = useQuery(
+    'contracts-expiring', 
+    async () => {
+      const response = await api.get('/contracts/expiring-soon?days=30');
+      return response.data || [];
+    },
+    {
+      refetchInterval: 60 * 1000, // ✅ هر 60 ثانیه یکبار refresh
+      keepPreviousData: true, // ✅ نمایش داده قبلی
+    }
+  );
 
   const createMutation = useMutation(
     (data: any) => api.post('/contracts', data),

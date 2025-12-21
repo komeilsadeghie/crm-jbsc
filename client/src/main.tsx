@@ -11,10 +11,10 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
-      refetchOnWindowFocus: false,
-      staleTime: 2 * 60 * 1000, // 2 minutes - reduced for better responsiveness
-      cacheTime: 5 * 60 * 1000, // 5 minutes - reduced cache time
-      refetchOnMount: false, // Don't refetch on mount if data is fresh
+      refetchOnWindowFocus: true, // ✅ تغییر: true - با بازگشت به تب، داده‌ها refresh می‌شوند
+      staleTime: 30 * 1000, // ✅ تغییر: 30 ثانیه (به جای 2 دقیقه) - برای به‌روزرسانی سریع‌تر
+      cacheTime: 5 * 60 * 1000, // 5 minutes
+      refetchOnMount: true, // ✅ تغییر: true - با بازگشت به صفحه، داده‌ها refresh می‌شوند
       refetchOnReconnect: true, // Refetch when network reconnects
       onError: (error) => {
         console.error('Query error:', error);
