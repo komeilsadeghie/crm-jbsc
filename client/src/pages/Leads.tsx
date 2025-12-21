@@ -46,9 +46,19 @@ const Leads = () => {
   const deleteMutation = useMutation(
     (id: number) => api.delete(`/leads/${id}`),
     {
-      onSuccess: () => {
+      onSuccess: (response: any) => {
+        // ✅ بررسی response برای error
+        if (response?.data?.error) {
+          alert('خطا: ' + response.data.error);
+          return;
+        }
         queryClient.invalidateQueries('leads');
+        queryClient.invalidateQueries('leads-kanban');
         setSelectedIds([]);
+      },
+      onError: (error: any) => {
+        const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'خطا در حذف سرنخ';
+        alert('خطا: ' + errorMessage);
       },
     }
   );
@@ -85,10 +95,19 @@ const Leads = () => {
     ({ id, account_name }: { id: number; account_name?: string }) =>
       api.post(`/leads/${id}/convert`, { account_name }),
     {
-      onSuccess: () => {
+      onSuccess: (response: any) => {
+        // ✅ بررسی response برای error
+        if (response?.data?.error) {
+          alert('خطا: ' + response.data.error);
+          return;
+        }
         queryClient.invalidateQueries('leads');
         queryClient.invalidateQueries('leads-kanban');
         queryClient.invalidateQueries('accounts');
+      },
+      onError: (error: any) => {
+        const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'خطا در تبدیل سرنخ';
+        alert('خطا: ' + errorMessage);
       },
     }
   );
@@ -97,8 +116,22 @@ const Leads = () => {
     ({ id, position, kanban_stage }: { id: number; position: number; kanban_stage: string }) =>
       api.put(`/leads/${id}/position`, { position, kanban_stage }),
     {
-      onSuccess: () => {
+      onSuccess: (response: any) => {
+        // ✅ بررسی response برای error
+        if (response?.data?.error) {
+          console.error('Server returned error in response:', response.data.error);
+          return;
+        }
         queryClient.invalidateQueries('leads-kanban');
+        queryClient.invalidateQueries('leads');
+      },
+      onError: (error: any) => {
+        const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'خطا در جابجایی سرنخ';
+        console.error('Error updating lead position:', error);
+        // فقط در صورت خطای واقعی alert نشان بده
+        if (error.response?.status && error.response.status !== 200) {
+          alert('خطا: ' + errorMessage);
+        }
       },
     }
   );

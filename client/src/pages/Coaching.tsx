@@ -86,6 +86,7 @@ const Coaching = () => {
     {
       enabled: activeTab === 'kanban',
       refetchOnWindowFocus: true,
+      refetchOnMount: true, // ✅ اضافه شد: وقتی به تب kanban برمی‌گردد، داده‌ها refresh می‌شوند
       staleTime: 0,
       refetchInterval: 30 * 1000, // ✅ هر 30 ثانیه یکبار refresh (برای بورد کوچینگ)
       keepPreviousData: true, // ✅ نمایش داده قبلی
@@ -1247,7 +1248,15 @@ const CoachingModal = ({ type, item, customers, goals, sessions, clickedDate: pr
       }
     },
     {
-      onSuccess: () => {
+      onSuccess: (response: any) => {
+        // ✅ بررسی response - اگر response.data.error داشته باشد، آن را به عنوان error در نظر بگیر
+        if (response?.data?.error) {
+          console.error('Server returned error in response:', response.data.error);
+          alert('خطا: ' + response.data.error);
+          return;
+        }
+        
+        // ✅ Invalidate تمام queries مربوط به coaching
         queryClient.invalidateQueries('coaching-sessions');
         queryClient.invalidateQueries('coaching-goals');
         queryClient.invalidateQueries('coaching-exercises');
@@ -1259,12 +1268,15 @@ const CoachingModal = ({ type, item, customers, goals, sessions, clickedDate: pr
         queryClient.invalidateQueries('coaching-upcoming-sessions');
         queryClient.invalidateQueries('coaching-goals-progress');
         queryClient.invalidateQueries('coaching-overdue-exercises');
+        queryClient.invalidateQueries('coaching-kanban'); // ✅ اضافه شد: برای بورد کوچینگ
         alert('اطلاعات با موفقیت ذخیره شد');
         onClose();
       },
       onError: (error: any) => {
         console.error('Error saving coaching data:', error);
-        alert(error.response?.data?.error || 'خطا در ذخیره اطلاعات');
+        // ✅ بررسی دقیق‌تر error
+        const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'خطا در ذخیره اطلاعات';
+        alert('خطا: ' + errorMessage);
       },
     }
   );

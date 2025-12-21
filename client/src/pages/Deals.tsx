@@ -63,9 +63,18 @@ const Deals = () => {
   const deleteMutation = useMutation(
     (id: number) => api.delete(`/deals/${id}`),
     {
-      onSuccess: () => {
+      onSuccess: (response: any) => {
+        // ✅ بررسی response برای error
+        if (response?.data?.error) {
+          alert('خطا: ' + response.data.error);
+          return;
+        }
         queryClient.invalidateQueries('deals');
         queryClient.invalidateQueries('deals-pipeline');
+      },
+      onError: (error: any) => {
+        const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'خطا در حذف معامله';
+        alert('خطا: ' + errorMessage);
       },
     }
   );

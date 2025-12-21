@@ -47,9 +47,21 @@ const KanbanBoard = ({ sessions, onEdit }: KanbanBoardProps) => {
     ({ id, kanban_column, position }: { id: number; kanban_column: string; position: number }) =>
       api.put(`/coaching/sessions/${id}/kanban`, { kanban_column, position }),
     {
-      onSuccess: () => {
+      onSuccess: (response: any) => {
+        // ✅ بررسی response - اگر response.data.error داشته باشد، آن را به عنوان error در نظر بگیر
+        if (response?.data?.error) {
+          console.error('Server returned error in response:', response.data.error);
+          return;
+        }
+        
+        // ✅ Invalidate queries برای refresh بورد
         queryClient.invalidateQueries('coaching-kanban');
         queryClient.invalidateQueries('coaching-sessions');
+      },
+      onError: (error: any) => {
+        console.error('Error updating kanban position:', error);
+        const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'خطا در جابجایی';
+        alert('خطا: ' + errorMessage);
       },
     }
   );
