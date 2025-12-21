@@ -267,9 +267,9 @@ const registerPersianFont = (doc: PDFDocument): boolean => {
   }
 
   const fontPaths = [
-    path.join(__dirname, '../../fonts/Vazirmatn-Regular.ttf'),
-    path.join(__dirname, '../fonts/Vazirmatn-Regular.ttf'),
-    path.join(process.cwd(), 'fonts/Vazirmatn-Regular.ttf'),
+    path.join(process.cwd(), 'fonts/Vazirmatn-Regular.ttf'), // First check root fonts folder
+    path.join(__dirname, '../../fonts/Vazirmatn-Regular.ttf'), // Then check relative to dist
+    path.join(__dirname, '../fonts/Vazirmatn-Regular.ttf'), // Then check relative to src
     path.join(process.cwd(), 'src/fonts/Vazirmatn-Regular.ttf'),
     path.join(process.cwd(), 'dist/fonts/Vazirmatn-Regular.ttf'),
   ];
@@ -280,15 +280,17 @@ const registerPersianFont = (doc: PDFDocument): boolean => {
         doc.registerFont('persian', fontPath);
         persianFontAvailable = true;
         persianFontPath = fontPath;
+        console.log('✅ Persian font registered successfully from:', fontPath);
         return true;
       } catch (error) {
-        console.warn('Failed to register Persian font:', error);
+        console.warn('Failed to register Persian font from', fontPath, ':', error);
       }
     }
   }
 
   if (!persianFontAvailable) {
-    console.warn('Persian font not found. Please add a Persian font (e.g., Vazirmatn-Regular.ttf) to the fonts directory.');
+    console.warn('❌ Persian font not found. Please add a Persian font (e.g., Vazirmatn-Regular.ttf) to the fonts directory.');
+    console.warn('Searched paths:', fontPaths);
   }
   return false;
 };
@@ -297,6 +299,7 @@ const registerPersianFont = (doc: PDFDocument): boolean => {
  * Helper function to add text with proper RTL and Persian support
  */
 const addText = (doc: PDFDocument, text: string, x: number, y: number, options: any = {}) => {
+  // Process Persian text FIRST (before setting font)
   const processedText = processText(text);
   const margin = doc.page.margins.left;
   const pageWidth = doc.page.width;
@@ -309,17 +312,19 @@ const addText = (doc: PDFDocument, text: string, x: number, y: number, options: 
   };
 
   // Use Persian font if available, otherwise use default
+  // IMPORTANT: Set font BEFORE calling text()
   if (persianFontAvailable) {
     try {
       doc.font('persian');
     } catch (error) {
-      // Fallback to default font if Persian font fails
+      console.warn('Failed to use Persian font, falling back to Helvetica:', error);
       doc.font('Helvetica');
     }
   } else {
     doc.font('Helvetica');
   }
 
+  // Add the processed text
   doc.text(processedText, x, y, textOptions);
 };
 

@@ -23,15 +23,38 @@ export function processPersianText(text: string): string {
   
   // If libraries are not available, return text as-is
   if (!ArabicPersianReshaper || !bidi) {
+    console.warn('Persian text processing libraries not loaded');
     return text;
   }
 
   try {
-    // Reshape Arabic/Persian characters
-    const reshaped = ArabicPersianReshaper.reshape(text);
+    // Reshape Arabic/Persian characters using PersianShaper
+    // arabic-persian-reshaper exports PersianShaper and ArabicShaper
+    let reshaped: string;
+    if (ArabicPersianReshaper.PersianShaper) {
+      // Use PersianShaper for Persian text
+      reshaped = ArabicPersianReshaper.PersianShaper.reshape(text);
+    } else if (ArabicPersianReshaper.reshape) {
+      // Fallback to direct reshape method
+      reshaped = ArabicPersianReshaper.reshape(text);
+    } else {
+      // No reshaping available
+      reshaped = text;
+    }
+    
     // Apply bidirectional text algorithm
-    const bidiResult = bidi.fromString(reshaped);
-    return bidiResult.toString();
+    // bidi-js is a function that takes text and options
+    if (typeof bidi === 'function') {
+      // bidi-js function signature: bidi(text, options)
+      const bidiResult = bidi(reshaped, { 
+        dir: 'rtl',
+        baseDir: 'rtl'
+      });
+      return typeof bidiResult === 'string' ? bidiResult : String(bidiResult);
+    } else {
+      // Fallback: just return reshaped text
+      return reshaped;
+    }
   } catch (error) {
     console.error('Error processing Persian text:', error);
     return text; // Fallback to original text
