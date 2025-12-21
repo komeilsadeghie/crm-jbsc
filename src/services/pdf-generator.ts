@@ -2,6 +2,10 @@ import PDFDocument from 'pdfkit';
 import { db } from '../database/db';
 import { toJalali, toJalaliDateTime } from '../utils/dateHelper';
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel } from 'docx';
+import { processText, processPersianText } from '../utils/persianTextHelper';
+import { defaultContractTemplate, ContractTemplateConfig, ContractTemplateData } from '../config/contractTemplate';
+import * as fs from 'fs';
+import * as path from 'path';
 
 interface EstimateData {
   id: number;
@@ -241,13 +245,142 @@ export const generateEstimatePDF = (estimate: EstimateData): Promise<Buffer> => 
   });
 };
 
-// Generate Contract PDF with Persian support
-export const generateContractPDF = (contract: ContractData): Promise<Buffer> => {
+// Global flag to track if Persian font is available
+let persianFontAvailable = false;
+let persianFontPath: string | null = null;
+
+/**
+ * Register Persian font if available
+ * Place your Persian font file (e.g., Vazirmatn-Regular.ttf) in the fonts directory
+ */
+const registerPersianFont = (doc: PDFDocument): boolean => {
+  // Check if we already found the font
+  if (persianFontAvailable && persianFontPath) {
+    try {
+      doc.registerFont('persian', persianFontPath);
+      return true;
+    } catch (error) {
+      // Font path might have changed, reset and search again
+      persianFontAvailable = false;
+      persianFontPath = null;
+    }
+  }
+
+  const fontPaths = [
+    path.join(__dirname, '../../fonts/Vazirmatn-Regular.ttf'),
+    path.join(__dirname, '../fonts/Vazirmatn-Regular.ttf'),
+    path.join(process.cwd(), 'fonts/Vazirmatn-Regular.ttf'),
+    path.join(process.cwd(), 'src/fonts/Vazirmatn-Regular.ttf'),
+    path.join(process.cwd(), 'dist/fonts/Vazirmatn-Regular.ttf'),
+  ];
+
+  for (const fontPath of fontPaths) {
+    if (fs.existsSync(fontPath)) {
+      try {
+        doc.registerFont('persian', fontPath);
+        persianFontAvailable = true;
+        persianFontPath = fontPath;
+        return true;
+      } catch (error) {
+        console.warn('Failed to register Persian font:', error);
+      }
+    }
+  }
+
+  if (!persianFontAvailable) {
+    console.warn('Persian font not found. Please add a Persian font (e.g., Vazirmatn-Regular.ttf) to the fonts directory.');
+  }
+  return false;
+};
+
+/**
+ * Helper function to add text with proper RTL and Persian support
+ */
+const addText = (doc: PDFDocument, text: string, x: number, y: number, options: any = {}) => {
+  const processedText = processText(text);
+  const margin = doc.page.margins.left;
+  const pageWidth = doc.page.width;
+  const usableWidth = pageWidth - doc.page.margins.left - doc.page.margins.right;
+  
+  const textOptions = {
+    width: options.width || usableWidth,
+    align: options.align || 'right',
+    ...options,
+  };
+
+  // Use Persian font if available, otherwise use default
+  if (persianFontAvailable) {
+    try {
+      doc.font('persian');
+    } catch (error) {
+      // Fallback to default font if Persian font fails
+      doc.font('Helvetica');
+    }
+  } else {
+    doc.font('Helvetica');
+  }
+
+  doc.text(processedText, x, y, textOptions);
+};
+
+/**
+ * Helper function to add multiline text with proper wrapping
+ */
+const addMultilineText = (doc: PDFDocument, text: string, x: number, y: number, options: any = {}) => {
+  const margin = doc.page.margins.left;
+  const pageWidth = doc.page.width;
+  const usableWidth = pageWidth - doc.page.margins.left - doc.page.margins.right;
+  
+  const lines = text.split('\n');
+  let currentY = y;
+  
+  lines.forEach((line) => {
+    if (line.trim()) {
+      addText(doc, line.trim(), x, currentY, {
+        width: options.width || usableWidth,
+        align: options.align || 'right',
+        ...options,
+      });
+      currentY += (options.lineHeight || 15);
+    }
+  });
+  
+  return currentY;
+};
+
+/**
+ * Get company settings from database
+ */
+const getCompanySettings = (): Promise<Record<string, string>> => {
   return new Promise((resolve, reject) => {
+    db.all('SELECT key, value FROM settings WHERE key IN ("company_name", "company_phone", "company_address")', [], (err, settings: any) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      
+      const settingsObj: Record<string, string> = {};
+      settings.forEach((s: any) => {
+        settingsObj[s.key] = s.value || '';
+      });
+      
+      resolve(settingsObj);
+    });
+  });
+};
+
+// Generate Contract PDF with full Persian support and contract template
+export const generateContractPDF = (contract: ContractData, templateConfig?: ContractTemplateConfig): Promise<Buffer> => {
+  return new Promise(async (resolve, reject) => {
     try {
       const doc = new PDFDocument({
         size: 'A4',
-        margins: { top: 50, bottom: 50, left: 50, right: 50 }
+        margins: { top: 50, bottom: 50, left: 50, right: 50 },
+        info: {
+          Title: `قرارداد ${contract.contract_number}`,
+          Author: 'CRM هوشمند',
+          Subject: 'قرارداد',
+        },
       });
 
       const buffers: Buffer[] = [];
@@ -258,142 +391,294 @@ export const generateContractPDF = (contract: ContractData): Promise<Buffer> => 
       });
       doc.on('error', reject);
 
-      // Header
-      doc.fontSize(24).text('قرارداد', { align: 'right' });
-      doc.moveDown(0.5);
-      doc.fontSize(12);
-      doc.text(`شماره قرارداد: ${contract.contract_number}`, { align: 'right' });
-      doc.text(`تاریخ ایجاد: ${toJalali(contract.created_at)}`, { align: 'right' });
-      doc.moveDown();
+      // Register Persian font
+      const hasPersianFont = registerPersianFont(doc);
+      if (!hasPersianFont) {
+        doc.font('Helvetica'); // Fallback to default font
+      }
 
-      // Title
-      doc.fontSize(18).text(contract.title, { align: 'right' });
-      doc.moveDown();
+      // Get company settings
+      let companySettings: Record<string, string> = {};
+      try {
+        companySettings = await getCompanySettings();
+      } catch (error) {
+        console.warn('Could not fetch company settings:', error);
+      }
 
-      // Contract Info
-      doc.fontSize(14).text('اطلاعات قرارداد:', { align: 'right' });
-      doc.fontSize(12);
-      doc.text(`مشتری: ${contract.account_name || '-'}`, { align: 'right' });
+      // Use provided template or default
+      const template = templateConfig || defaultContractTemplate;
       
-      if (contract.contract_type) {
-        doc.text(`نوع قرارداد: ${contract.contract_type}`, { align: 'right' });
+      // Update template with company settings if available
+      if (companySettings.company_name) {
+        template.header.companyName = companySettings.company_name;
       }
-      
-      if (contract.start_date) {
-        doc.text(`تاریخ شروع: ${toJalali(contract.start_date)}`, { align: 'right' });
+      if (companySettings.company_phone) {
+        template.header.phone = companySettings.company_phone;
+        template.footer.phone = companySettings.company_phone;
       }
-      
-      if (contract.end_date) {
-        doc.text(`تاریخ پایان: ${toJalali(contract.end_date)}`, { align: 'right' });
+      if (companySettings.company_address) {
+        template.header.address = companySettings.company_address;
+        template.footer.address = companySettings.company_address;
       }
-      
+
+      // Prepare contract data
+      const contractData: ContractTemplateData = {
+        contractNumber: contract.contract_number,
+        contractDate: contract.start_date ? toJalali(contract.start_date) : toJalali(contract.created_at),
+        clientName: contract.account_name || 'کارفرما',
+        contractorName: template.signatures.contractor.name,
+        contractType: contract.contract_type,
+        packageName: template.article2.packageName,
+        projectTitle: contract.title || template.article2.projectTitle,
+        totalAmount: contract.value || 0,
+        currency: contract.currency || 'IRR',
+        paymentTerms: contract.payment_terms,
+        executionDays: contract.delivery_days || template.article3.executionDays,
+        validityMonths: template.article3.validityMonths,
+        supportMonths: contract.support_duration || template.article9.supportMonths,
+        deliveryDays: contract.delivery_days,
+        websiteLanguages: contract.website_languages,
+        domainName: contract.domain_name,
+        hostingType: contract.hosting_type,
+        sslCertificate: contract.ssl_certificate === 1,
+        seoPackage: contract.seo_package,
+        websitePages: contract.website_pages,
+        warrantyMonths: contract.warranty_months,
+      };
+
+      // Calculate payment installments
       if (contract.value) {
-        doc.text(`مبلغ: ${formatCurrency(contract.value, contract.currency)}`, { align: 'right' });
-      }
-      
-      doc.text(`وضعیت: ${contract.status}`, { align: 'right' });
-      
-      if (contract.auto_renew) {
-        doc.text('تمدید خودکار: بله', { align: 'right' });
-        if (contract.renewal_notice_days) {
-          doc.text(`یادآور انقضا: ${contract.renewal_notice_days} روز قبل`, { align: 'right' });
-        }
-      }
-      
-      if (contract.signed_date) {
-        doc.text(`تاریخ امضا: ${toJalali(contract.signed_date)}`, { align: 'right' });
-      }
-      
-      if (contract.signed_by) {
-        doc.text(`امضا کننده: ${contract.signed_by}`, { align: 'right' });
-      }
-      
-      doc.moveDown();
-
-      // Description
-      if (contract.description) {
-        doc.fontSize(14).text('توضیحات:', { align: 'right' });
-        doc.fontSize(12);
-        // Split description into lines if too long
-        const descLines = contract.description.split('\n');
-        descLines.forEach((line: string) => {
-          doc.text(line, { align: 'right' });
-        });
-        doc.moveDown();
+        const firstPayment = Math.round(contract.value * 0.33);
+        const remaining = contract.value - firstPayment;
+        contractData.firstPayment = firstPayment;
+        contractData.remainingPayments = [Math.round(remaining / 2), Math.round(remaining / 2)];
       }
 
-      // Contract/Website Details Table
-      const hasDetails = contract.domain_name || contract.hosting_type || contract.hosting_duration || 
-                        contract.ssl_certificate || contract.support_duration || contract.seo_package ||
-                        contract.website_pages || contract.website_languages || contract.payment_terms ||
-                        contract.delivery_days || contract.warranty_months;
-      
-      if (hasDetails) {
-        doc.moveDown();
-        doc.fontSize(14).text('جزئیات قرارداد/سایت:', { align: 'right' });
-        doc.moveDown(0.5);
-        doc.fontSize(10);
-        
-        const tableTop = doc.y;
-        const tableWidth = 500;
-        const col1Width = 200;
-        const col2Width = 300;
-        let currentY = tableTop;
-        
-        // Helper function to add table row
-        const addTableRow = (label: string, value: string | number | null | undefined) => {
-          if (value === null || value === undefined || value === '') return;
-          
-          const displayValue = typeof value === 'number' ? value.toString() : value;
-          const displayLabel = label;
-          
-          // Check if we need a new page
-          if (currentY > doc.page.height - 100) {
-            doc.addPage();
-            currentY = 50;
-          }
-          
-          doc.rect(50, currentY, col1Width, 20).stroke();
-          doc.rect(50 + col1Width, currentY, col2Width, 20).stroke();
-          
-          doc.text(displayLabel, 55, currentY + 5, { width: col1Width - 10, align: 'right' });
-          doc.text(displayValue.toString(), 55 + col1Width, currentY + 5, { width: col2Width - 10, align: 'right' });
-          
-          currentY += 20;
-        };
-        
-        addTableRow('نام دامنه', contract.domain_name);
-        addTableRow('نوع هاستینگ', contract.hosting_type);
-        if (contract.hosting_duration) {
-          addTableRow('مدت هاستینگ (ماه)', contract.hosting_duration);
-        }
-        if (contract.ssl_certificate) {
-          addTableRow('گواهینامه SSL شامل', contract.ssl_certificate ? 'بله' : 'خیر');
-        }
-        if (contract.support_duration) {
-          addTableRow('مدت پشتیبانی (ماه)', contract.support_duration);
-        }
-        addTableRow('پکیج SEO', contract.seo_package);
-        if (contract.website_pages) {
-          addTableRow('تعداد صفحات سایت', contract.website_pages);
-        }
-        addTableRow('زبانهای سایت', contract.website_languages);
-        addTableRow('شرایط پرداخت', contract.payment_terms);
-        if (contract.delivery_days) {
-          addTableRow('روزهای تحویل', contract.delivery_days);
-        }
-        if (contract.warranty_months) {
-          addTableRow('ضمانت (ماه)', contract.warranty_months);
-        }
-        
-        doc.y = currentY;
-        doc.moveDown();
+      const margin = doc.page.margins.left;
+      const pageWidth = doc.page.width;
+      const usableWidth = pageWidth - doc.page.margins.left - doc.page.margins.right;
+      let currentY = 50;
+
+      // Header with company name and contact info
+      doc.fontSize(10).fillColor('gray');
+      addText(doc, template.header.phone, margin, currentY, { width: usableWidth, align: 'right' });
+      currentY += 12;
+      addText(doc, template.header.address, margin, currentY, { width: usableWidth, align: 'right' });
+      currentY += 20;
+
+      // Company logo/name in center (watermark style)
+      doc.fontSize(16).fillColor('lightgray');
+      if (hasPersianFont) {
+        doc.font('persian');
+      } else {
+        doc.font('Helvetica');
       }
+      const companyNameText = processText(template.header.companyName);
+      const companyNameWidth = doc.widthOfString(companyNameText);
+      addText(doc, template.header.companyName, (pageWidth - companyNameWidth) / 2, currentY, { align: 'left' });
+      currentY += 25;
+
+      // Contract date and number (top right)
+      doc.fontSize(11).fillColor('black');
+      addText(doc, `تاریخ: ${contractData.contractDate}`, margin, currentY, { width: usableWidth, align: 'right' });
+      currentY += 12;
+      addText(doc, `شماره: ${processText(contract.contract_number)}`, margin, currentY, { width: usableWidth, align: 'right' });
+      currentY += 20;
+
+      // Title section
+      doc.fontSize(14).fillColor('black');
+      addText(doc, 'بسمه تعالی', margin, currentY, { width: usableWidth, align: 'center' });
+      currentY += 15;
+      doc.fontSize(18);
+      addText(doc, template.title.main, margin, currentY, { width: usableWidth, align: 'center' });
+      currentY += 25;
+
+      // Article 1 - Contract Title
+      doc.fontSize(14).fillColor('black');
+      addText(doc, template.article1.title, margin, currentY, { width: usableWidth, align: 'right' });
+      currentY += 15;
+      doc.fontSize(11);
+      const article1Content = template.article1.content(contractData);
+      currentY = addMultilineText(doc, article1Content, margin, currentY, { width: usableWidth, align: 'right', lineHeight: 16 });
+      currentY += 10;
+
+      // Article 2 - Contract Subject
+      if (currentY > doc.page.height - 150) {
+        doc.addPage();
+        currentY = 50;
+      }
+      doc.fontSize(14);
+      addText(doc, template.article2.title, margin, currentY, { width: usableWidth, align: 'right' });
+      currentY += 15;
+      doc.fontSize(11);
+      
+      if (template.article2.packageName) {
+        addText(doc, `${template.article2.packageName} شامل تمامی موارد ذکر شده در پکیج که تیم بهت موظف به پیاده‌سازی آن برای کارفرما می‌باشد.`, margin, currentY, { width: usableWidth, align: 'right' });
+        currentY += 15;
+      }
+      
+      if (template.article2.projectTitle) {
+        addText(doc, `پیاده‌سازی پروژه طراحی سایت با عنوان "${contractData.projectTitle}"`, margin, currentY, { width: usableWidth, align: 'right' });
+        currentY += 15;
+      }
+      
+      addText(doc, 'طراحی بصری و پیاده‌سازی مطابق با نظر و سلیقه مجری انجام خواهد شد.', margin, currentY, { width: usableWidth, align: 'right' });
+      currentY += 15;
+      
+      addText(doc, 'مواردی که باید به کارفرما ارائه شود:', margin, currentY, { width: usableWidth, align: 'right' });
+      currentY += 15;
+      
+      const items = template.article2.items(contractData);
+      doc.fontSize(10);
+      items.forEach((item, index) => {
+        if (currentY > doc.page.height - 100) {
+          doc.addPage();
+          currentY = 50;
+        }
+        addText(doc, `${index + 1}. ${item}`, margin + 10, currentY, { width: usableWidth - 10, align: 'right' });
+        currentY += 14;
+      });
+      currentY += 10;
+
+      // Article 3 - Contract Duration
+      if (currentY > doc.page.height - 100) {
+        doc.addPage();
+        currentY = 50;
+      }
+      doc.fontSize(14);
+      addText(doc, template.article3.title, margin, currentY, { width: usableWidth, align: 'right' });
+      currentY += 15;
+      doc.fontSize(11);
+      const article3Content = template.article3.content(contractData);
+      currentY = addMultilineText(doc, article3Content, margin, currentY, { width: usableWidth, align: 'right', lineHeight: 16 });
+      currentY += 10;
+
+      // Article 4 - Contractor Obligations
+      if (currentY > doc.page.height - 150) {
+        doc.addPage();
+        currentY = 50;
+      }
+      doc.fontSize(14);
+      addText(doc, template.article4.title, margin, currentY, { width: usableWidth, align: 'right' });
+      currentY += 15;
+      doc.fontSize(11);
+      template.article4.obligations.forEach((obligation) => {
+        if (currentY > doc.page.height - 100) {
+          doc.addPage();
+          currentY = 50;
+        }
+        addText(doc, `• ${obligation}`, margin + 10, currentY, { width: usableWidth - 10, align: 'right' });
+        currentY += 14;
+      });
+      currentY += 10;
+
+      // Article 5 - Client Obligations
+      if (currentY > doc.page.height - 150) {
+        doc.addPage();
+        currentY = 50;
+      }
+      doc.fontSize(14);
+      addText(doc, template.article5.title, margin, currentY, { width: usableWidth, align: 'right' });
+      currentY += 15;
+      doc.fontSize(11);
+      template.article5.obligations.forEach((obligation) => {
+        if (currentY > doc.page.height - 100) {
+          doc.addPage();
+          currentY = 50;
+        }
+        addText(doc, `• ${obligation}`, margin + 10, currentY, { width: usableWidth - 10, align: 'right' });
+        currentY += 14;
+      });
+      currentY += 10;
+
+      // Article 6 - Contract Amount
+      if (currentY > doc.page.height - 100) {
+        doc.addPage();
+        currentY = 50;
+      }
+      doc.fontSize(14);
+      addText(doc, template.article6.title, margin, currentY, { width: usableWidth, align: 'right' });
+      currentY += 15;
+      doc.fontSize(11);
+      const article6Content = template.article6.content(contractData);
+      currentY = addMultilineText(doc, article6Content, margin, currentY, { width: usableWidth, align: 'right', lineHeight: 16 });
+      currentY += 10;
+
+      // Article 7 - Dispute Resolution
+      if (currentY > doc.page.height - 100) {
+        doc.addPage();
+        currentY = 50;
+      }
+      doc.fontSize(14);
+      addText(doc, template.article7.title, margin, currentY, { width: usableWidth, align: 'right' });
+      currentY += 15;
+      doc.fontSize(11);
+      currentY = addMultilineText(doc, template.article7.content, margin, currentY, { width: usableWidth, align: 'right', lineHeight: 16 });
+      currentY += 10;
+
+      // Article 8 - Contract Termination
+      if (currentY > doc.page.height - 100) {
+        doc.addPage();
+        currentY = 50;
+      }
+      doc.fontSize(14);
+      addText(doc, template.article8.title, margin, currentY, { width: usableWidth, align: 'right' });
+      currentY += 15;
+      doc.fontSize(11);
+      currentY = addMultilineText(doc, template.article8.content, margin, currentY, { width: usableWidth, align: 'right', lineHeight: 16 });
+      currentY += 10;
+
+      // Article 9 - Support
+      if (currentY > doc.page.height - 100) {
+        doc.addPage();
+        currentY = 50;
+      }
+      doc.fontSize(14);
+      addText(doc, template.article9.title, margin, currentY, { width: usableWidth, align: 'right' });
+      currentY += 15;
+      doc.fontSize(11);
+      const article9Content = template.article9.content(contractData);
+      currentY = addMultilineText(doc, article9Content, margin, currentY, { width: usableWidth, align: 'right', lineHeight: 16 });
+      currentY += 15;
+
+      // Closing statement
+      doc.fontSize(11);
+      addText(doc, 'این قرارداد در ۹ ماده و ۲ نسخه تهیه شده که هر دو نسخه دارای اعتبار یکسان می‌باشند.', margin, currentY, { width: usableWidth, align: 'right' });
+      currentY += 12;
+      addText(doc, `کلیه بندهای قرارداد در تاریخ ${contractData.contractDate} توسط طرفین امضا شده و طرفین متعهد به اجرای مفاد آن می‌باشند.`, margin, currentY, { width: usableWidth, align: 'right' });
+      currentY += 20;
+
+      // Signatures section
+      if (currentY > doc.page.height - 120) {
+        doc.addPage();
+        currentY = 50;
+      }
+      
+      const signatureBoxHeight = 80;
+      const signatureBoxWidth = (usableWidth - 20) / 2;
+      
+      // Contractor signature box (left)
+      doc.rect(margin, currentY, signatureBoxWidth, signatureBoxHeight).stroke();
+      doc.fontSize(11);
+      addText(doc, template.signatures.contractor.label, margin + 5, currentY + 5, { width: signatureBoxWidth - 10, align: 'right' });
+      doc.fontSize(10);
+      addText(doc, template.signatures.contractor.name, margin + 5, currentY + 25, { width: signatureBoxWidth - 10, align: 'right' });
+      
+      // Client signature box (right)
+      const clientBoxX = margin + signatureBoxWidth + 20;
+      doc.rect(clientBoxX, currentY, signatureBoxWidth, signatureBoxHeight).stroke();
+      doc.fontSize(11);
+      addText(doc, template.signatures.client.label, clientBoxX + 5, currentY + 5, { width: signatureBoxWidth - 10, align: 'right' });
+      doc.fontSize(10);
+      addText(doc, template.signatures.client.name(contractData), clientBoxX + 5, currentY + 25, { width: signatureBoxWidth - 10, align: 'right' });
+      
+      currentY += signatureBoxHeight + 15;
 
       // Footer
+      const footerY = doc.page.height - 40;
       doc.fontSize(8).fillColor('gray');
-      const footerY = doc.page.height - 30;
-      doc.text('این قرارداد به صورت خودکار تولید شده است.', 50, footerY, { align: 'center' });
+      addText(doc, template.footer.phone, margin, footerY, { width: usableWidth, align: 'center' });
+      addText(doc, template.footer.address, margin, footerY + 10, { width: usableWidth, align: 'center' });
 
       doc.end();
     } catch (error) {
