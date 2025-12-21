@@ -24,9 +24,15 @@ router.get('/', authenticate, (req: AuthRequest, res: Response) => {
   
   db.all(query, params, (err, notifications) => {
     if (err) {
+      console.error('Error fetching notifications:', err);
+      // If table doesn't exist, return empty array instead of error
+      if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+        console.warn('notifications table does not exist yet, returning empty array');
+        return res.json([]);
+      }
       return res.status(500).json({ error: 'خطا در دریافت اعلان‌ها' });
     }
-    res.json(notifications);
+    res.json(Array.isArray(notifications) ? notifications : []);
   });
 });
 
@@ -72,6 +78,12 @@ router.get('/unread-count', authenticate, (req: AuthRequest, res: Response) => {
     [userId],
     (err, row: any) => {
       if (err) {
+        console.error('Error fetching unread count:', err);
+        // If table doesn't exist, return 0
+        if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+          console.warn('notifications table does not exist yet, returning 0');
+          return res.json({ count: 0 });
+        }
         return res.status(500).json({ error: 'خطا در دریافت تعداد اعلان‌ها' });
       }
       res.json({ count: row?.count || 0 });

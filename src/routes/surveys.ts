@@ -1,5 +1,5 @@
 import express, { Response } from 'express';
-import { db } from '../database/db';
+import { db, isMySQL } from '../database/db';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { logActivity, getClientInfo } from '../utils/activityLogger';
 
@@ -382,10 +382,15 @@ router.delete('/:id/questions/:questionId', authenticate, (req: AuthRequest, res
 router.get('/:id/responses', authenticate, (req: AuthRequest, res: Response) => {
   const { id } = req.params;
 
+  // Use CONCAT for MySQL, || for SQLite
+  const contactNameExpr = isMySQL 
+    ? "CONCAT(c.first_name, ' ', c.last_name)"
+    : "c.first_name || ' ' || c.last_name";
+
   db.all(`
     SELECT sr.*, 
            u.full_name as user_name,
-           c.first_name || ' ' || c.last_name as contact_name,
+           ${contactNameExpr} as contact_name,
            a.name as account_name
     FROM survey_responses sr
     LEFT JOIN users u ON sr.user_id = u.id

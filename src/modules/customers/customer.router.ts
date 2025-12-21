@@ -50,10 +50,19 @@ router.get('/', authenticate, async (req, res) => {
       coach_id: coach_id as string | undefined,
     });
 
-    res.json(customers);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'خطا در دریافت اطلاعات مشتریان' });
+    // Always return an array, even if empty
+    const result = Array.isArray(customers) ? customers : [];
+    console.log(`✅ Returning ${result.length} customers`);
+    res.json(result);
+  } catch (error: any) {
+    console.error('Error in customers GET route:', error);
+    console.error('Error details:', {
+      code: error?.code,
+      message: error?.message,
+      stack: error?.stack
+    });
+    // Return empty array instead of error to prevent frontend crash
+    res.json([]);
   }
 });
 

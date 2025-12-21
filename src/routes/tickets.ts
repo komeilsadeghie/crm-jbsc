@@ -1,5 +1,5 @@
 import express, { Response } from 'express';
-import { db } from '../database/db';
+import { db, isMySQL } from '../database/db';
 import { authenticate, AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
@@ -8,10 +8,15 @@ const router = express.Router();
 router.get('/', authenticate, (req: AuthRequest, res: Response) => {
   const { account_id, status, priority, department_id, assigned_to } = req.query;
   
+  // Use CONCAT for MySQL, || for SQLite
+  const contactNameExpr = isMySQL 
+    ? "CONCAT(c.first_name, ' ', c.last_name)"
+    : "c.first_name || ' ' || c.last_name";
+  
   let query = `
     SELECT t.*, 
            a.name as account_name,
-           c.first_name || ' ' || c.last_name as contact_name,
+           ${contactNameExpr} as contact_name,
            d.name as department_name,
            u.username as assigned_username
     FROM tickets t
@@ -52,9 +57,15 @@ router.get('/', authenticate, (req: AuthRequest, res: Response) => {
 
   db.all(query, params, (err, tickets) => {
     if (err) {
+      console.error('Error fetching tickets:', err);
+      // If table doesn't exist, return empty array instead of error
+      if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+        console.warn('Tickets table or related tables do not exist yet, returning empty array');
+        return res.json([]);
+      }
       return res.status(500).json({ error: 'خطا در دریافت تیکت‌ها' });
     }
-    res.json(tickets);
+    res.json(Array.isArray(tickets) ? tickets : []);
   });
 });
 
@@ -62,9 +73,15 @@ router.get('/', authenticate, (req: AuthRequest, res: Response) => {
 router.get('/departments', authenticate, (req: AuthRequest, res: Response) => {
   db.all('SELECT * FROM ticket_departments ORDER BY name', [], (err, departments) => {
     if (err) {
-      return res.status(500).json({ error: 'خطا در دریافت دپارتمان‌ها' });
+      console.error('Error fetching departments:', err);
+      // If table doesn't exist, return empty array instead of error
+      if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+        console.warn('ticket_departments table does not exist yet, returning empty array');
+        return res.json([]);
+      }
+      return res.status(500).json({ error: 'خطا در دریافت دپارتمان‌ها: ' + (err.message || 'خطای نامشخص') });
     }
-    res.json(departments);
+    res.json(Array.isArray(departments) ? departments : []);
   });
 });
 
@@ -81,10 +98,15 @@ router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
     }
 
     // Get replies
+    // Use CONCAT for MySQL, || for SQLite
+    const contactNameExpr = isMySQL 
+      ? "CONCAT(c.first_name, ' ', c.last_name)"
+      : "c.first_name || ' ' || c.last_name";
+    
     db.all(`
       SELECT tr.*, 
              u.username as user_username, u.full_name as user_full_name, u.role as user_role,
-             c.first_name || ' ' || c.last_name as contact_name
+             ${contactNameExpr} as contact_name
       FROM ticket_replies tr
       LEFT JOIN users u ON tr.user_id = u.id
       LEFT JOIN contacts c ON tr.contact_id = c.id
@@ -258,10 +280,14 @@ router.post('/departments', authenticate, (req: AuthRequest, res: Response) => {
     function(err) {
       if (err) {
         console.error('Error inserting department:', err);
-        if (err.message.includes('UNIQUE constraint')) {
+        // If table doesn't exist, return helpful error
+        if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+          return res.status(500).json({ error: 'جدول دپارتمان‌ها وجود ندارد. لطفاً دیتابیس را migrate کنید.' });
+        }
+        if (err.message?.includes('UNIQUE constraint') || err.message?.includes('Duplicate entry')) {
           return res.status(400).json({ error: 'دپارتمانی با این نام قبلاً ثبت شده است' });
         }
-        return res.status(500).json({ error: 'خطا در ثبت دپارتمان: ' + err.message });
+        return res.status(500).json({ error: 'خطا در ثبت دپارتمان: ' + (err.message || 'خطای نامشخص') });
       }
       // Return the created department data
       db.get('SELECT * FROM ticket_departments WHERE id = ?', [this.lastID], (err, dept) => {

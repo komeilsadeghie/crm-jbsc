@@ -1,5 +1,5 @@
 import express, { Response } from 'express';
-import { db } from '../database/db';
+import { db, isMySQL } from '../database/db';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { logActivity, getClientInfo } from '../utils/activityLogger';
 // import { generateProposalPDF } from '../services/pdf-generator'; // TODO: Implement PDF generation
@@ -10,11 +10,16 @@ const router = express.Router();
 router.get('/', authenticate, (req: AuthRequest, res: Response) => {
   const { account_id, deal_id, status, sortBy = 'created_at', order = 'DESC' } = req.query;
 
+  // Use CONCAT for MySQL, || for SQLite
+  const contactNameExpr = isMySQL 
+    ? "CONCAT(c.first_name, ' ', c.last_name)"
+    : "c.first_name || ' ' || c.last_name";
+
   let query = `
     SELECT p.*, 
            a.name as account_name,
            d.title as deal_title,
-           c.first_name || ' ' || c.last_name as contact_name,
+           ${contactNameExpr} as contact_name,
            u.full_name as created_by_name
     FROM proposals p
     LEFT JOIN accounts a ON p.account_id = a.id
@@ -54,11 +59,16 @@ router.get('/', authenticate, (req: AuthRequest, res: Response) => {
 router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
   const { id } = req.params;
 
+  // Use CONCAT for MySQL, || for SQLite
+  const contactNameExpr = isMySQL 
+    ? "CONCAT(c.first_name, ' ', c.last_name)"
+    : "c.first_name || ' ' || c.last_name";
+
   db.get(`
     SELECT p.*, 
            a.name as account_name,
            d.title as deal_title,
-           c.first_name || ' ' || c.last_name as contact_name,
+           ${contactNameExpr} as contact_name,
            u.full_name as created_by_name
     FROM proposals p
     LEFT JOIN accounts a ON p.account_id = a.id

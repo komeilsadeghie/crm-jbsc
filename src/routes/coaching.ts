@@ -77,6 +77,12 @@ router.get('/sessions', authenticate, (req: AuthRequest, res: Response) => {
 
   db.all(query, params, (err, sessions) => {
     if (err) {
+      console.error('Error fetching coaching sessions:', err);
+      // If table doesn't exist, return empty array instead of error
+      if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+        console.warn('coaching_sessions or related tables do not exist yet, returning empty array');
+        return res.json([]);
+      }
       return res.status(500).json({ error: 'خطا در دریافت جلسات' });
     }
     res.json(Array.isArray(sessions) ? sessions : []);
@@ -86,6 +92,27 @@ router.get('/sessions', authenticate, (req: AuthRequest, res: Response) => {
 router.post('/sessions', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const session: any = req.body;
+
+    // Validate customer_id
+    if (!session.customer_id) {
+      return res.status(400).json({ error: 'مشتری الزامی است' });
+    }
+
+    // Check if customer exists
+    try {
+      const customer = await dbGet('SELECT id FROM customers WHERE id = ?', [session.customer_id]);
+      if (!customer) {
+        return res.status(404).json({ error: 'مشتری یافت نشد' });
+      }
+    } catch (err: any) {
+      console.error('Error checking customer:', err);
+      // If table doesn't exist, allow anyway (will fail on insert)
+      if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+        console.warn('Customers table does not exist, continuing anyway');
+      } else {
+        return res.status(500).json({ error: 'خطا در بررسی مشتری' });
+      }
+    }
 
     const result = await dbRun(
       'INSERT INTO coaching_sessions (customer_id, coach_id, session_date, duration, notes, status, session_type, meeting_link, tags, color, kanban_column, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',

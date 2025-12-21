@@ -21,11 +21,14 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
   const { contact_id, module, can_view, can_edit } = req.body;
 
   db.run(
-    `INSERT OR REPLACE INTO contact_permissions (contact_id, module, can_view, can_edit)
-     VALUES (?, ?, ?, ?)`,
+    `INSERT INTO contact_permissions (contact_id, module, can_view, can_edit)
+     VALUES (?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE can_view = ?, can_edit = ?`,
     [
       contact_id,
       module,
+      can_view ? 1 : 0,
+      can_edit ? 1 : 0,
       can_view ? 1 : 0,
       can_edit ? 1 : 0
     ],

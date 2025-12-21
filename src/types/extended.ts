@@ -56,6 +56,7 @@ export interface Contact {
 
 export interface Deal {
   id?: number;
+  customer_id?: number;
   account_id?: number;
   contact_id?: number;
   title: string;

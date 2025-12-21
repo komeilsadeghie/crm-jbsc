@@ -46,13 +46,27 @@ const ProjectDetail = () => {
   const [taskSearch, setTaskSearch] = useState<string>('');
   const [showDiscussionModal, setShowDiscussionModal] = useState(false);
 
-  const { data: project, isLoading } = useQuery(
+  const { data: project, isLoading, error } = useQuery(
     ['project-detail', id],
     async () => {
-      const response = await api.get(`/projects/${id}`);
-      return response.data;
+      try {
+        const response = await api.get(`/projects/${id}`);
+        return response.data;
+      } catch (err: any) {
+        console.error('Error fetching project:', err);
+        if (err.response?.status === 404) {
+          throw new Error('پروژه یافت نشد');
+        }
+        throw err;
+      }
     },
-    { enabled: !!id }
+    { 
+      enabled: !!id,
+      retry: 1,
+      onError: (error: any) => {
+        console.error('Error in project detail query:', error);
+      }
+    }
   );
 
   // Fetch tickets for this project
@@ -186,11 +200,16 @@ const ProjectDetail = () => {
     );
   }
 
-  if (!project) {
+  if (error || (!isLoading && !project)) {
     return (
       <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 p-6 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-xl font-medium text-neutral-700 dark:text-neutral-300">پروژه یافت نشد</div>
+          <div className="text-xl font-medium text-danger-600 dark:text-danger-400 mb-2">
+            {error?.message || 'پروژه یافت نشد'}
+          </div>
+          <div className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
+            {error?.message?.includes('یافت نشد') ? 'پروژه مورد نظر در سیستم وجود ندارد یا حذف شده است.' : 'خطا در بارگذاری اطلاعات پروژه'}
+          </div>
           <button onClick={() => navigate('/projects')} className="btn btn-primary mt-4">
             بازگشت به لیست پروژه‌ها
           </button>

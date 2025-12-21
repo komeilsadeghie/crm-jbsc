@@ -1,5 +1,5 @@
 import express, { Response } from 'express';
-import { db } from '../database/db';
+import { db, isMySQL } from '../database/db';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { Deal } from '../types/extended';
 
@@ -9,10 +9,15 @@ const router = express.Router();
 router.get('/', authenticate, (req: AuthRequest, res: Response) => {
   const { stage, account_id, designer_id, search, sortBy = 'created_at', order = 'DESC' } = req.query;
   
+  // Use CONCAT for MySQL, || for SQLite
+  const contactNameExpr = isMySQL 
+    ? "CONCAT(c.first_name, ' ', c.last_name)"
+    : "c.first_name || ' ' || c.last_name";
+  
   let query = `
     SELECT d.*, 
            a.name as account_name,
-           c.first_name || ' ' || c.last_name as contact_name,
+           ${contactNameExpr} as contact_name,
            u.full_name as designer_name
     FROM deals d
     LEFT JOIN accounts a ON d.account_id = a.id
@@ -47,6 +52,12 @@ router.get('/', authenticate, (req: AuthRequest, res: Response) => {
 
   db.all(query, params, (err, deals) => {
     if (err) {
+      console.error('Error fetching deals:', err);
+      // If table doesn't exist, return empty array instead of error
+      if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+        console.warn('Deals table or related tables do not exist yet, returning empty array');
+        return res.json([]);
+      }
       return res.status(500).json({ error: 'خطا در دریافت پروژه‌ها' });
     }
     // Ensure we always return an array
@@ -58,10 +69,15 @@ router.get('/', authenticate, (req: AuthRequest, res: Response) => {
 router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
   const { id } = req.params;
 
+  // Use CONCAT for MySQL, || for SQLite
+  const contactNameExpr = isMySQL 
+    ? "CONCAT(c.first_name, ' ', c.last_name)"
+    : "c.first_name || ' ' || c.last_name";
+
   db.get(
     `SELECT d.*, 
             a.name as account_name,
-            c.first_name || ' ' || c.last_name as contact_name,
+            ${contactNameExpr} as contact_name,
             u.full_name as designer_name
      FROM deals d
      LEFT JOIN accounts a ON d.account_id = a.id
@@ -86,33 +102,69 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
   const deal: Deal = req.body;
   const userId = req.user?.id;
 
-  db.run(
-    `INSERT INTO deals (
-      account_id, contact_id, title, stage, budget, probability, services,
-      site_model, designer_id, start_date, expected_delivery_date, notes, created_by
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      deal.account_id || null,
-      deal.contact_id || null,
-      deal.title,
-      deal.stage || 'discovery',
-      deal.budget || null,
-      deal.probability || 0,
-      deal.services || null,
-      deal.site_model || null,
-      deal.designer_id || null,
-      deal.start_date || null,
-      deal.expected_delivery_date || null,
-      deal.notes || null,
-      userId
-    ],
-    function(err) {
+  // Validate account_id if provided
+  if (deal.account_id) {
+    db.get('SELECT id FROM accounts WHERE id = ?', [deal.account_id], (err, account) => {
       if (err) {
-        return res.status(500).json({ error: 'خطا در ثبت پروژه' });
+        console.error('Error checking account:', err);
+        // If table doesn't exist, allow null account_id
+        if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+          console.warn('Accounts table does not exist, creating deal without account_id');
+          deal.account_id = null;
+        } else {
+          return res.status(500).json({ error: 'خطا در بررسی حساب' });
+        }
       }
-      res.status(201).json({ id: this.lastID, message: 'پروژه با موفقیت ثبت شد' });
+      if (!account && deal.account_id) {
+        return res.status(404).json({ error: 'حساب انتخاب شده یافت نشد' });
+      }
+      
+      // Continue with insert
+      insertDeal();
+    });
+  } else {
+    insertDeal();
+  }
+  
+  function insertDeal() {
+    // customer_id is required in deals table, use account_id as fallback or create a default
+    // If no customer_id or account_id, we need to handle this - for now use account_id
+    const customerId = deal.customer_id || deal.account_id;
+    
+    if (!customerId) {
+      return res.status(400).json({ error: 'مشتری یا حساب الزامی است' });
     }
-  );
+    
+    db.run(
+      `INSERT INTO deals (
+        customer_id, account_id, contact_id, title, stage, budget, probability, services,
+        site_model, designer_id, start_date, expected_delivery_date, notes, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        customerId,
+        deal.account_id || null,
+        deal.contact_id || null,
+        deal.title,
+        deal.stage || 'discovery',
+        deal.budget || null,
+        deal.probability || 0,
+        deal.services || null,
+        deal.site_model || null,
+        deal.designer_id || null,
+        deal.start_date || null,
+        deal.expected_delivery_date || null,
+        deal.notes || null,
+        userId
+      ],
+      function(err) {
+        if (err) {
+          console.error('Error creating deal:', err);
+          return res.status(500).json({ error: 'خطا در ثبت معامله: ' + (err.message || 'خطای نامشخص') });
+        }
+        res.status(201).json({ id: this.lastID, message: 'معامله با موفقیت ثبت شد' });
+      }
+    );
+  }
 });
 
 // Update deal

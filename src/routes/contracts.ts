@@ -32,9 +32,15 @@ router.get('/', authenticate, (req: AuthRequest, res: Response) => {
 
   db.all(query, params, (err, contracts) => {
     if (err) {
+      console.error('Error fetching contracts:', err);
+      // If table doesn't exist, return empty array instead of error
+      if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+        console.warn('Contracts or accounts table does not exist yet, returning empty array');
+        return res.json([]);
+      }
       return res.status(500).json({ error: 'خطا در دریافت قراردادها' });
     }
-    res.json(contracts);
+    res.json(Array.isArray(contracts) ? contracts : []);
   });
 });
 
@@ -64,51 +70,78 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
   const contract = req.body;
   const contractNumber = contract.contract_number || `CNT-${Date.now()}`;
 
-  db.run(
-    `INSERT INTO contracts (
-      account_id, contract_number, title, description, contract_type,
-      start_date, end_date, value, currency, status,
-      auto_renew, renewal_notice_days, signed_date, signed_by, file_path, created_by,
-      domain_name, hosting_type, hosting_duration, ssl_certificate, support_duration,
-      seo_package, website_pages, website_languages, payment_terms, delivery_days, warranty_months, project_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      contract.account_id,
-      contractNumber,
-      contract.title,
-      contract.description || null,
-      contract.contract_type || null,
-      contract.start_date,
-      contract.end_date || null,
-      contract.value || null,
-      contract.currency || 'IRR',
-      contract.status || 'draft',
-      contract.auto_renew ? 1 : 0,
-      contract.renewal_notice_days || 30,
-      contract.signed_date || null,
-      contract.signed_by || null,
-      contract.file_path || null,
-      req.user?.id,
-      contract.domain_name || null,
-      contract.hosting_type || null,
-      contract.hosting_duration || null,
-      contract.ssl_certificate || 0,
-      contract.support_duration || null,
-      contract.seo_package || null,
-      contract.website_pages || null,
-      contract.website_languages || null,
-      contract.payment_terms || null,
-      contract.delivery_days || null,
-      contract.warranty_months || null,
-      contract.project_id || null,
-    ],
-    function(err) {
+  // Validate account_id if provided
+  if (contract.account_id) {
+    db.get('SELECT id FROM accounts WHERE id = ?', [contract.account_id], (err, account) => {
       if (err) {
-        return res.status(500).json({ error: 'خطا در ثبت قرارداد' });
+        console.error('Error checking account:', err);
+        // If table doesn't exist, allow null account_id
+        if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+          console.warn('Accounts table does not exist, creating contract without account_id');
+          contract.account_id = null;
+        } else {
+          return res.status(500).json({ error: 'خطا در بررسی حساب' });
+        }
       }
-      res.status(201).json({ id: this.lastID, contract_number: contractNumber, message: 'قرارداد با موفقیت ثبت شد' });
-    }
-  );
+      if (!account && contract.account_id) {
+        return res.status(404).json({ error: 'حساب انتخاب شده یافت نشد' });
+      }
+      
+      // Continue with insert
+      insertContract();
+    });
+  } else {
+    insertContract();
+  }
+  
+  function insertContract() {
+    db.run(
+      `INSERT INTO contracts (
+        account_id, contract_number, title, description, contract_type,
+        start_date, end_date, value, currency, status,
+        auto_renew, renewal_notice_days, signed_date, signed_by, file_path, created_by,
+        domain_name, hosting_type, hosting_duration, ssl_certificate, support_duration,
+        seo_package, website_pages, website_languages, payment_terms, delivery_days, warranty_months, project_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        contract.account_id || null,
+        contractNumber,
+        contract.title,
+        contract.description || null,
+        contract.contract_type || null,
+        contract.start_date,
+        contract.end_date || null,
+        contract.value || null,
+        contract.currency || 'IRR',
+        contract.status || 'draft',
+        contract.auto_renew ? 1 : 0,
+        contract.renewal_notice_days || 30,
+        contract.signed_date || null,
+        contract.signed_by || null,
+        contract.file_path || null,
+        req.user?.id,
+        contract.domain_name || null,
+        contract.hosting_type || null,
+        contract.hosting_duration || null,
+        contract.ssl_certificate || 0,
+        contract.support_duration || null,
+        contract.seo_package || null,
+        contract.website_pages || null,
+        contract.website_languages || null,
+        contract.payment_terms || null,
+        contract.delivery_days || null,
+        contract.warranty_months || null,
+        contract.project_id || null,
+      ],
+      function(err) {
+        if (err) {
+          console.error('Error creating contract:', err);
+          return res.status(500).json({ error: 'خطا در ثبت قرارداد: ' + (err.message || 'خطای نامشخص') });
+        }
+        res.status(201).json({ id: this.lastID, contract_number: contractNumber, message: 'قرارداد با موفقیت ثبت شد' });
+      }
+    );
+  }
 });
 
 // Update contract

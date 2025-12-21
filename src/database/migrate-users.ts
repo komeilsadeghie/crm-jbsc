@@ -192,7 +192,7 @@ async function insertDefaultPermissions(): Promise<void> {
   for (const perm of defaultPermissions) {
     try {
       await dbRun(
-        `INSERT OR IGNORE INTO permissions (module, capability, description) VALUES (?, ?, ?)`,
+        `INSERT IGNORE INTO permissions (module, capability, description) VALUES (?, ?, ?)`,
         [perm.module, perm.capability, perm.description]
       );
     } catch (err: any) {

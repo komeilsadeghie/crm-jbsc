@@ -474,9 +474,18 @@ const ProjectModal = ({ project, onClose, onSave }: any) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="glass-modal max-w-2xl w-full p-6">
-        <h2 className="text-xl font-bold mb-4">{project ? 'ویرایش' : 'ایجاد'} پروژه</h2>
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+      <div className="glass-modal max-w-2xl w-full p-4 sm:p-6 my-4 max-h-[95vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg sm:text-xl font-bold">{project ? 'ویرایش' : 'ایجاد'} پروژه</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+          >
+            <X size={24} />
+          </button>
+        </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1">نام پروژه *</label>
@@ -497,7 +506,7 @@ const ProjectModal = ({ project, onClose, onSave }: any) => {
               rows={3}
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">مشتری</label>
               <select
@@ -566,7 +575,7 @@ const ProjectModal = ({ project, onClose, onSave }: any) => {
             <h3 className="text-lg font-semibold mb-4">پرداخت‌های مرحله‌ای</h3>
             <div className="grid grid-cols-1 gap-4">
               {[1, 2, 3, 4].map((stage) => (
-                <div key={stage} className="grid grid-cols-2 gap-4 p-3 bg-gray-50 rounded-lg">
+                <div key={stage} className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 bg-gray-50 dark:bg-neutral-800 rounded-lg">
                   <div>
                     <label className="block text-sm font-medium mb-1">مرحله {stage} - مبلغ (تومان)</label>
                     <input
@@ -593,7 +602,7 @@ const ProjectModal = ({ project, onClose, onSave }: any) => {
           {/* Settlements */}
           <div className="border-t pt-4">
             <h3 className="text-lg font-semibold mb-4">تسویه‌ها</h3>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">تسویه کمیل</label>
                 <select

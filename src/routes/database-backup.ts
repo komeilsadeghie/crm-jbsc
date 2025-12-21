@@ -1,13 +1,17 @@
 import express, { Response } from 'express';
-import { db } from '../database/db';
+import { db, isMySQL, mysqlPool, isSQLite, sqliteDb } from '../database/db';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import path from 'path';
 import fs from 'fs';
 
 const router = express.Router();
 
-// Helper function to get database path
-const getDbPath = (): string => {
+// Helper function to get database path (only for SQLite)
+const getDbPath = (): string | null => {
+  if (isMySQL) {
+    return null; // MySQL doesn't use file-based database
+  }
+  
   if (process.env.DB_PATH) {
     return process.env.DB_PATH;
   }

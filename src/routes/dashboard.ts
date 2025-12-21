@@ -1,5 +1,5 @@
 import express, { Response } from 'express';
-import { db } from '../database/db';
+import { db, isMySQL } from '../database/db';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { DashboardKPI } from '../types';
 
@@ -267,11 +267,11 @@ router.get('/overview', authenticate, async (req: AuthRequest, res: Response) =>
       proposalOverviewData.total += item.count;
     });
     
-    // Financial Summary
+    // Financial Summary - Use 'amount' instead of 'total_amount'
     const financial: any = await dbGet(`SELECT 
-                          COALESCE(SUM(CASE WHEN status IN ('unpaid', 'partially_paid') THEN total_amount ELSE 0 END), 0) as outstanding,
-                          COALESCE(SUM(CASE WHEN status = 'overdue' THEN total_amount ELSE 0 END), 0) as past_due,
-                          COALESCE(SUM(CASE WHEN status = 'paid' THEN total_amount ELSE 0 END), 0) as paid
+                          COALESCE(SUM(CASE WHEN status IN ('unpaid', 'partially_paid') THEN amount ELSE 0 END), 0) as outstanding,
+                          COALESCE(SUM(CASE WHEN status = 'overdue' THEN amount ELSE 0 END), 0) as past_due,
+                          COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) as paid
                          FROM invoices`).catch(() => ({ outstanding: 0, past_due: 0, paid: 0 }));
     
     const financialSummary = {
@@ -289,27 +289,60 @@ router.get('/overview', authenticate, async (req: AuthRequest, res: Response) =>
                                   LEFT JOIN ticket_departments d ON t.department_id = d.id
                                   GROUP BY d.name`).catch(() => []);
     
-    // Payment Records
-    const paymentRecords = await dbAll(`SELECT 
-                                    DATE(payment_date) as date,
-                                    SUM(amount) as amount,
-                                    CASE 
-                                      WHEN DATE(payment_date) >= DATE('now', '-7 days') THEN 'this_week'
-                                      WHEN DATE(payment_date) >= DATE('now', '-14 days') AND DATE(payment_date) < DATE('now', '-7 days') THEN 'last_week'
-                                    END as period
-                                    FROM invoice_payments
-                                    WHERE DATE(payment_date) >= DATE('now', '-14 days')
-                                    GROUP BY DATE(payment_date), period`).catch(() => []);
+    // Payment Records - Convert SQLite date syntax to MySQL
+    const dateExpr = isMySQL 
+      ? `DATE_SUB(CURDATE(), INTERVAL 7 DAY)` 
+      : `DATE('now', '-7 days')`;
+    const dateExpr14 = isMySQL 
+      ? `DATE_SUB(CURDATE(), INTERVAL 14 DAY)` 
+      : `DATE('now', '-14 days')`;
+    const dateExpr14End = isMySQL 
+      ? `DATE_SUB(CURDATE(), INTERVAL 7 DAY)` 
+      : `DATE('now', '-7 days')`;
     
-    // Contracts Expiring Soon
-    const contractsExpiring = await dbAll(`SELECT c.*, a.name as account_name
-                                      FROM contracts c
-                                      LEFT JOIN accounts a ON c.account_id = a.id
-                                      WHERE c.status = 'active'
-                                        AND c.end_date IS NOT NULL
-                                        AND DATE(c.end_date) BETWEEN DATE('now') AND DATE('now', '+30 days')
-                                      ORDER BY c.end_date ASC
-                                      LIMIT 10`).catch(() => []);
+    const paymentRecordsQuery = isMySQL
+      ? `SELECT 
+          DATE(payment_date) as date,
+          SUM(amount) as amount,
+          CASE 
+            WHEN DATE(payment_date) >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) THEN 'this_week'
+            WHEN DATE(payment_date) >= DATE_SUB(CURDATE(), INTERVAL 14 DAY) AND DATE(payment_date) < DATE_SUB(CURDATE(), INTERVAL 7 DAY) THEN 'last_week'
+          END as period
+          FROM invoice_payments
+          WHERE DATE(payment_date) >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+          GROUP BY DATE(payment_date), period`
+      : `SELECT 
+          DATE(payment_date) as date,
+          SUM(amount) as amount,
+          CASE 
+            WHEN DATE(payment_date) >= DATE('now', '-7 days') THEN 'this_week'
+            WHEN DATE(payment_date) >= DATE('now', '-14 days') AND DATE(payment_date) < DATE('now', '-7 days') THEN 'last_week'
+          END as period
+          FROM invoice_payments
+          WHERE DATE(payment_date) >= DATE('now', '-14 days')
+          GROUP BY DATE(payment_date), period`;
+    
+    const paymentRecords = await dbAll(paymentRecordsQuery).catch(() => []);
+    
+    // Contracts Expiring Soon - Convert SQLite date syntax to MySQL
+    const contractsExpiringQuery = isMySQL
+      ? `SELECT c.*, a.name as account_name
+         FROM contracts c
+         LEFT JOIN accounts a ON c.account_id = a.id
+         WHERE c.status = 'active'
+           AND c.end_date IS NOT NULL
+           AND DATE(c.end_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+         ORDER BY c.end_date ASC
+         LIMIT 10`
+      : `SELECT c.*, a.name as account_name
+         FROM contracts c
+         LEFT JOIN accounts a ON c.account_id = a.id
+         WHERE c.status = 'active'
+           AND c.end_date IS NOT NULL
+           AND DATE(c.end_date) BETWEEN DATE('now') AND DATE('now', '+30 days')
+         ORDER BY c.end_date ASC
+         LIMIT 10`;
+    const contractsExpiring = await dbAll(contractsExpiringQuery).catch(() => []);
     
     // Staff Tickets Report
     const staffTicketsReport = await dbAll(`SELECT 
@@ -346,13 +379,21 @@ router.get('/overview', authenticate, async (req: AuthRequest, res: Response) =>
                                            ORDER BY p.created_at DESC
                                            LIMIT 10`, [userId]).catch(() => []);
     
-    // This Week Events
-    const weekEvents = await dbAll(`SELECT ce.*, a.name as account_name
-                                             FROM calendar_events ce
-                                             LEFT JOIN accounts a ON ce.relation_type = 'CUSTOMER' AND ce.relation_id = a.id
-                                             WHERE DATE(ce.start_at) >= DATE('now', 'weekday 0', '-7 days')
-                                               AND DATE(ce.start_at) <= DATE('now', 'weekday 6')
-                                             ORDER BY ce.start_at ASC`).catch(() => []);
+    // This Week Events - Convert SQLite date syntax to MySQL
+    const weekEventsQuery = isMySQL
+      ? `SELECT ce.*, a.name as account_name
+         FROM calendar_events ce
+         LEFT JOIN accounts a ON ce.relation_type = 'CUSTOMER' AND ce.relation_id = a.id
+         WHERE DATE(ce.start_at) >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) + 7 DAY)
+           AND DATE(ce.start_at) <= DATE_ADD(CURDATE(), INTERVAL 6 - WEEKDAY(CURDATE()) DAY)
+         ORDER BY ce.start_at ASC`
+      : `SELECT ce.*, a.name as account_name
+         FROM calendar_events ce
+         LEFT JOIN accounts a ON ce.relation_type = 'CUSTOMER' AND ce.relation_id = a.id
+         WHERE DATE(ce.start_at) >= DATE('now', 'weekday 0', '-7 days')
+           AND DATE(ce.start_at) <= DATE('now', 'weekday 6')
+         ORDER BY ce.start_at ASC`;
+    const weekEvents = await dbAll(weekEventsQuery).catch(() => []);
     
     // Latest Activity
     const latestActivity = await dbAll(`SELECT al.*, u.full_name as user_name
@@ -365,7 +406,7 @@ router.get('/overview', authenticate, async (req: AuthRequest, res: Response) =>
     const goals = await dbAll(`SELECT sg.*, u.full_name
                                                  FROM sales_goals sg
                                                  LEFT JOIN users u ON sg.user_id = u.id
-                                                 WHERE DATE(sg.period_end) >= DATE('now')
+                                                 WHERE DATE(sg.period_end) >= ${isMySQL ? 'CURDATE()' : "DATE('now')"}
                                                  ORDER BY sg.period_start DESC`).catch(() => []);
     
     res.json({

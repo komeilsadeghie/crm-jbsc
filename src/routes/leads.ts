@@ -48,6 +48,12 @@ router.get('/', authenticate, (req: AuthRequest, res: Response) => {
 
   db.all(query, params, (err, leads) => {
     if (err) {
+      console.error('Error fetching leads:', err);
+      // If table doesn't exist, return empty array instead of error
+      if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+        console.warn('Leads table does not exist yet, returning empty array');
+        return res.json([]);
+      }
       return res.status(500).json({ error: 'خطا در دریافت سرنخ‌ها' });
     }
     // Ensure we always return an array
@@ -64,6 +70,12 @@ router.get('/kanban/board', authenticate, (req: AuthRequest, res: Response) => {
     ORDER BY l.position ASC, l.created_at DESC
   `, [], (err, leads: any[]) => {
     if (err) {
+      console.error('Error fetching leads for kanban:', err);
+      // If table doesn't exist, return empty board
+      if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+        console.warn('Leads table does not exist yet, returning empty board');
+        return res.json({});
+      }
       return res.status(500).json({ error: 'خطا در دریافت سرنخ‌ها' });
     }
 

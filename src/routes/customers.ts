@@ -1,5 +1,5 @@
 import express, { Response } from 'express';
-import { db } from '../database/db';
+import { db, isMySQL } from '../database/db';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { Customer } from '../types';
 
@@ -65,6 +65,12 @@ router.get('/', authenticate, (req: AuthRequest, res: Response) => {
 
   db.all(query, params, (err, customers) => {
     if (err) {
+      console.error('Error fetching customers:', err);
+      // If table doesn't exist, return empty array instead of error
+      if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+        console.warn('Customers table does not exist yet, returning empty array');
+        return res.json([]);
+      }
       return res.status(500).json({ error: 'خطا در دریافت اطلاعات مشتریان' });
     }
     // Ensure we always return an array
@@ -151,13 +157,24 @@ router.post('/bulk-delete', authenticate, async (req: AuthRequest, res: Response
       }
     }
 
-    // Delete interactions
-    await dbRun(`DELETE FROM interactions WHERE customer_id IN (${placeholders})`, ids);
+    // Delete interactions (only if table exists)
+    try {
+      const { tableExists } = await import('../database/db');
+      const interactionsTableExists = await tableExists('interactions').catch(() => false);
+      if (interactionsTableExists) {
+        await dbRun(`DELETE FROM interactions WHERE customer_id IN (${placeholders})`, ids);
+      }
+    } catch (err) {
+      console.warn('Could not delete interactions for customers, continuing anyway:', err);
+    }
 
     // Delete related leads
+    const leadNameExpr = isMySQL 
+      ? 'CONCAT(first_name, " ", last_name)'
+      : 'first_name || " " || last_name';
     for (const customer of customers) {
       const accountName = customer.company_name || customer.name;
-      await dbRun('DELETE FROM leads WHERE first_name || " " || last_name = ? OR company_name = ?', 
+      await dbRun(`DELETE FROM leads WHERE ${leadNameExpr} = ? OR company_name = ?`, 
         [customer.name, accountName]);
     }
 
@@ -323,26 +340,40 @@ router.post('/:id/convert-to-project', authenticate, async (req: AuthRequest, re
     const accountName = customer.company_name || customer.name;
     let accountId: number | null = null;
 
-    // Try to find existing account by name
-    const existingAccount = await dbGet(
-      'SELECT id FROM accounts WHERE name = ?',
-      [accountName]
-    );
+    // Check if accounts table exists
+    try {
+      const { tableExists } = await import('../database/db');
+      const accountsTableExists = await tableExists('accounts').catch(() => false);
+      
+      if (accountsTableExists) {
+        // Try to find existing account by name
+        const existingAccount = await dbGet(
+          'SELECT id FROM accounts WHERE name = ?',
+          [accountName]
+        );
 
-    if (existingAccount) {
-      accountId = existingAccount.id;
-    } else {
-      // Create new account
-      const accountResult = await dbRun(
-        `INSERT INTO accounts (name, website, status, created_at)
-         VALUES (?, ?, ?, CURRENT_TIMESTAMP)`,
-        [
-          accountName,
-          customer.website || null,
-          'active'
-        ]
-      );
-      accountId = accountResult.lastID || null;
+        if (existingAccount) {
+          accountId = existingAccount.id;
+        } else {
+          // Create new account
+          const accountResult = await dbRun(
+            `INSERT INTO accounts (name, website, status, created_at)
+             VALUES (?, ?, ?, CURRENT_TIMESTAMP)`,
+            [
+              accountName,
+              customer.website || null,
+              'active'
+            ]
+          );
+          accountId = accountResult.lastID || null;
+        }
+      } else {
+        // If accounts table doesn't exist, create it first
+        console.warn('Accounts table does not exist, creating account will fail');
+      }
+    } catch (err) {
+      console.error('Error checking/finding/creating account:', err);
+      // Continue anyway, accountId will be null
     }
 
     if (!accountId) {
@@ -378,17 +409,17 @@ router.post('/:id/convert-to-project', authenticate, async (req: AuthRequest, re
       ]
     );
 
-    const projectId = projectResult.lastID;
+    const projectId = projectResult.lastID || (projectResult as any).insertId;
 
     if (!projectId) {
-      return res.status(500).json({ error: 'خطا در ایجاد پروژه' });
+      console.error('Failed to get project ID from insert result:', projectResult);
+      return res.status(500).json({ error: 'خطا در ایجاد پروژه: نتوانست ID پروژه را دریافت کند' });
     }
 
     res.status(201).json({
       message: 'پروژه با موفقیت ایجاد شد',
       project_id: projectId,
-      account_id: accountId,
-      project_name: projectName
+      account_id: accountId
     });
   } catch (error: any) {
     console.error('Error converting customer to project:', error);
@@ -463,11 +494,22 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
       await dbRun(`DELETE FROM accounts WHERE id IN (${accountPlaceholders})`, accountIds);
     }
 
-    // Delete interactions
-    await dbRun('DELETE FROM interactions WHERE customer_id = ?', [id]);
+    // Delete interactions (only if table exists)
+    try {
+      const { tableExists } = await import('../database/db');
+      const interactionsTableExists = await tableExists('interactions').catch(() => false);
+      if (interactionsTableExists) {
+        await dbRun('DELETE FROM interactions WHERE customer_id = ?', [id]);
+      }
+    } catch (err) {
+      console.warn('Could not delete interactions for customer, continuing anyway:', err);
+    }
 
     // Delete leads that might be related (by name or company)
-    await dbRun('DELETE FROM leads WHERE first_name || " " || last_name = ? OR company_name = ?', 
+    const leadNameExpr = isMySQL 
+      ? 'CONCAT(first_name, " ", last_name)'
+      : 'first_name || " " || last_name';
+    await dbRun(`DELETE FROM leads WHERE ${leadNameExpr} = ? OR company_name = ?`, 
       [customer.name, accountName]);
 
     // Finally, delete the customer

@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 import jalaliday from 'jalaliday';
-import { db } from '../../database/db';
+import { db, isMySQL, tableExists } from '../../database/db';
 import { CustomerFilters, CustomerPayload } from './customer.types';
 
 dayjs.extend(jalaliday);
@@ -49,14 +49,54 @@ const validateCustomerModel = (customerModel?: number | null) => {
 export const listCustomers = async (filters: CustomerFilters) => {
   const { tagIds, customerModels, search, category, status, type, createdById, dateFrom, dateTo, journey_stage, coach_id } = filters;
 
-  let query = `
-    SELECT DISTINCT c.*,
-           GROUP_CONCAT(DISTINCT t.id || ':' || t.name || ':' || t.color) as tags_data
-    FROM customers c
-    LEFT JOIN entity_tags et ON et.customer_id = c.id
-    LEFT JOIN tags t ON et.tag_id = t.id
-    WHERE 1=1
-  `;
+  // First, check if customers table exists
+  try {
+    const customersTableExists = await tableExists('customers');
+    if (!customersTableExists) {
+      console.warn('Customers table does not exist, returning empty array');
+      return [];
+    }
+  } catch (err) {
+    console.warn('Could not check customers table existence:', err);
+    // Continue anyway, let the query fail gracefully
+  }
+
+  // Check if tags tables exist, if not, use simpler query
+  let tagsTableExists = false;
+  let entityTagsTableExists = false;
+  try {
+    tagsTableExists = await tableExists('tags');
+    entityTagsTableExists = await tableExists('entity_tags');
+  } catch (err) {
+    console.warn('Could not check tags tables existence, using simpler query:', err);
+  }
+  const useTags = tagsTableExists && entityTagsTableExists;
+
+  // Use CONCAT for MySQL, || for SQLite
+  const concatExpr = isMySQL 
+    ? "CONCAT(t.id, ':', t.name, ':', t.color)"
+    : "t.id || ':' || t.name || ':' || t.color";
+
+  // Use SEPARATOR for MySQL GROUP_CONCAT
+  const groupConcatExpr = isMySQL
+    ? `GROUP_CONCAT(DISTINCT ${concatExpr} SEPARATOR ',')`
+    : `GROUP_CONCAT(DISTINCT ${concatExpr})`;
+
+  let query = useTags
+    ? `
+      SELECT DISTINCT c.*,
+             ${groupConcatExpr} as tags_data
+      FROM customers c
+      LEFT JOIN entity_tags et ON et.customer_id = c.id
+      LEFT JOIN tags t ON et.tag_id = t.id
+      WHERE 1=1
+    `
+    : `
+      SELECT c.*,
+             NULL as tags_data
+      FROM customers c
+      WHERE 1=1
+    `;
   const params: any[] = [];
 
   if (type) {
@@ -110,31 +150,70 @@ export const listCustomers = async (filters: CustomerFilters) => {
     params.push(...customerModels);
   }
 
-  query += ' GROUP BY c.id';
+  if (useTags) {
+    query += ' GROUP BY c.id';
 
-  if (tagIds && tagIds.length > 0) {
-    query += ' HAVING COUNT(CASE WHEN et.tag_id IN (' + tagIds.map(() => '?').join(',') + ') THEN 1 END) = ?';
-    params.push(...tagIds, tagIds.length);
+    if (tagIds && tagIds.length > 0) {
+      query += ' HAVING COUNT(CASE WHEN et.tag_id IN (' + tagIds.map(() => '?').join(',') + ') THEN 1 END) = ?';
+      params.push(...tagIds, tagIds.length);
+    }
   }
 
   query += ' ORDER BY c.created_at DESC';
 
-  const customers = await dbAll(query, params);
+  try {
+    const customers = await dbAll(query, params);
 
-  // Parse tags data
-  return customers.map((customer: any) => {
-    const tags = customer.tags_data
-      ? customer.tags_data.split(',').map((tagStr: string) => {
-          const [id, name, color] = tagStr.split(':');
-          return { id, name, color, tag: { id, name, color } };
-        })
-      : [];
+    // Ensure we always return an array
+    if (!Array.isArray(customers)) {
+      console.warn('dbAll returned non-array, converting to array');
+      return [];
+    }
 
-    return {
-      ...customer,
-      tags,
-    };
-  });
+    // Parse tags data
+    return customers.map((customer: any) => {
+      let tags = [];
+      if (customer.tags_data && customer.tags_data !== null && customer.tags_data !== '') {
+        try {
+          const tagStrings = String(customer.tags_data).split(',');
+          tags = tagStrings.map((tagStr: string) => {
+            const trimmed = tagStr.trim();
+            if (!trimmed) return null;
+            const parts = trimmed.split(':');
+            if (parts.length >= 3) {
+              const [id, name, color] = parts;
+              return { id: id.trim(), name: name.trim(), color: color.trim(), tag: { id: id.trim(), name: name.trim(), color: color.trim() } };
+            }
+            return null;
+          }).filter(Boolean);
+        } catch (err) {
+          console.error('Error parsing tags_data:', err, 'tags_data:', customer.tags_data);
+          tags = [];
+        }
+      }
+
+      return {
+        ...customer,
+        tags,
+      };
+    });
+  } catch (error: any) {
+    console.error('Error in listCustomers:', error);
+    console.error('Query:', query);
+    console.error('Params:', params);
+    console.error('Error code:', error.code);
+    console.error('Error message:', error.message);
+    
+    // If table doesn't exist, return empty array instead of throwing
+    if (error.code === 'ER_NO_SUCH_TABLE' || error.message?.includes("doesn't exist") || error.message?.includes('Table') && error.message?.includes("doesn't exist")) {
+      console.warn('Customers or related tables do not exist yet, returning empty array');
+      return [];
+    }
+    
+    // For any other error, log it but still return empty array to prevent frontend crash
+    console.error('Unexpected error in listCustomers, returning empty array to prevent crash');
+    return [];
+  }
 };
 
 export const getCustomerById = async (id: string) => {
@@ -142,23 +221,61 @@ export const getCustomerById = async (id: string) => {
 
   if (!customer) throw new Error('CUSTOMER_NOT_FOUND');
 
-  // Get tags
-  const tags = await dbAll(
-    `SELECT t.*, et.id as assignment_id
-     FROM entity_tags et
-     JOIN tags t ON et.tag_id = t.id
-     WHERE et.customer_id = ? AND et.entity_type = 'CUSTOMER'`,
-    [id]
-  );
+  // Get tags (only if tables exist)
+  let tags: any[] = [];
+  try {
+    const { tableExists } = await import('../../database/db');
+    const tagsTableExists = await tableExists('tags').catch(() => false);
+    const entityTagsTableExists = await tableExists('entity_tags').catch(() => false);
+    
+    if (tagsTableExists && entityTagsTableExists) {
+      tags = await dbAll(
+        `SELECT t.*, et.id as assignment_id
+         FROM entity_tags et
+         JOIN tags t ON et.tag_id = t.id
+         WHERE et.customer_id = ? AND et.entity_type = 'CUSTOMER'`,
+        [id]
+      );
+    }
+  } catch (err) {
+    console.warn('Could not fetch tags for customer, continuing without tags:', err);
+  }
 
-  // Get deals
-  const deals = await dbAll('SELECT * FROM deals WHERE account_id IN (SELECT id FROM accounts WHERE lead_id IN (SELECT id FROM leads WHERE email = ? OR phone = ?))', [customer.email || '', customer.phone || '']);
+  // Get deals (only if table exists)
+  let deals: any[] = [];
+  try {
+    const { tableExists } = await import('../../database/db');
+    const dealsTableExists = await tableExists('deals').catch(() => false);
+    if (dealsTableExists) {
+      deals = await dbAll('SELECT * FROM deals WHERE customer_id = ?', [id]);
+    }
+  } catch (err) {
+    console.warn('Could not fetch deals for customer, continuing without deals:', err);
+  }
 
-  // Get coaching programs
-  const programs = await dbAll('SELECT * FROM coaching_programs WHERE account_id IN (SELECT id FROM accounts WHERE lead_id IN (SELECT id FROM leads WHERE email = ? OR phone = ?))', [customer.email || '', customer.phone || '']);
+  // Get coaching programs (only if table exists)
+  let programs: any[] = [];
+  try {
+    const { tableExists } = await import('../../database/db');
+    const programsTableExists = await tableExists('coaching_programs').catch(() => false);
+    if (programsTableExists) {
+      programs = await dbAll('SELECT * FROM coaching_programs WHERE customer_id = ?', [id]);
+    }
+  } catch (err) {
+    console.warn('Could not fetch coaching programs for customer, continuing without programs:', err);
+  }
 
-  // Get calendar events
-  const events = await dbAll('SELECT * FROM calendar_events WHERE customer_id = ?', [id]);
+  // Get calendar events (only if table exists)
+  let events: any[] = [];
+  try {
+    const { tableExists } = await import('../../database/db');
+    const eventsTableExists = await tableExists('calendar_events').catch(() => false);
+    if (eventsTableExists) {
+      events = await dbAll('SELECT * FROM calendar_events WHERE customer_id = ?', [id]);
+    }
+  } catch (err) {
+    console.warn('Could not fetch calendar events for customer, continuing without events:', err);
+  }
 
   return {
     ...customer,
@@ -344,11 +461,22 @@ export const deleteCustomer = async (id: string) => {
     await dbRun(`DELETE FROM accounts WHERE id IN (${accountPlaceholders})`, accountIds);
   }
 
-  // Delete interactions
-  await dbRun('DELETE FROM interactions WHERE customer_id = ?', [id]);
+  // Delete interactions (only if table exists)
+  try {
+    const { tableExists } = await import('../../database/db');
+    const interactionsTableExists = await tableExists('interactions').catch(() => false);
+    if (interactionsTableExists) {
+      await dbRun('DELETE FROM interactions WHERE customer_id = ?', [id]);
+    }
+  } catch (err) {
+    console.warn('Could not delete interactions for customer, continuing anyway:', err);
+  }
 
   // Delete leads that might be related (by name or company)
-  await dbRun('DELETE FROM leads WHERE first_name || " " || last_name = ? OR company_name = ?', 
+  const leadNameExpr = isMySQL 
+    ? 'CONCAT(first_name, " ", last_name)'
+    : 'first_name || " " || last_name';
+  await dbRun(`DELETE FROM leads WHERE ${leadNameExpr} = ? OR company_name = ?`, 
     [customer.name, accountName]);
 
   // Delete tags
@@ -433,13 +561,24 @@ export const bulkDeleteCustomers = async (ids: string[]): Promise<number> => {
     }
   }
 
-  // Delete interactions
-  await dbRun(`DELETE FROM interactions WHERE customer_id IN (${placeholders})`, ids);
+  // Delete interactions (only if table exists)
+  try {
+    const { tableExists } = await import('../../database/db');
+    const interactionsTableExists = await tableExists('interactions').catch(() => false);
+    if (interactionsTableExists) {
+      await dbRun(`DELETE FROM interactions WHERE customer_id IN (${placeholders})`, ids);
+    }
+  } catch (err) {
+    console.warn('Could not delete interactions for customers, continuing anyway:', err);
+  }
 
   // Delete related leads
+  const leadNameExpr = isMySQL 
+    ? 'CONCAT(first_name, " ", last_name)'
+    : 'first_name || " " || last_name';
   for (const customer of customers) {
     const accountName = customer.company_name || customer.name;
-    await dbRun('DELETE FROM leads WHERE first_name || " " || last_name = ? OR company_name = ?', 
+    await dbRun(`DELETE FROM leads WHERE ${leadNameExpr} = ? OR company_name = ?`, 
       [customer.name, accountName]);
   }
 

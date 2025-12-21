@@ -17,6 +17,18 @@ import { migratePaymentGatewaysTable } from './database/migrate-payment-gateways
 import { migrateSurveysTable } from './database/migrate-surveys';
 import { migrateMediaImportFields } from './database/migrate-media-import';
 import { fixUniqueIdColumn } from './database/fix-unique-id';
+import { migrateAccountsTable } from './database/migrate-accounts';
+import { migrateSettingsTable } from './database/migrate-settings';
+import { migrateContactPermissionsTable } from './database/migrate-contact-permissions';
+import { migrateRfmScoresTable } from './database/migrate-rfm-scores';
+import { migrateCustomFieldsTable } from './database/migrate-custom-fields';
+import { migrateIndexesOptimization } from './database/migrate-indexes-optimization';
+import { migrateTagsTable } from './database/migrate-tags';
+import { migrateDealsTable } from './database/migrate-deals';
+import { migrateInteractionsTable } from './database/migrate-interactions';
+import { migrateTicketDepartmentsTable } from './database/migrate-ticket-departments';
+import { migrateNotificationsTable } from './database/migrate-notifications';
+import { migrateTicketsTable } from './database/migrate-tickets';
 
 // Load ENV
 dotenv.config();
@@ -100,6 +112,47 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
     
     console.log('🛠 Initializing database tables...');
     await initDatabase();
+
+    // Critical migrations - must run first
+    console.log('🔄 Migrating tags and entity_tags tables (CRITICAL)...');
+    try {
+      await migrateTagsTable();
+      console.log('✅ Tags migration completed');
+    } catch (e: any) {
+      console.error('❌ migrateTagsTable failed:', e.message);
+      console.error('Stack:', e.stack);
+    }
+
+    console.log('🔄 Migrating deals table (CRITICAL)...');
+    try {
+      await migrateDealsTable();
+      console.log('✅ Deals migration completed');
+    } catch (e: any) {
+      console.error('❌ migrateDealsTable failed:', e.message);
+      console.error('Stack:', e.stack);
+    }
+
+    console.log('🔄 Migrating interactions table...');
+    try {
+      await migrateInteractionsTable();
+      console.log('✅ Interactions migration completed');
+    } catch (e: any) {
+      console.warn('⚠️ migrateInteractionsTable failed:', e.message);
+    }
+
+    console.log('🔄 Migrating tickets table...');
+    try {
+      await migrateTicketsTable();
+    } catch (e: any) {
+      console.warn('⚠️ migrateTicketsTable failed:', e.message);
+    }
+
+    console.log('🔄 Migrating settings table...');
+    try {
+      await migrateSettingsTable();
+    } catch (e: any) {
+      console.warn('⚠️ migrateSettingsTable failed:', e.message);
+    }
 
     console.log('🔄 Migrating estimates table...');
     try {
@@ -214,6 +267,41 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
       await migrateCustomersForeignKeys();
     } catch (migrationError: any) {
       console.error('⚠️ Error in migrateCustomersForeignKeys:', migrationError);
+    }
+
+    console.log('🔄 Migrating accounts table...');
+    try {
+      await migrateAccountsTable();
+    } catch (e: any) {
+      console.warn('⚠️ migrateAccountsTable failed:', e.message);
+    }
+
+    console.log('🔄 Migrating contact_permissions table...');
+    try {
+      await migrateContactPermissionsTable();
+    } catch (e: any) {
+      console.warn('⚠️ migrateContactPermissionsTable failed:', e.message);
+    }
+
+    console.log('🔄 Migrating rfm_scores table...');
+    try {
+      await migrateRfmScoresTable();
+    } catch (e: any) {
+      console.warn('⚠️ migrateRfmScoresTable failed:', e.message);
+    }
+
+    console.log('🔄 Migrating custom_fields tables...');
+    try {
+      await migrateCustomFieldsTable();
+    } catch (e: any) {
+      console.warn('⚠️ migrateCustomFieldsTable failed:', e.message);
+    }
+
+    console.log('🔄 Creating performance indexes...');
+    try {
+      await migrateIndexesOptimization();
+    } catch (e: any) {
+      console.warn('⚠️ migrateIndexesOptimization failed:', e.message);
     }
 
     // Essential migrations (always run, not optional)
