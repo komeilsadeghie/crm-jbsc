@@ -7,6 +7,7 @@ import { translateLeadStatus, translateSource } from '../utils/translations';
 import { toPersianNumber } from '../utils/numberHelper';
 import { BulkDeleteActions, SelectAllCheckbox, RowCheckbox } from '../components/BulkDeleteActions';
 import Pagination from '../components/Pagination';
+import { hasResponseError, getErrorMessage, getSuccessMessage } from '../utils/mutationHelper';
 
 const Leads = () => {
   const navigate = useNavigate();
@@ -47,8 +48,8 @@ const Leads = () => {
     (id: number) => api.delete(`/leads/${id}`),
     {
       onSuccess: (response: any) => {
-        // ✅ بررسی response برای error
-        if (response?.data?.error) {
+        // ✅ بررسی response - اگر error واقعی دارد، نشان بده
+        if (hasResponseError(response)) {
           alert('خطا: ' + response.data.error);
           return;
         }
@@ -57,8 +58,10 @@ const Leads = () => {
         setSelectedIds([]);
       },
       onError: (error: any) => {
-        const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'خطا در حذف سرنخ';
-        alert('خطا: ' + errorMessage);
+        const status = error.response?.status;
+        if (status && status >= 400) {
+          alert('خطا: ' + getErrorMessage(error));
+        }
       },
     }
   );
@@ -96,18 +99,21 @@ const Leads = () => {
       api.post(`/leads/${id}/convert`, { account_name }),
     {
       onSuccess: (response: any) => {
-        // ✅ بررسی response برای error
-        if (response?.data?.error) {
+        // ✅ بررسی response - اگر error واقعی دارد، نشان بده
+        if (hasResponseError(response)) {
           alert('خطا: ' + response.data.error);
           return;
         }
         queryClient.invalidateQueries('leads');
         queryClient.invalidateQueries('leads-kanban');
         queryClient.invalidateQueries('accounts');
+        alert(getSuccessMessage(response, 'سرنخ با موفقیت تبدیل شد'));
       },
       onError: (error: any) => {
-        const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'خطا در تبدیل سرنخ';
-        alert('خطا: ' + errorMessage);
+        const status = error.response?.status;
+        if (status && status >= 400) {
+          alert('خطا: ' + getErrorMessage(error));
+        }
       },
     }
   );
@@ -117,8 +123,8 @@ const Leads = () => {
       api.put(`/leads/${id}/position`, { position, kanban_stage }),
     {
       onSuccess: (response: any) => {
-        // ✅ بررسی response برای error
-        if (response?.data?.error) {
+        // ✅ بررسی response - اگر error واقعی دارد، نشان بده
+        if (hasResponseError(response)) {
           console.error('Server returned error in response:', response.data.error);
           return;
         }
@@ -126,11 +132,10 @@ const Leads = () => {
         queryClient.invalidateQueries('leads');
       },
       onError: (error: any) => {
-        const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'خطا در جابجایی سرنخ';
-        console.error('Error updating lead position:', error);
-        // فقط در صورت خطای واقعی alert نشان بده
-        if (error.response?.status && error.response.status !== 200) {
-          alert('خطا: ' + errorMessage);
+        const status = error.response?.status;
+        if (status && status >= 400) {
+          console.error('Error updating lead position:', error);
+          alert('خطا: ' + getErrorMessage(error));
         }
       },
     }

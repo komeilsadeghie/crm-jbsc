@@ -8,6 +8,7 @@ import { toPersianNumber } from '../utils/numberHelper';
 import { translateTaskStatus, translatePriority } from '../utils/translations';
 import JalaliDatePicker from '../components/JalaliDatePicker';
 import Pagination from '../components/Pagination';
+import { isSuccessfulResponse, hasResponseError, getErrorMessage, getSuccessMessage } from '../utils/mutationHelper';
 
 const Tasks = () => {
   const queryClient = useQueryClient();
@@ -106,8 +107,8 @@ const Tasks = () => {
     (data: any) => api.post('/tasks', data),
     {
       onSuccess: (response: any) => {
-        // ✅ بررسی response برای error
-        if (response?.data?.error) {
+        // ✅ بررسی response - اگر error واقعی دارد، نشان بده
+        if (hasResponseError(response)) {
           alert('خطا: ' + response.data.error);
           return;
         }
@@ -117,11 +118,13 @@ const Tasks = () => {
         window.dispatchEvent(new Event('task-updated'));
         setShowModal(false);
         setEditingTask(null);
-        alert('تسک با موفقیت ایجاد شد');
+        alert(getSuccessMessage(response, 'تسک با موفقیت ایجاد شد'));
       },
       onError: (error: any) => {
-        const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'خطا در ایجاد تسک';
-        alert('خطا: ' + errorMessage);
+        const status = error.response?.status;
+        if (status && status >= 400) {
+          alert('خطا: ' + getErrorMessage(error));
+        }
       },
     }
   );
@@ -130,8 +133,8 @@ const Tasks = () => {
     ({ id, data }: { id: number; data: any }) => api.put(`/tasks/${id}`, data),
     {
       onSuccess: (response: any) => {
-        // ✅ بررسی response برای error
-        if (response?.data?.error) {
+        // ✅ بررسی response - اگر error واقعی دارد، نشان بده
+        if (hasResponseError(response)) {
           alert('خطا: ' + response.data.error);
           return;
         }
@@ -142,11 +145,13 @@ const Tasks = () => {
         window.dispatchEvent(new Event('task-updated'));
         setShowModal(false);
         setEditingTask(null);
-        alert('تسک با موفقیت به‌روزرسانی شد');
+        alert(getSuccessMessage(response, 'تسک با موفقیت به‌روزرسانی شد'));
       },
       onError: (error: any) => {
-        const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'خطا در به‌روزرسانی تسک';
-        alert('خطا: ' + errorMessage);
+        const status = error.response?.status;
+        if (status && status >= 400) {
+          alert('خطا: ' + getErrorMessage(error));
+        }
       },
     }
   );
@@ -156,8 +161,8 @@ const Tasks = () => {
       api.put(`/tasks/${id}/position`, { position, kanban_column }),
     {
       onSuccess: (response: any) => {
-        // ✅ بررسی response برای error
-        if (response?.data?.error) {
+        // ✅ بررسی response - اگر error واقعی دارد، نشان بده
+        if (hasResponseError(response)) {
           console.error('Server returned error in response:', response.data.error);
           return;
         }
@@ -171,11 +176,10 @@ const Tasks = () => {
         }, 100);
       },
       onError: (error: any) => {
-        const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'خطا در جابجایی تسک';
-        console.error('Error updating task position:', error);
-        // فقط در صورت خطای واقعی alert نشان بده (نه برای 200 OK)
-        if (error.response?.status && error.response.status !== 200) {
-          alert('خطا: ' + errorMessage);
+        const status = error.response?.status;
+        if (status && status >= 400) {
+          console.error('Error updating task position:', error);
+          alert('خطا: ' + getErrorMessage(error));
         }
       },
     }

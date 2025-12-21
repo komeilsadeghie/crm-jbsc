@@ -23,6 +23,7 @@ import {
   jalaliToGregorian
 } from '../utils/dateHelper';
 import JalaliDatePicker from '../components/JalaliDatePicker';
+import { hasResponseError, getErrorMessage, getSuccessMessage } from '../utils/mutationHelper';
 
 const Coaching = () => {
   const queryClient = useQueryClient();
@@ -1249,8 +1250,8 @@ const CoachingModal = ({ type, item, customers, goals, sessions, clickedDate: pr
     },
     {
       onSuccess: (response: any) => {
-        // ✅ بررسی response - اگر response.data.error داشته باشد، آن را به عنوان error در نظر بگیر
-        if (response?.data?.error) {
+        // ✅ بررسی response - اگر error واقعی دارد، نشان بده
+        if (hasResponseError(response)) {
           console.error('Server returned error in response:', response.data.error);
           alert('خطا: ' + response.data.error);
           return;
@@ -1269,14 +1270,15 @@ const CoachingModal = ({ type, item, customers, goals, sessions, clickedDate: pr
         queryClient.invalidateQueries('coaching-goals-progress');
         queryClient.invalidateQueries('coaching-overdue-exercises');
         queryClient.invalidateQueries('coaching-kanban'); // ✅ اضافه شد: برای بورد کوچینگ
-        alert('اطلاعات با موفقیت ذخیره شد');
+        alert(getSuccessMessage(response, 'اطلاعات با موفقیت ذخیره شد'));
         onClose();
       },
       onError: (error: any) => {
-        console.error('Error saving coaching data:', error);
-        // ✅ بررسی دقیق‌تر error
-        const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'خطا در ذخیره اطلاعات';
-        alert('خطا: ' + errorMessage);
+        const status = error.response?.status;
+        if (status && status >= 400) {
+          console.error('Error saving coaching data:', error);
+          alert('خطا: ' + getErrorMessage(error));
+        }
       },
     }
   );

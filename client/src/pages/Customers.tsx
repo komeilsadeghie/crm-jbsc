@@ -11,6 +11,7 @@ import { useToast } from '../contexts/ToastContext';
 import ConfirmDialog from '../components/ConfirmDialog';
 import Pagination from '../components/Pagination';
 import AdvancedFilter from '../components/AdvancedFilter';
+import { isSuccessfulResponse, hasResponseError, getErrorMessage, getSuccessMessage } from '../utils/mutationHelper';
 
 const Customers = () => {
   const navigate = useNavigate();
@@ -140,13 +141,21 @@ const Customers = () => {
   const deleteMutation = useMutation(
     (id: number) => api.delete(`/customers/${id}`),
     {
-      onSuccess: () => {
+      onSuccess: (response: any) => {
+        // ✅ بررسی response - اگر error واقعی دارد، نشان بده
+        if (hasResponseError(response)) {
+          toast.showError('خطا: ' + response.data.error);
+          return;
+        }
         queryClient.invalidateQueries('customers');
         setSelectedIds([]);
-        toast.showSuccess('مشتری با موفقیت حذف شد');
+        toast.showSuccess(getSuccessMessage(response, 'مشتری با موفقیت حذف شد'));
       },
       onError: (error: any) => {
-        toast.showError('خطا در حذف مشتری: ' + (error.response?.data?.error || error.message));
+        const status = error.response?.status;
+        if (status && status >= 400) {
+          toast.showError('خطا در حذف مشتری: ' + getErrorMessage(error));
+        }
       },
     }
   );
@@ -154,14 +163,22 @@ const Customers = () => {
   const bulkDeleteMutation = useMutation(
     (ids: number[]) => api.post('/customers/bulk-delete', { ids }),
     {
-      onSuccess: (data) => {
+      onSuccess: (response: any) => {
+        // ✅ بررسی response - اگر error واقعی دارد، نشان بده
+        if (hasResponseError(response)) {
+          toast.showError('خطا: ' + response.data.error);
+          return;
+        }
         queryClient.invalidateQueries('customers');
-        const deletedCount = data.data?.deletedCount || selectedIds.length;
+        const deletedCount = response?.data?.deletedCount || selectedIds.length;
         setSelectedIds([]);
         toast.showSuccess(`${deletedCount} مشتری با موفقیت حذف شد`);
       },
       onError: (error: any) => {
-        toast.showError('خطا در حذف گروهی: ' + (error.response?.data?.error || error.message));
+        const status = error.response?.status;
+        if (status && status >= 400) {
+          toast.showError('خطا در حذف گروهی: ' + getErrorMessage(error));
+        }
       },
     }
   );
@@ -170,19 +187,34 @@ const Customers = () => {
     ({ customerId, project_name, project_description }: { customerId: number; project_name?: string; project_description?: string }) => 
       api.post(`/customers/${customerId}/convert-to-project`, { project_name, project_description }),
     {
-      onSuccess: (data) => {
+      onSuccess: (response: any) => {
+        // ✅ بررسی response - اگر error واقعی دارد، نشان بده
+        if (hasResponseError(response)) {
+          toast.showError('خطا: ' + response.data.error);
+          return;
+        }
+        
+        // ✅ موفق است
         queryClient.invalidateQueries('projects');
-        toast.showSuccess(data.data?.message || 'پروژه با موفقیت ایجاد شد');
+        queryClient.invalidateQueries('customers');
+        toast.showSuccess(getSuccessMessage(response, 'پروژه با موفقیت ایجاد شد'));
         // Navigate to the created project detail page if project_id is available
-        if (data.data?.project_id) {
-          navigate(`/projects/${data.data.project_id}`);
+        if (response?.data?.project_id) {
+          navigate(`/projects/${response.data.project_id}`);
         } else {
           // Fallback to projects list
           navigate('/projects');
         }
       },
       onError: (error: any) => {
-        toast.showError('خطا در ایجاد پروژه: ' + (error.response?.data?.error || error.message));
+        // ✅ فقط در صورت خطای واقعی (status >= 400)
+        const status = error.response?.status;
+        if (status && status >= 400) {
+          toast.showError('خطا در ایجاد پروژه: ' + getErrorMessage(error));
+        } else {
+          // اگر status 200-299 است ولی onError صدا زده شده، احتمالاً مشکلی در response structure است
+          console.warn('Mutation error but status might be OK:', error);
+        }
       },
     }
   );

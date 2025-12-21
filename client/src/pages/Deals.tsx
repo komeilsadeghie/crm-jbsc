@@ -9,6 +9,7 @@ import { toPersianNumber } from '../utils/numberHelper';
 import { formatDateForInput } from '../utils/dateHelper';
 import JalaliDatePicker from '../components/JalaliDatePicker';
 import Pagination from '../components/Pagination';
+import { hasResponseError, getErrorMessage, getSuccessMessage } from '../utils/mutationHelper';
 
 const Deals = () => {
   const navigate = useNavigate();
@@ -64,17 +65,20 @@ const Deals = () => {
     (id: number) => api.delete(`/deals/${id}`),
     {
       onSuccess: (response: any) => {
-        // ✅ بررسی response برای error
-        if (response?.data?.error) {
+        // ✅ بررسی response - اگر error واقعی دارد، نشان بده
+        if (hasResponseError(response)) {
           alert('خطا: ' + response.data.error);
           return;
         }
         queryClient.invalidateQueries('deals');
         queryClient.invalidateQueries('deals-pipeline');
+        alert(getSuccessMessage(response, 'معامله با موفقیت حذف شد'));
       },
       onError: (error: any) => {
-        const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'خطا در حذف معامله';
-        alert('خطا: ' + errorMessage);
+        const status = error.response?.status;
+        if (status && status >= 400) {
+          alert('خطا: ' + getErrorMessage(error));
+        }
       },
     }
   );
