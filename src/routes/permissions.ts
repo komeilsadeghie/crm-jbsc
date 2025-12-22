@@ -130,6 +130,11 @@ router.get('/user/:userId/departments', authenticate, async (req: AuthRequest, r
     res.json(departments);
   } catch (error: any) {
     console.error('Error fetching user departments:', error);
+    // If table doesn't exist, return empty array instead of error
+    if (error.code === 'ER_NO_SUCH_TABLE' || error.message?.includes("doesn't exist")) {
+      console.warn('ticket_departments or user_departments table does not exist yet, returning empty array');
+      return res.json([]);
+    }
     res.status(500).json({ error: 'خطا در دریافت دپارتمان‌های کاربر' });
   }
 });

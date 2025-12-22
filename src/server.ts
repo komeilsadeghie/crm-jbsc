@@ -140,6 +140,13 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
       console.warn('⚠️ migrateInteractionsTable failed:', e.message);
     }
 
+    console.log('🔄 Migrating ticket_departments table...');
+    try {
+      await migrateTicketDepartmentsTable();
+    } catch (e: any) {
+      console.warn('⚠️ migrateTicketDepartmentsTable failed:', e.message);
+    }
+
     console.log('🔄 Migrating tickets table...');
     try {
       await migrateTicketsTable();
