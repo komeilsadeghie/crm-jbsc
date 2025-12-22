@@ -31,6 +31,9 @@ import { migrateNotificationsTable } from './database/migrate-notifications';
 import { migrateTicketsTable } from './database/migrate-tickets';
 import { migrateLeadStagesTable } from './database/migrate-lead-stages';
 import { migrateProjectTables } from './database/migrate-project-tables';
+import { migrateGoalsTable } from './database/migrate-goals';
+import { migrateExercisesTable } from './database/migrate-exercises';
+import { migrateGrowthReportsTable } from './database/migrate-growth-reports';
 
 // Load ENV
 dotenv.config();
@@ -333,6 +336,30 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
       await (await import('./database/migrate-coaching-enhanced')).migrateCoachingEnhanced();
     } catch (e) {
       console.warn('⚠️ migrateCoachingEnhanced failed:', e);
+    }
+
+    console.log('🔄 Migrating goals table...');
+    try {
+      await migrateGoalsTable();
+      console.log('✅ Goals migration completed');
+    } catch (e: any) {
+      console.warn('⚠️ migrateGoalsTable failed:', e.message);
+    }
+
+    console.log('🔄 Migrating exercises table...');
+    try {
+      await migrateExercisesTable();
+      console.log('✅ Exercises migration completed');
+    } catch (e: any) {
+      console.warn('⚠️ migrateExercisesTable failed:', e.message);
+    }
+
+    console.log('🔄 Migrating growth_reports table...');
+    try {
+      await migrateGrowthReportsTable();
+      console.log('✅ Growth reports migration completed');
+    } catch (e: any) {
+      console.warn('⚠️ migrateGrowthReportsTable failed:', e.message);
     }
 
     console.log('🔄 Migrating customer journey...');

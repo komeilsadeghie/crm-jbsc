@@ -462,76 +462,129 @@ export const generateContractPDF = (contract: ContractData, templateConfig?: Con
       const margin = doc.page.margins.left;
       const pageWidth = doc.page.width;
       const usableWidth = pageWidth - doc.page.margins.left - doc.page.margins.right;
-      let currentY = 50;
+      let currentY = 30;
 
-      // Header with company name and contact info
-      doc.fontSize(10).fillColor('gray');
-      addText(doc, template.header.phone, margin, currentY, { width: usableWidth, align: 'right' });
-      currentY += 12;
-      addText(doc, template.header.address, margin, currentY, { width: usableWidth, align: 'right' });
-      currentY += 20;
+      // ========== OFFICIAL HEADER ==========
+      // Top border line
+      doc.strokeColor('black').lineWidth(1);
+      doc.moveTo(margin, currentY).lineTo(pageWidth - doc.page.margins.right, currentY).stroke();
+      currentY += 15;
 
-      // Company logo/name in center (watermark style)
-      doc.fontSize(16).fillColor('lightgray');
+      // Company name - Large and prominent
+      doc.fontSize(20).fillColor('black');
       if (hasPersianFont) {
         doc.font('persian');
       } else {
-        doc.font('Helvetica');
+        doc.font('Helvetica-Bold');
       }
       const companyNameText = processText(template.header.companyName);
       const companyNameWidth = doc.widthOfString(companyNameText);
       addText(doc, template.header.companyName, (pageWidth - companyNameWidth) / 2, currentY, { align: 'left' });
       currentY += 25;
 
-      // Contract date and number (top right)
-      doc.fontSize(11).fillColor('black');
-      addText(doc, `تاریخ: ${contractData.contractDate}`, margin, currentY, { width: usableWidth, align: 'right' });
-      currentY += 12;
-      addText(doc, `شماره: ${processText(contract.contract_number)}`, margin, currentY, { width: usableWidth, align: 'right' });
-      currentY += 20;
+      // Contact information box
+      doc.fontSize(10).fillColor('black');
+      if (hasPersianFont) {
+        doc.font('persian');
+      } else {
+        doc.font('Helvetica');
+      }
+      
+      // Phone and address in a structured format
+      const contactInfoY = currentY;
+      addText(doc, `تلفن: ${template.header.phone}`, margin, contactInfoY, { width: usableWidth / 2, align: 'right' });
+      addText(doc, `آدرس: ${template.header.address}`, margin + usableWidth / 2, contactInfoY, { width: usableWidth / 2, align: 'right' });
+      currentY += 18;
 
-      // Title section
-      doc.fontSize(14).fillColor('black');
-      addText(doc, 'بسمه تعالی', margin, currentY, { width: usableWidth, align: 'center' });
-      currentY += 15;
-      doc.fontSize(18);
-      addText(doc, template.title.main, margin, currentY, { width: usableWidth, align: 'center' });
+      // Bottom border line of header
+      doc.strokeColor('black').lineWidth(1);
+      doc.moveTo(margin, currentY).lineTo(pageWidth - doc.page.margins.right, currentY).stroke();
       currentY += 25;
 
-      // Article 1 - Contract Title
-      doc.fontSize(14).fillColor('black');
-      addText(doc, template.article1.title, margin, currentY, { width: usableWidth, align: 'right' });
+      // Contract date and number (top right) - with better spacing
+      doc.fontSize(11).fillColor('black');
+      if (hasPersianFont) {
+        doc.font('persian');
+      } else {
+        doc.font('Helvetica');
+      }
+      addText(doc, `تاریخ قرارداد: ${contractData.contractDate}`, margin, currentY, { width: usableWidth, align: 'right' });
       currentY += 15;
-      doc.fontSize(11);
-      const article1Content = template.article1.content(contractData);
-      currentY = addMultilineText(doc, article1Content, margin, currentY, { width: usableWidth, align: 'right', lineHeight: 16 });
-      currentY += 10;
+      addText(doc, `شماره قرارداد: ${processText(contract.contract_number)}`, margin, currentY, { width: usableWidth, align: 'right' });
+      currentY += 30;
 
-      // Article 2 - Contract Subject
+      // Title section - with better spacing
+      doc.fontSize(14).fillColor('black');
+      if (hasPersianFont) {
+        doc.font('persian');
+      } else {
+        doc.font('Helvetica');
+      }
+      addText(doc, 'بسمه تعالی', margin, currentY, { width: usableWidth, align: 'center' });
+      currentY += 20;
+      doc.fontSize(20);
+      if (hasPersianFont) {
+        doc.font('persian');
+      } else {
+        doc.font('Helvetica-Bold');
+      }
+      addText(doc, template.title.main, margin, currentY, { width: usableWidth, align: 'center' });
+      currentY += 35;
+
+      // Article 1 - Contract Title - with better spacing
+      doc.fontSize(14).fillColor('black');
+      if (hasPersianFont) {
+        doc.font('persian');
+      } else {
+        doc.font('Helvetica-Bold');
+      }
+      addText(doc, template.article1.title, margin, currentY, { width: usableWidth, align: 'right' });
+      currentY += 20;
+      doc.fontSize(11);
+      if (hasPersianFont) {
+        doc.font('persian');
+      } else {
+        doc.font('Helvetica');
+      }
+      const article1Content = template.article1.content(contractData);
+      currentY = addMultilineText(doc, article1Content, margin, currentY, { width: usableWidth, align: 'right', lineHeight: 18 });
+      currentY += 25;
+
+      // Article 2 - Contract Subject - with better spacing
       if (currentY > doc.page.height - 150) {
         doc.addPage();
         currentY = 50;
       }
-      doc.fontSize(14);
+      doc.fontSize(14).fillColor('black');
+      if (hasPersianFont) {
+        doc.font('persian');
+      } else {
+        doc.font('Helvetica-Bold');
+      }
       addText(doc, template.article2.title, margin, currentY, { width: usableWidth, align: 'right' });
-      currentY += 15;
+      currentY += 20;
       doc.fontSize(11);
+      if (hasPersianFont) {
+        doc.font('persian');
+      } else {
+        doc.font('Helvetica');
+      }
       
       if (template.article2.packageName) {
         addText(doc, `${template.article2.packageName} شامل تمامی موارد ذکر شده در پکیج که تیم بهت موظف به پیاده‌سازی آن برای کارفرما می‌باشد.`, margin, currentY, { width: usableWidth, align: 'right' });
-        currentY += 15;
+        currentY += 18;
       }
       
       if (template.article2.projectTitle) {
         addText(doc, `پیاده‌سازی پروژه طراحی سایت با عنوان "${contractData.projectTitle}"`, margin, currentY, { width: usableWidth, align: 'right' });
-        currentY += 15;
+        currentY += 18;
       }
       
       addText(doc, 'طراحی بصری و پیاده‌سازی مطابق با نظر و سلیقه مجری انجام خواهد شد.', margin, currentY, { width: usableWidth, align: 'right' });
-      currentY += 15;
+      currentY += 20;
       
       addText(doc, 'مواردی که باید به کارفرما ارائه شود:', margin, currentY, { width: usableWidth, align: 'right' });
-      currentY += 15;
+      currentY += 18;
       
       const items = template.article2.items(contractData);
       doc.fontSize(10);
@@ -540,118 +593,193 @@ export const generateContractPDF = (contract: ContractData, templateConfig?: Con
           doc.addPage();
           currentY = 50;
         }
-        addText(doc, `${index + 1}. ${item}`, margin + 10, currentY, { width: usableWidth - 10, align: 'right' });
-        currentY += 14;
+        addText(doc, `${index + 1}. ${item}`, margin + 15, currentY, { width: usableWidth - 15, align: 'right' });
+        currentY += 16;
       });
-      currentY += 10;
+      currentY += 20;
 
-      // Article 3 - Contract Duration
+      // Article 3 - Contract Duration - with better spacing
       if (currentY > doc.page.height - 100) {
         doc.addPage();
         currentY = 50;
       }
-      doc.fontSize(14);
+      doc.fontSize(14).fillColor('black');
+      if (hasPersianFont) {
+        doc.font('persian');
+      } else {
+        doc.font('Helvetica-Bold');
+      }
       addText(doc, template.article3.title, margin, currentY, { width: usableWidth, align: 'right' });
-      currentY += 15;
+      currentY += 20;
       doc.fontSize(11);
+      if (hasPersianFont) {
+        doc.font('persian');
+      } else {
+        doc.font('Helvetica');
+      }
       const article3Content = template.article3.content(contractData);
-      currentY = addMultilineText(doc, article3Content, margin, currentY, { width: usableWidth, align: 'right', lineHeight: 16 });
-      currentY += 10;
+      currentY = addMultilineText(doc, article3Content, margin, currentY, { width: usableWidth, align: 'right', lineHeight: 18 });
+      currentY += 25;
 
-      // Article 4 - Contractor Obligations
+      // Article 4 - Contractor Obligations - with better spacing
       if (currentY > doc.page.height - 150) {
         doc.addPage();
         currentY = 50;
       }
-      doc.fontSize(14);
+      doc.fontSize(14).fillColor('black');
+      if (hasPersianFont) {
+        doc.font('persian');
+      } else {
+        doc.font('Helvetica-Bold');
+      }
       addText(doc, template.article4.title, margin, currentY, { width: usableWidth, align: 'right' });
-      currentY += 15;
+      currentY += 20;
       doc.fontSize(11);
+      if (hasPersianFont) {
+        doc.font('persian');
+      } else {
+        doc.font('Helvetica');
+      }
       template.article4.obligations.forEach((obligation) => {
         if (currentY > doc.page.height - 100) {
           doc.addPage();
           currentY = 50;
         }
-        addText(doc, `• ${obligation}`, margin + 10, currentY, { width: usableWidth - 10, align: 'right' });
-        currentY += 14;
+        addText(doc, `• ${obligation}`, margin + 15, currentY, { width: usableWidth - 15, align: 'right' });
+        currentY += 16;
       });
-      currentY += 10;
+      currentY += 20;
 
-      // Article 5 - Client Obligations
+      // Article 5 - Client Obligations - with better spacing
       if (currentY > doc.page.height - 150) {
         doc.addPage();
         currentY = 50;
       }
-      doc.fontSize(14);
+      doc.fontSize(14).fillColor('black');
+      if (hasPersianFont) {
+        doc.font('persian');
+      } else {
+        doc.font('Helvetica-Bold');
+      }
       addText(doc, template.article5.title, margin, currentY, { width: usableWidth, align: 'right' });
-      currentY += 15;
+      currentY += 20;
       doc.fontSize(11);
+      if (hasPersianFont) {
+        doc.font('persian');
+      } else {
+        doc.font('Helvetica');
+      }
       template.article5.obligations.forEach((obligation) => {
         if (currentY > doc.page.height - 100) {
           doc.addPage();
           currentY = 50;
         }
-        addText(doc, `• ${obligation}`, margin + 10, currentY, { width: usableWidth - 10, align: 'right' });
-        currentY += 14;
+        addText(doc, `• ${obligation}`, margin + 15, currentY, { width: usableWidth - 15, align: 'right' });
+        currentY += 16;
       });
-      currentY += 10;
-
-      // Article 6 - Contract Amount
-      if (currentY > doc.page.height - 100) {
-        doc.addPage();
-        currentY = 50;
-      }
-      doc.fontSize(14);
-      addText(doc, template.article6.title, margin, currentY, { width: usableWidth, align: 'right' });
-      currentY += 15;
-      doc.fontSize(11);
-      const article6Content = template.article6.content(contractData);
-      currentY = addMultilineText(doc, article6Content, margin, currentY, { width: usableWidth, align: 'right', lineHeight: 16 });
-      currentY += 10;
-
-      // Article 7 - Dispute Resolution
-      if (currentY > doc.page.height - 100) {
-        doc.addPage();
-        currentY = 50;
-      }
-      doc.fontSize(14);
-      addText(doc, template.article7.title, margin, currentY, { width: usableWidth, align: 'right' });
-      currentY += 15;
-      doc.fontSize(11);
-      currentY = addMultilineText(doc, template.article7.content, margin, currentY, { width: usableWidth, align: 'right', lineHeight: 16 });
-      currentY += 10;
-
-      // Article 8 - Contract Termination
-      if (currentY > doc.page.height - 100) {
-        doc.addPage();
-        currentY = 50;
-      }
-      doc.fontSize(14);
-      addText(doc, template.article8.title, margin, currentY, { width: usableWidth, align: 'right' });
-      currentY += 15;
-      doc.fontSize(11);
-      currentY = addMultilineText(doc, template.article8.content, margin, currentY, { width: usableWidth, align: 'right', lineHeight: 16 });
-      currentY += 10;
-
-      // Article 9 - Support
-      if (currentY > doc.page.height - 100) {
-        doc.addPage();
-        currentY = 50;
-      }
-      doc.fontSize(14);
-      addText(doc, template.article9.title, margin, currentY, { width: usableWidth, align: 'right' });
-      currentY += 15;
-      doc.fontSize(11);
-      const article9Content = template.article9.content(contractData);
-      currentY = addMultilineText(doc, article9Content, margin, currentY, { width: usableWidth, align: 'right', lineHeight: 16 });
-      currentY += 15;
-
-      // Closing statement
-      doc.fontSize(11);
-      addText(doc, 'این قرارداد در ۹ ماده و ۲ نسخه تهیه شده که هر دو نسخه دارای اعتبار یکسان می‌باشند.', margin, currentY, { width: usableWidth, align: 'right' });
-      currentY += 12;
-      addText(doc, `کلیه بندهای قرارداد در تاریخ ${contractData.contractDate} توسط طرفین امضا شده و طرفین متعهد به اجرای مفاد آن می‌باشند.`, margin, currentY, { width: usableWidth, align: 'right' });
       currentY += 20;
+
+      // Article 6 - Contract Amount - with better spacing
+      if (currentY > doc.page.height - 100) {
+        doc.addPage();
+        currentY = 50;
+      }
+      doc.fontSize(14).fillColor('black');
+      if (hasPersianFont) {
+        doc.font('persian');
+      } else {
+        doc.font('Helvetica-Bold');
+      }
+      addText(doc, template.article6.title, margin, currentY, { width: usableWidth, align: 'right' });
+      currentY += 20;
+      doc.fontSize(11);
+      if (hasPersianFont) {
+        doc.font('persian');
+      } else {
+        doc.font('Helvetica');
+      }
+      const article6Content = template.article6.content(contractData);
+      currentY = addMultilineText(doc, article6Content, margin, currentY, { width: usableWidth, align: 'right', lineHeight: 18 });
+      currentY += 25;
+
+      // Article 7 - Dispute Resolution - with better spacing
+      if (currentY > doc.page.height - 100) {
+        doc.addPage();
+        currentY = 50;
+      }
+      doc.fontSize(14).fillColor('black');
+      if (hasPersianFont) {
+        doc.font('persian');
+      } else {
+        doc.font('Helvetica-Bold');
+      }
+      addText(doc, template.article7.title, margin, currentY, { width: usableWidth, align: 'right' });
+      currentY += 20;
+      doc.fontSize(11);
+      if (hasPersianFont) {
+        doc.font('persian');
+      } else {
+        doc.font('Helvetica');
+      }
+      currentY = addMultilineText(doc, template.article7.content, margin, currentY, { width: usableWidth, align: 'right', lineHeight: 18 });
+      currentY += 25;
+
+      // Article 8 - Contract Termination - with better spacing
+      if (currentY > doc.page.height - 100) {
+        doc.addPage();
+        currentY = 50;
+      }
+      doc.fontSize(14).fillColor('black');
+      if (hasPersianFont) {
+        doc.font('persian');
+      } else {
+        doc.font('Helvetica-Bold');
+      }
+      addText(doc, template.article8.title, margin, currentY, { width: usableWidth, align: 'right' });
+      currentY += 20;
+      doc.fontSize(11);
+      if (hasPersianFont) {
+        doc.font('persian');
+      } else {
+        doc.font('Helvetica');
+      }
+      currentY = addMultilineText(doc, template.article8.content, margin, currentY, { width: usableWidth, align: 'right', lineHeight: 18 });
+      currentY += 25;
+
+      // Article 9 - Support - with better spacing
+      if (currentY > doc.page.height - 100) {
+        doc.addPage();
+        currentY = 50;
+      }
+      doc.fontSize(14).fillColor('black');
+      if (hasPersianFont) {
+        doc.font('persian');
+      } else {
+        doc.font('Helvetica-Bold');
+      }
+      addText(doc, template.article9.title, margin, currentY, { width: usableWidth, align: 'right' });
+      currentY += 20;
+      doc.fontSize(11);
+      if (hasPersianFont) {
+        doc.font('persian');
+      } else {
+        doc.font('Helvetica');
+      }
+      const article9Content = template.article9.content(contractData);
+      currentY = addMultilineText(doc, article9Content, margin, currentY, { width: usableWidth, align: 'right', lineHeight: 18 });
+      currentY += 25;
+
+      // Closing statement - with better spacing
+      doc.fontSize(11);
+      if (hasPersianFont) {
+        doc.font('persian');
+      } else {
+        doc.font('Helvetica');
+      }
+      addText(doc, 'این قرارداد در ۹ ماده و ۲ نسخه تهیه شده که هر دو نسخه دارای اعتبار یکسان می‌باشند.', margin, currentY, { width: usableWidth, align: 'right' });
+      currentY += 18;
+      addText(doc, `کلیه بندهای قرارداد در تاریخ ${contractData.contractDate} توسط طرفین امضا شده و طرفین متعهد به اجرای مفاد آن می‌باشند.`, margin, currentY, { width: usableWidth, align: 'right' });
+      currentY += 30;
 
       // Signatures section
       if (currentY > doc.page.height - 120) {

@@ -743,8 +743,8 @@ router.get('/sessions/upcoming', authenticate, async (req: AuthRequest, res: Res
        FROM coaching_sessions cs
        LEFT JOIN customers c ON cs.customer_id = c.id
        WHERE cs.status = 'scheduled' 
-       AND cs.session_date >= date('now')
-       AND cs.session_date <= date('now', '+' || ? || ' days')
+       AND cs.session_date >= CURDATE()
+       AND cs.session_date <= DATE_ADD(CURDATE(), INTERVAL ? DAY)
        AND cs.coach_id = ?
        ORDER BY cs.session_date ASC`,
       [days, coachId]
@@ -779,7 +779,7 @@ router.get('/dashboard/stats', authenticate, async (req: AuthRequest, res: Respo
     // Upcoming sessions
     const upcomingSessions = await dbGet(
       `SELECT COUNT(*) as count FROM coaching_sessions cs 
-       WHERE cs.coach_id = ? AND cs.status = 'scheduled' AND cs.session_date >= date('now') ${customerFilter}`,
+       WHERE cs.coach_id = ? AND cs.status = 'scheduled' AND cs.session_date >= CURDATE() ${customerFilter}`,
       params
     );
 
@@ -810,7 +810,7 @@ router.get('/dashboard/stats', authenticate, async (req: AuthRequest, res: Respo
     const overdueExercises = await dbGet(
       `SELECT COUNT(*) as count FROM exercises e
        JOIN coaching_sessions cs ON e.customer_id = cs.customer_id
-       WHERE cs.coach_id = ? AND e.status != 'completed' AND e.due_date < date('now') ${customerFilter}`,
+       WHERE cs.coach_id = ? AND e.status != 'completed' AND e.due_date < CURDATE() ${customerFilter}`,
       params
     );
 
@@ -880,7 +880,7 @@ router.get('/exercises/overdue', authenticate, async (req: AuthRequest, res: Res
       LEFT JOIN goals g ON e.goal_id = g.id
       WHERE cs.coach_id = ? 
       AND e.status != 'completed' 
-      AND e.due_date < date('now')
+      AND e.due_date < CURDATE()
     `;
     const params: any[] = [coachId];
 
