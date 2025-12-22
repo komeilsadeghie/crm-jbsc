@@ -350,19 +350,41 @@ router.put('/sessions/:id/kanban', authenticate, async (req: AuthRequest, res: R
     const { id } = req.params;
     const { kanban_column, position } = req.body;
 
+    // Validate input
+    if (!id || isNaN(Number(id))) {
+      return res.status(400).json({ error: 'شناسه جلسه معتبر نیست' });
+    }
+
+    if (!kanban_column) {
+      return res.status(400).json({ error: 'ستون کانبان مشخص نشده است' });
+    }
+
     const result = await dbRun(
       'UPDATE coaching_sessions SET kanban_column = ?, position = ? WHERE id = ?',
-      [kanban_column || 'code_executed', position || 0, id]
+      [kanban_column, position !== undefined ? position : 0, id]
     );
 
     if (result.changes === 0) {
-      return res.status(404).json({ error: 'جلسه یافت نشد' });
+      // Check if session exists
+      const session = await dbGet('SELECT id FROM coaching_sessions WHERE id = ?', [id]);
+      if (!session) {
+        return res.status(404).json({ error: 'جلسه یافت نشد' });
+      }
+      // Session exists but no changes - might be same values, return success anyway
+      return res.json({ message: 'موقعیت جلسه به‌روزرسانی شد' });
     }
 
     res.json({ message: 'موقعیت جلسه به‌روزرسانی شد' });
   } catch (error: any) {
     console.error('Error updating kanban position:', error);
-    res.status(500).json({ error: 'خطا در به‌روزرسانی موقعیت' });
+    // Log more details for debugging
+    console.error('Error details:', {
+      id: req.params.id,
+      body: req.body,
+      errorMessage: error.message,
+      errorCode: error.code
+    });
+    res.status(500).json({ error: 'خطا در به‌روزرسانی موقعیت: ' + (error.message || 'خطای نامشخص') });
   }
 });
 
