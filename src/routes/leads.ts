@@ -82,7 +82,14 @@ router.get('/kanban/board', authenticate, (req: AuthRequest, res: Response) => {
     // Get custom stages
     db.all('SELECT * FROM lead_stages ORDER BY position', [], (err, stages: any[]) => {
       if (err) {
-        return res.status(500).json({ error: 'خطا در دریافت مراحل' });
+        console.error('Error fetching lead stages:', err);
+        // If table doesn't exist, use default stages
+        if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+          console.warn('lead_stages table does not exist yet, using default stages');
+          stages = [];
+        } else {
+          return res.status(500).json({ error: 'خطا در دریافت مراحل' });
+        }
       }
 
       // Default stages if none exist

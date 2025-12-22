@@ -29,6 +29,7 @@ import { migrateInteractionsTable } from './database/migrate-interactions';
 import { migrateTicketDepartmentsTable } from './database/migrate-ticket-departments';
 import { migrateNotificationsTable } from './database/migrate-notifications';
 import { migrateTicketsTable } from './database/migrate-tickets';
+import { migrateLeadStagesTable } from './database/migrate-lead-stages';
 
 // Load ENV
 dotenv.config();
@@ -266,6 +267,13 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
       await migrateLeadsForeignKeys();
     } catch (migrationError: any) {
       console.error('⚠️ Error in migrateLeadsForeignKeys:', migrationError);
+    }
+
+    console.log('🔄 Migrating lead_stages table...');
+    try {
+      await migrateLeadStagesTable();
+    } catch (e: any) {
+      console.warn('⚠️ migrateLeadStagesTable failed:', e.message);
     }
 
     console.log('🔄 Migrating customers foreign keys (ON DELETE SET NULL)...');
