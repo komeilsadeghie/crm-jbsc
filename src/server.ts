@@ -35,6 +35,9 @@ import { migrateGoalsTable } from './database/migrate-goals';
 import { migrateExercisesTable } from './database/migrate-exercises';
 import { migrateGrowthReportsTable } from './database/migrate-growth-reports';
 import { migrateKnowledgeBaseTables } from './database/migrate-knowledge-base';
+import { migrateCalendarEventsTable } from './database/migrate-calendar-events';
+import { migrateSalesGoalsTable } from './database/migrate-sales-goals';
+import { migrateInvoicePaymentsTable } from './database/migrate-invoice-payments';
 
 // Load ENV
 dotenv.config();
@@ -369,6 +372,30 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
       console.log('✅ Knowledge base tables migration completed');
     } catch (e: any) {
       console.warn('⚠️ migrateKnowledgeBaseTables failed:', e.message);
+    }
+
+    console.log('🔄 Migrating calendar_events table...');
+    try {
+      await migrateCalendarEventsTable();
+      console.log('✅ Calendar events migration completed');
+    } catch (e: any) {
+      console.warn('⚠️ migrateCalendarEventsTable failed:', e.message);
+    }
+
+    console.log('🔄 Migrating sales_goals table...');
+    try {
+      await migrateSalesGoalsTable();
+      console.log('✅ Sales goals migration completed');
+    } catch (e: any) {
+      console.warn('⚠️ migrateSalesGoalsTable failed:', e.message);
+    }
+
+    console.log('🔄 Migrating invoice_payments table...');
+    try {
+      await migrateInvoicePaymentsTable();
+      console.log('✅ Invoice payments migration completed');
+    } catch (e: any) {
+      console.warn('⚠️ migrateInvoicePaymentsTable failed:', e.message);
     }
 
     console.log('🔄 Migrating customer journey...');
