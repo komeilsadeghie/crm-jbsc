@@ -161,6 +161,52 @@ const KnowledgeBase = () => {
     }
   );
 
+  // Category mutations
+  const createCategoryMutation = useMutation(
+    (data: any) => api.post('/knowledge-base/categories', data),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries('kb-categories');
+        setShowCategoryModal(false);
+        setEditingCategory(null);
+        setCategoryForm({ name: '', description: '', icon: '', color: '#3B82F6', position: 0 });
+        alert('دسته‌بندی با موفقیت ایجاد شد');
+      },
+      onError: (error: any) => {
+        alert('خطا: ' + (error.response?.data?.error || error.message));
+      },
+    }
+  );
+
+  const updateCategoryMutation = useMutation(
+    ({ id, data }: { id: number; data: any }) => api.put(`/knowledge-base/categories/${id}`, data),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries('kb-categories');
+        setShowCategoryModal(false);
+        setEditingCategory(null);
+        setCategoryForm({ name: '', description: '', icon: '', color: '#3B82F6', position: 0 });
+        alert('دسته‌بندی با موفقیت به‌روزرسانی شد');
+      },
+      onError: (error: any) => {
+        alert('خطا: ' + (error.response?.data?.error || error.message));
+      },
+    }
+  );
+
+  const deleteCategoryMutation = useMutation(
+    (id: number) => api.delete(`/knowledge-base/categories/${id}`),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries('kb-categories');
+        alert('دسته‌بندی با موفقیت حذف شد');
+      },
+      onError: (error: any) => {
+        alert('خطا: ' + (error.response?.data?.error || error.message));
+      },
+    }
+  );
+
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 p-3 sm:p-4 md:p-6 pt-20 sm:pt-24 md:pt-6">
       <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
