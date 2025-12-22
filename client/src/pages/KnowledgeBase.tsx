@@ -17,6 +17,15 @@ const KnowledgeBase = () => {
   const [activeTab, setActiveTab] = useState<'articles' | 'sops'>('articles');
   const [showSOPModal, setShowSOPModal] = useState(false);
   const [editingSOP, setEditingSOP] = useState<any>(null);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<any>(null);
+  const [categoryForm, setCategoryForm] = useState({
+    name: '',
+    description: '',
+    icon: '',
+    color: '#3B82F6',
+    position: 0,
+  });
 
   const { data: categories } = useQuery('kb-categories', async () => {
     const response = await api.get('/knowledge-base/categories');
@@ -220,22 +229,15 @@ const KnowledgeBase = () => {
               {isAdmin && (
                 <button
                   onClick={() => {
-                    const name = prompt('نام دسته‌بندی جدید:');
-                    if (name && name.trim()) {
-                      api.post('/knowledge-base/categories', { name: name.trim() })
-                        .then(() => {
-                          queryClient.invalidateQueries('kb-categories');
-                          alert('دسته‌بندی با موفقیت ایجاد شد');
-                        })
-                        .catch((err: any) => {
-                          alert('خطا: ' + (err.response?.data?.error || err.message));
-                        });
-                    }
+                    setEditingCategory(null);
+                    setCategoryForm({ name: '', description: '', icon: '', color: '#3B82F6', position: 0 });
+                    setShowCategoryModal(true);
                   }}
-                  className="text-primary-600 hover:text-primary-700 text-sm"
+                  className="text-primary-600 hover:text-primary-700 text-sm flex items-center gap-1"
                   title="افزودن دسته‌بندی"
                 >
                   <Plus size={16} />
+                  <span className="text-xs">افزودن</span>
                 </button>
               )}
             </div>
@@ -249,15 +251,50 @@ const KnowledgeBase = () => {
                 همه مقالات
               </button>
               {categories?.map((cat: any) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`w-full text-right p-2 rounded ${
-                    selectedCategory === cat.id ? 'bg-primary-100 text-primary-700' : 'hover:bg-gray-100'
-                  }`}
-                >
-                  {cat.name}
-                </button>
+                <div key={cat.id} className="flex items-center justify-between group">
+                  <button
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`flex-1 text-right p-2 rounded ${
+                      selectedCategory === cat.id ? 'bg-primary-100 text-primary-700' : 'hover:bg-gray-100'
+                    }`}
+                  >
+                    {cat.name}
+                  </button>
+                  {isAdmin && (
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingCategory(cat);
+                          setCategoryForm({
+                            name: cat.name || '',
+                            description: cat.description || '',
+                            icon: cat.icon || '',
+                            color: cat.color || '#3B82F6',
+                            position: cat.position || 0,
+                          });
+                          setShowCategoryModal(true);
+                        }}
+                        className="text-blue-600 hover:text-blue-700 p-1"
+                        title="ویرایش"
+                      >
+                        <Edit size={14} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm('آیا مطمئن هستید که می‌خواهید این دسته‌بندی را حذف کنید؟')) {
+                            deleteCategoryMutation.mutate(cat.id);
+                          }
+                        }}
+                        className="text-red-600 hover:text-red-700 p-1"
+                        title="حذف"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </div>
@@ -471,6 +508,117 @@ const KnowledgeBase = () => {
               }
             }}
           />
+        )}
+
+        {/* Category Modal */}
+        {showCategoryModal && isAdmin && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-neutral-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <h2 className="text-xl font-bold mb-4">
+                  {editingCategory ? 'ویرایش دسته‌بندی' : 'افزودن دسته‌بندی جدید'}
+                </h2>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!categoryForm.name.trim()) {
+                      alert('نام دسته‌بندی الزامی است');
+                      return;
+                    }
+                    if (editingCategory) {
+                      updateCategoryMutation.mutate({ id: editingCategory.id, data: categoryForm });
+                    } else {
+                      createCategoryMutation.mutate(categoryForm);
+                    }
+                  }}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className="block text-sm font-medium mb-1">نام دسته‌بندی *</label>
+                    <input
+                      type="text"
+                      value={categoryForm.name}
+                      onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                      className="input w-full"
+                      required
+                      placeholder="مثال: آموزش، راهنما، FAQ"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">توضیحات</label>
+                    <textarea
+                      value={categoryForm.description}
+                      onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+                      className="input w-full"
+                      rows={3}
+                      placeholder="توضیحات اختیاری برای دسته‌بندی"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">آیکون</label>
+                      <input
+                        type="text"
+                        value={categoryForm.icon}
+                        onChange={(e) => setCategoryForm({ ...categoryForm, icon: e.target.value })}
+                        className="input w-full"
+                        placeholder="نام آیکون (اختیاری)"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">رنگ</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="color"
+                          value={categoryForm.color}
+                          onChange={(e) => setCategoryForm({ ...categoryForm, color: e.target.value })}
+                          className="w-12 h-10 rounded border"
+                        />
+                        <input
+                          type="text"
+                          value={categoryForm.color}
+                          onChange={(e) => setCategoryForm({ ...categoryForm, color: e.target.value })}
+                          className="input flex-1"
+                          placeholder="#3B82F6"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">موقعیت (برای مرتب‌سازی)</label>
+                    <input
+                      type="number"
+                      value={categoryForm.position}
+                      onChange={(e) => setCategoryForm({ ...categoryForm, position: parseInt(e.target.value) || 0 })}
+                      className="input w-full"
+                      min="0"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-4 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCategoryModal(false);
+                        setEditingCategory(null);
+                        setCategoryForm({ name: '', description: '', icon: '', color: '#3B82F6', position: 0 });
+                      }}
+                      className="btn btn-secondary"
+                    >
+                      انصراف
+                    </button>
+                    <button type="submit" className="btn btn-primary">
+                      {editingCategory ? 'به‌روزرسانی' : 'ایجاد'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

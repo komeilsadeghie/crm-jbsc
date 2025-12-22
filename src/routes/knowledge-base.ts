@@ -61,6 +61,58 @@ router.post('/categories', authenticate, (req: AuthRequest, res: Response) => {
   );
 });
 
+// Update category (admin only)
+router.put('/categories/:id', authenticate, (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ error: 'فقط مدیر سیستم می‌تواند دسته‌بندی ویرایش کند' });
+  }
+
+  const { id } = req.params;
+  const { name, description, icon, color, position } = req.body;
+
+  if (!name || name.trim() === '') {
+    return res.status(400).json({ error: 'نام دسته‌بندی الزامی است' });
+  }
+
+  db.run(
+    `UPDATE kb_categories SET name = ?, description = ?, icon = ?, color = ?, position = ? WHERE id = ?`,
+    [name.trim(), description || null, icon || null, color || '#3B82F6', position || 0, id],
+    function(err) {
+      if (err) {
+        console.error('Error updating kb category:', err);
+        if (err.message?.includes('UNIQUE constraint') || err.message?.includes('Duplicate entry')) {
+          return res.status(400).json({ error: 'دسته‌بندی با این نام قبلاً وجود دارد' });
+        }
+        return res.status(500).json({ error: 'خطا در به‌روزرسانی دسته‌بندی' });
+      }
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'دسته‌بندی یافت نشد' });
+      }
+      res.json({ message: 'دسته‌بندی با موفقیت به‌روزرسانی شد' });
+    }
+  );
+});
+
+// Delete category (admin only)
+router.delete('/categories/:id', authenticate, (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ error: 'فقط مدیر سیستم می‌تواند دسته‌بندی حذف کند' });
+  }
+
+  const { id } = req.params;
+
+  db.run('DELETE FROM kb_categories WHERE id = ?', [id], function(err) {
+    if (err) {
+      console.error('Error deleting kb category:', err);
+      return res.status(500).json({ error: 'خطا در حذف دسته‌بندی' });
+    }
+    if (this.changes === 0) {
+      return res.status(404).json({ error: 'دسته‌بندی یافت نشد' });
+    }
+    res.json({ message: 'دسته‌بندی با موفقیت حذف شد' });
+  });
+});
+
 // Get articles
 router.get('/articles', (req: AuthRequest, res: Response) => {
   const { category_id, search, published_only } = req.query;

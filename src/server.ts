@@ -34,6 +34,7 @@ import { migrateProjectTables } from './database/migrate-project-tables';
 import { migrateGoalsTable } from './database/migrate-goals';
 import { migrateExercisesTable } from './database/migrate-exercises';
 import { migrateGrowthReportsTable } from './database/migrate-growth-reports';
+import { migrateKnowledgeBaseTables } from './database/migrate-knowledge-base';
 
 // Load ENV
 dotenv.config();
@@ -360,6 +361,14 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
       console.log('✅ Growth reports migration completed');
     } catch (e: any) {
       console.warn('⚠️ migrateGrowthReportsTable failed:', e.message);
+    }
+
+    console.log('🔄 Migrating knowledge base tables (kb_categories, kb_articles)...');
+    try {
+      await migrateKnowledgeBaseTables();
+      console.log('✅ Knowledge base tables migration completed');
+    } catch (e: any) {
+      console.warn('⚠️ migrateKnowledgeBaseTables failed:', e.message);
     }
 
     console.log('🔄 Migrating customer journey...');
