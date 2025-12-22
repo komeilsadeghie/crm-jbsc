@@ -4,7 +4,6 @@ import api from '../services/api';
 import { toJalali } from '../utils/dateHelper';
 import { Edit2, Plus, Trash2, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { hasResponseError, getErrorMessage } from '../utils/mutationHelper';
 
 interface KanbanCard {
   id: number;
@@ -48,14 +47,7 @@ const KanbanBoard = ({ sessions, onEdit }: KanbanBoardProps) => {
     ({ id, kanban_column, position }: { id: number; kanban_column: string; position: number }) =>
       api.put(`/coaching/sessions/${id}/kanban`, { kanban_column, position }),
     {
-      onSuccess: (response: any) => {
-        // ✅ بررسی response - اگر error واقعی دارد، نشان بده
-        if (hasResponseError(response)) {
-          console.error('Server returned error in response:', response.data.error);
-          return;
-        }
-        
-        // ✅ Invalidate queries برای refresh بورد
+      onSuccess: () => {
         queryClient.invalidateQueries('coaching-kanban');
         queryClient.invalidateQueries('coaching-sessions');
       },
