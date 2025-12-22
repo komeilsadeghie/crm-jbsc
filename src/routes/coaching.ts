@@ -1,37 +1,10 @@
 import express, { Response } from 'express';
-import { db } from '../database/db';
+import { db, dbRun, dbGet, dbAll } from '../database/db';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { CoachingSession, Goal, Exercise, GrowthReport } from '../types';
 
 const router = express.Router();
 
-// Helper functions to promisify database calls
-const dbGet = (query: string, params: any[]): Promise<any> => {
-  return new Promise((resolve, reject) => {
-    db.get(query, params, (err, row) => {
-      if (err) reject(err);
-      else resolve(row);
-    });
-  });
-};
-
-const dbAll = (query: string, params: any[]): Promise<any[]> => {
-  return new Promise((resolve, reject) => {
-    db.all(query, params, (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows || []);
-    });
-  });
-};
-
-const dbRun = (query: string, params: any[]): Promise<{ lastID?: number; changes: number }> => {
-  return new Promise((resolve, reject) => {
-    db.run(query, params, function(err) {
-      if (err) reject(err);
-      else resolve({ lastID: this.lastID, changes: this.changes });
-    });
-  });
-};
 
 // ========== Coaching Sessions ==========
 router.get('/sessions', authenticate, (req: AuthRequest, res: Response) => {
