@@ -7,6 +7,7 @@ import { toJalali, formatDateForInput } from '../utils/dateHelper';
 import { toPersianNumber } from '../utils/numberHelper';
 import JalaliDatePicker from '../components/JalaliDatePicker';
 import Pagination from '../components/Pagination';
+import { hasResponseError, getErrorMessage, getSuccessMessage } from '../utils/mutationHelper';
 
 const Projects = () => {
   const navigate = useNavigate();
@@ -50,16 +51,23 @@ const Projects = () => {
   const createMutation = useMutation(
     (data: any) => api.post('/projects', data),
     {
-      onSuccess: () => {
+      onSuccess: (response: any) => {
+        // ✅ بررسی response - اگر error واقعی دارد، نشان بده
+        if (hasResponseError(response)) {
+          alert('خطا: ' + response.data.error);
+          return;
+        }
         queryClient.invalidateQueries('projects');
         setShowModal(false);
         setEditingProject(null);
-        alert('پروژه با موفقیت ایجاد شد');
+        alert(getSuccessMessage(response, 'پروژه با موفقیت ایجاد شد'));
       },
       onError: (error: any) => {
-        const errorMessage = error.response?.data?.error || error.message || 'خطای نامشخص';
-        console.error('Error creating project:', error);
-        alert('خطا در ایجاد پروژه: ' + errorMessage);
+        const status = error.response?.status;
+        if (status && status >= 400) {
+          console.error('Error creating project:', error);
+          alert('خطا در ایجاد پروژه: ' + getErrorMessage(error));
+        }
       },
     }
   );
@@ -67,14 +75,22 @@ const Projects = () => {
   const updateMutation = useMutation(
     ({ id, data }: { id: number; data: any }) => api.put(`/projects/${id}`, data),
     {
-      onSuccess: () => {
+      onSuccess: (response: any) => {
+        // ✅ بررسی response - اگر error واقعی دارد، نشان بده
+        if (hasResponseError(response)) {
+          alert('خطا: ' + response.data.error);
+          return;
+        }
         queryClient.invalidateQueries('projects');
         setShowModal(false);
         setEditingProject(null);
-        alert('پروژه با موفقیت به‌روزرسانی شد');
+        alert(getSuccessMessage(response, 'پروژه با موفقیت به‌روزرسانی شد'));
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        const status = error.response?.status;
+        if (status && status >= 400) {
+          alert('خطا: ' + getErrorMessage(error));
+        }
       },
     }
   );
@@ -82,9 +98,20 @@ const Projects = () => {
   const deleteMutation = useMutation(
     (id: number) => api.delete(`/projects/${id}`),
     {
-      onSuccess: () => {
+      onSuccess: (response: any) => {
+        // ✅ بررسی response - اگر error واقعی دارد، نشان بده
+        if (hasResponseError(response)) {
+          alert('خطا: ' + response.data.error);
+          return;
+        }
         queryClient.invalidateQueries('projects');
-        alert('پروژه با موفقیت حذف شد');
+        alert(getSuccessMessage(response, 'پروژه با موفقیت حذف شد'));
+      },
+      onError: (error: any) => {
+        const status = error.response?.status;
+        if (status && status >= 400) {
+          alert('خطا: ' + getErrorMessage(error));
+        }
       },
     }
   );

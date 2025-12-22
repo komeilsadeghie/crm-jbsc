@@ -23,6 +23,7 @@ import {
   jalaliToGregorian
 } from '../utils/dateHelper';
 import JalaliDatePicker from '../components/JalaliDatePicker';
+import { hasResponseError, getErrorMessage, getSuccessMessage } from '../utils/mutationHelper';
 
 const Coaching = () => {
   const queryClient = useQueryClient();
@@ -71,6 +72,8 @@ const Coaching = () => {
     {
       refetchOnWindowFocus: true,
       staleTime: 0,
+      refetchInterval: 60 * 1000, // ✅ هر 60 ثانیه یکبار refresh
+      keepPreviousData: true, // ✅ نمایش داده قبلی
     }
   );
 
@@ -84,7 +87,10 @@ const Coaching = () => {
     {
       enabled: activeTab === 'kanban',
       refetchOnWindowFocus: true,
+      refetchOnMount: true, // ✅ اضافه شد: وقتی به تب kanban برمی‌گردد، داده‌ها refresh می‌شوند
       staleTime: 0,
+      refetchInterval: 30 * 1000, // ✅ هر 30 ثانیه یکبار refresh (برای بورد کوچینگ)
+      keepPreviousData: true, // ✅ نمایش داده قبلی
     }
   );
 
@@ -95,6 +101,10 @@ const Coaching = () => {
       const response = await api.get(`/coaching/goals${params}`);
       const data = response.data;
       return Array.isArray(data) ? data : [];
+    },
+    {
+      refetchOnWindowFocus: true, // ✅ اضافه شد
+      staleTime: 30 * 1000, // ✅ 30 ثانیه
     }
   );
 
@@ -105,6 +115,10 @@ const Coaching = () => {
       const response = await api.get(`/coaching/exercises${params}`);
       const data = response.data;
       return Array.isArray(data) ? data : [];
+    },
+    {
+      refetchOnWindowFocus: true, // ✅ اضافه شد
+      staleTime: 30 * 1000, // ✅ 30 ثانیه
     }
   );
 
@@ -1235,7 +1249,15 @@ const CoachingModal = ({ type, item, customers, goals, sessions, clickedDate: pr
       }
     },
     {
-      onSuccess: () => {
+      onSuccess: (response: any) => {
+        // ✅ بررسی response - اگر error واقعی دارد، نشان بده
+        if (hasResponseError(response)) {
+          console.error('Server returned error in response:', response.data.error);
+          alert('خطا: ' + response.data.error);
+          return;
+        }
+        
+        // ✅ Invalidate تمام queries مربوط به coaching
         queryClient.invalidateQueries('coaching-sessions');
         queryClient.invalidateQueries('coaching-goals');
         queryClient.invalidateQueries('coaching-exercises');
@@ -1247,12 +1269,16 @@ const CoachingModal = ({ type, item, customers, goals, sessions, clickedDate: pr
         queryClient.invalidateQueries('coaching-upcoming-sessions');
         queryClient.invalidateQueries('coaching-goals-progress');
         queryClient.invalidateQueries('coaching-overdue-exercises');
-        alert('اطلاعات با موفقیت ذخیره شد');
+        queryClient.invalidateQueries('coaching-kanban'); // ✅ اضافه شد: برای بورد کوچینگ
+        alert(getSuccessMessage(response, 'اطلاعات با موفقیت ذخیره شد'));
         onClose();
       },
       onError: (error: any) => {
-        console.error('Error saving coaching data:', error);
-        alert(error.response?.data?.error || 'خطا در ذخیره اطلاعات');
+        const status = error.response?.status;
+        if (status && status >= 400) {
+          console.error('Error saving coaching data:', error);
+          alert('خطا: ' + getErrorMessage(error));
+        }
       },
     }
   );

@@ -7,6 +7,7 @@ import { translateLeadStatus, translateSource } from '../utils/translations';
 import { toPersianNumber } from '../utils/numberHelper';
 import { BulkDeleteActions, SelectAllCheckbox, RowCheckbox } from '../components/BulkDeleteActions';
 import Pagination from '../components/Pagination';
+import { hasResponseError, getErrorMessage, getSuccessMessage } from '../utils/mutationHelper';
 
 const Leads = () => {
   const navigate = useNavigate();
@@ -35,6 +36,8 @@ const Leads = () => {
     },
     {
       retry: 1,
+      refetchInterval: 60 * 1000, // ✅ هر 60 ثانیه یکبار refresh
+      keepPreviousData: true, // ✅ نمایش داده قبلی
       onError: (error) => {
         console.error('Error fetching leads:', error);
       }
@@ -44,9 +47,21 @@ const Leads = () => {
   const deleteMutation = useMutation(
     (id: number) => api.delete(`/leads/${id}`),
     {
-      onSuccess: () => {
+      onSuccess: (response: any) => {
+        // ✅ بررسی response - اگر error واقعی دارد، نشان بده
+        if (hasResponseError(response)) {
+          alert('خطا: ' + response.data.error);
+          return;
+        }
         queryClient.invalidateQueries('leads');
+        queryClient.invalidateQueries('leads-kanban');
         setSelectedIds([]);
+      },
+      onError: (error: any) => {
+        const status = error.response?.status;
+        if (status && status >= 400) {
+          alert('خطا: ' + getErrorMessage(error));
+        }
       },
     }
   );
@@ -72,17 +87,33 @@ const Leads = () => {
       const response = await api.get('/leads/kanban/board');
       return response.data;
     },
-    { enabled: viewMode === 'kanban' }
+    {
+      enabled: viewMode === 'kanban',
+      refetchInterval: 30 * 1000, // ✅ هر 30 ثانیه یکبار refresh (برای بورد Kanban)
+      keepPreviousData: true, // ✅ نمایش داده قبلی
+    }
   );
 
   const convertMutation = useMutation(
     ({ id, account_name }: { id: number; account_name?: string }) =>
       api.post(`/leads/${id}/convert`, { account_name }),
     {
-      onSuccess: () => {
+      onSuccess: (response: any) => {
+        // ✅ بررسی response - اگر error واقعی دارد، نشان بده
+        if (hasResponseError(response)) {
+          alert('خطا: ' + response.data.error);
+          return;
+        }
         queryClient.invalidateQueries('leads');
         queryClient.invalidateQueries('leads-kanban');
         queryClient.invalidateQueries('accounts');
+        alert(getSuccessMessage(response, 'سرنخ با موفقیت تبدیل شد'));
+      },
+      onError: (error: any) => {
+        const status = error.response?.status;
+        if (status && status >= 400) {
+          alert('خطا: ' + getErrorMessage(error));
+        }
       },
     }
   );
@@ -91,8 +122,21 @@ const Leads = () => {
     ({ id, position, kanban_stage }: { id: number; position: number; kanban_stage: string }) =>
       api.put(`/leads/${id}/position`, { position, kanban_stage }),
     {
-      onSuccess: () => {
+      onSuccess: (response: any) => {
+        // ✅ بررسی response - اگر error واقعی دارد، نشان بده
+        if (hasResponseError(response)) {
+          console.error('Server returned error in response:', response.data.error);
+          return;
+        }
         queryClient.invalidateQueries('leads-kanban');
+        queryClient.invalidateQueries('leads');
+      },
+      onError: (error: any) => {
+        const status = error.response?.status;
+        if (status && status >= 400) {
+          console.error('Error updating lead position:', error);
+          alert('خطا: ' + getErrorMessage(error));
+        }
       },
     }
   );

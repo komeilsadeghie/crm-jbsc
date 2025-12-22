@@ -29,6 +29,8 @@ import { migrateInteractionsTable } from './database/migrate-interactions';
 import { migrateTicketDepartmentsTable } from './database/migrate-ticket-departments';
 import { migrateNotificationsTable } from './database/migrate-notifications';
 import { migrateTicketsTable } from './database/migrate-tickets';
+import { migrateLeadStagesTable } from './database/migrate-lead-stages';
+import { migrateProjectTables } from './database/migrate-project-tables';
 
 // Load ENV
 dotenv.config();
@@ -140,6 +142,13 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
       console.warn('⚠️ migrateInteractionsTable failed:', e.message);
     }
 
+    console.log('🔄 Migrating ticket_departments table...');
+    try {
+      await migrateTicketDepartmentsTable();
+    } catch (e: any) {
+      console.warn('⚠️ migrateTicketDepartmentsTable failed:', e.message);
+    }
+
     console.log('🔄 Migrating tickets table...');
     try {
       await migrateTicketsTable();
@@ -173,6 +182,13 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
       await migrateTasksTable();
     } catch (e: any) {
       console.warn('⚠️ migrateTasksTable failed:', e.message);
+    }
+
+    console.log('🔄 Migrating project-related tables (milestones, discussions, files, time_logs)...');
+    try {
+      await migrateProjectTables();
+    } catch (e: any) {
+      console.warn('⚠️ migrateProjectTables failed:', e.message);
     }
 
     console.log('🔄 Migrating contracts table...');
@@ -259,6 +275,13 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
       await migrateLeadsForeignKeys();
     } catch (migrationError: any) {
       console.error('⚠️ Error in migrateLeadsForeignKeys:', migrationError);
+    }
+
+    console.log('🔄 Migrating lead_stages table...');
+    try {
+      await migrateLeadStagesTable();
+    } catch (e: any) {
+      console.warn('⚠️ migrateLeadStagesTable failed:', e.message);
     }
 
     console.log('🔄 Migrating customers foreign keys (ON DELETE SET NULL)...');

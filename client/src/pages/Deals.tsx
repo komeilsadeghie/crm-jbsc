@@ -9,6 +9,7 @@ import { toPersianNumber } from '../utils/numberHelper';
 import { formatDateForInput } from '../utils/dateHelper';
 import JalaliDatePicker from '../components/JalaliDatePicker';
 import Pagination from '../components/Pagination';
+import { hasResponseError, getErrorMessage, getSuccessMessage } from '../utils/mutationHelper';
 
 const Deals = () => {
   const navigate = useNavigate();
@@ -34,6 +35,8 @@ const Deals = () => {
     },
     {
       retry: 1,
+      refetchInterval: 60 * 1000, // ✅ هر 60 ثانیه یکبار refresh
+      keepPreviousData: true, // ✅ نمایش داده قبلی
       onError: (error) => {
         console.error('Error fetching deals:', error);
       }
@@ -50,6 +53,8 @@ const Deals = () => {
     },
     {
       retry: 1,
+      refetchInterval: 60 * 1000, // ✅ هر 60 ثانیه یکبار refresh
+      keepPreviousData: true, // ✅ نمایش داده قبلی
       onError: (error) => {
         console.error('Error fetching pipeline:', error);
       }
@@ -59,9 +64,21 @@ const Deals = () => {
   const deleteMutation = useMutation(
     (id: number) => api.delete(`/deals/${id}`),
     {
-      onSuccess: () => {
+      onSuccess: (response: any) => {
+        // ✅ بررسی response - اگر error واقعی دارد، نشان بده
+        if (hasResponseError(response)) {
+          alert('خطا: ' + response.data.error);
+          return;
+        }
         queryClient.invalidateQueries('deals');
         queryClient.invalidateQueries('deals-pipeline');
+        alert(getSuccessMessage(response, 'معامله با موفقیت حذف شد'));
+      },
+      onError: (error: any) => {
+        const status = error.response?.status;
+        if (status && status >= 400) {
+          alert('خطا: ' + getErrorMessage(error));
+        }
       },
     }
   );

@@ -165,7 +165,14 @@ router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
               
               db.all(`SELECT * FROM time_logs WHERE task_id IN (${placeholders})`, taskIds, (err, timeLogs) => {
                 if (err) {
-                  return res.status(500).json({ error: 'خطا در دریافت لاگ‌های زمان' });
+                  console.error('Error fetching time logs:', err);
+                  // If table doesn't exist, use empty array
+                  if (err.code === 'ER_NO_SUCH_TABLE' || err.message?.includes("doesn't exist")) {
+                    console.warn('time_logs table does not exist, using empty array');
+                    timeLogs = [];
+                  } else {
+                    return res.status(500).json({ error: 'خطا در دریافت لاگ‌های زمان' });
+                  }
                 }
 
                 // Group time logs by task_id

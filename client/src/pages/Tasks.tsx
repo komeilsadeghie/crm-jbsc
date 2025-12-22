@@ -8,6 +8,7 @@ import { toPersianNumber } from '../utils/numberHelper';
 import { translateTaskStatus, translatePriority } from '../utils/translations';
 import JalaliDatePicker from '../components/JalaliDatePicker';
 import Pagination from '../components/Pagination';
+import { isSuccessfulResponse, hasResponseError, getErrorMessage, getSuccessMessage } from '../utils/mutationHelper';
 
 const Tasks = () => {
   const queryClient = useQueryClient();
@@ -33,6 +34,8 @@ const Tasks = () => {
     },
     {
       retry: 1,
+      refetchInterval: 30 * 1000, // ✅ هر 30 ثانیه یکبار refresh (برای بورد Kanban)
+      keepPreviousData: true, // ✅ نمایش داده قبلی
       onError: (error) => {
         console.error('Error fetching kanban board:', error);
       }
@@ -70,6 +73,10 @@ const Tasks = () => {
       const params = projectFilter ? `?project_id=${projectFilter}` : '';
       const response = await api.get(`/tasks${params}`);
       return Array.isArray(response.data) ? response.data : [];
+    },
+    {
+      refetchInterval: 60 * 1000, // ✅ هر 60 ثانیه یکبار refresh
+      keepPreviousData: true, // ✅ نمایش داده قبلی
     }
   );
 
@@ -99,15 +106,25 @@ const Tasks = () => {
   const createMutation = useMutation(
     (data: any) => api.post('/tasks', data),
     {
-      onSuccess: () => {
+      onSuccess: (response: any) => {
+        // ✅ بررسی response - اگر error واقعی دارد، نشان بده
+        if (hasResponseError(response)) {
+          alert('خطا: ' + response.data.error);
+          return;
+        }
         queryClient.invalidateQueries('tasks-kanban');
         queryClient.invalidateQueries('tasks-list');
+        queryClient.invalidateQueries('pending-tasks');
+        window.dispatchEvent(new Event('task-updated'));
         setShowModal(false);
         setEditingTask(null);
-        alert('تسک با موفقیت ایجاد شد');
+        alert(getSuccessMessage(response, 'تسک با موفقیت ایجاد شد'));
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        const status = error.response?.status;
+        if (status && status >= 400) {
+          alert('خطا: ' + getErrorMessage(error));
+        }
       },
     }
   );
@@ -115,7 +132,12 @@ const Tasks = () => {
   const updateMutation = useMutation(
     ({ id, data }: { id: number; data: any }) => api.put(`/tasks/${id}`, data),
     {
-      onSuccess: () => {
+      onSuccess: (response: any) => {
+        // ✅ بررسی response - اگر error واقعی دارد، نشان بده
+        if (hasResponseError(response)) {
+          alert('خطا: ' + response.data.error);
+          return;
+        }
         queryClient.invalidateQueries('tasks-kanban');
         queryClient.invalidateQueries('tasks-list');
         queryClient.invalidateQueries('pending-tasks'); // Update notifications
@@ -123,10 +145,13 @@ const Tasks = () => {
         window.dispatchEvent(new Event('task-updated'));
         setShowModal(false);
         setEditingTask(null);
-        alert('تسک با موفقیت به‌روزرسانی شد');
+        alert(getSuccessMessage(response, 'تسک با موفقیت به‌روزرسانی شد'));
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        const status = error.response?.status;
+        if (status && status >= 400) {
+          alert('خطا: ' + getErrorMessage(error));
+        }
       },
     }
   );
@@ -135,7 +160,12 @@ const Tasks = () => {
     ({ id, position, kanban_column }: { id: number; position: number; kanban_column: string }) =>
       api.put(`/tasks/${id}/position`, { position, kanban_column }),
     {
-      onSuccess: () => {
+      onSuccess: (response: any) => {
+        // ✅ بررسی response - اگر error واقعی دارد، نشان بده
+        if (hasResponseError(response)) {
+          console.error('Server returned error in response:', response.data.error);
+          return;
+        }
         queryClient.invalidateQueries('tasks-kanban');
         queryClient.invalidateQueries('tasks-list');
         queryClient.invalidateQueries('pending-tasks'); // Update notifications when status changes
@@ -144,6 +174,13 @@ const Tasks = () => {
           queryClient.refetchQueries('pending-tasks');
           window.dispatchEvent(new Event('task-updated'));
         }, 100);
+      },
+      onError: (error: any) => {
+        const status = error.response?.status;
+        if (status && status >= 400) {
+          console.error('Error updating task position:', error);
+          alert('خطا: ' + getErrorMessage(error));
+        }
       },
     }
   );

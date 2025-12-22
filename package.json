@@ -16,8 +16,10 @@
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
+    "arabic-persian-reshaper": "^1.0.1",
     "axios": "^1.6.0",
     "bcryptjs": "^2.4.3",
+    "bidi-js": "^1.0.3",
     "cors": "^2.8.5",
     "date-fns": "^2.30.0",
     "dayjs": "^1.11.19",

@@ -6,30 +6,57 @@ import { toJalali } from '../utils/dateHelper';
 import { toPersianNumber } from '../utils/numberHelper';
 import { translateContractStatus, translateCurrency } from '../utils/translations';
 import JalaliDatePicker from '../components/JalaliDatePicker';
+import { isSuccessfulResponse, hasResponseError, getErrorMessage, getSuccessMessage } from '../utils/mutationHelper';
 
 const Contracts = () => {
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [editingContract, setEditingContract] = useState<any>(null);
 
-  const { data: contracts } = useQuery('contracts', async () => {
-    const response = await api.get('/contracts');
-    return response.data || [];
-  });
+  const { data: contracts } = useQuery(
+    'contracts', 
+    async () => {
+      const response = await api.get('/contracts');
+      return response.data || [];
+    },
+    {
+      refetchInterval: 60 * 1000, // ✅ هر 60 ثانیه یکبار refresh
+      keepPreviousData: true, // ✅ نمایش داده قبلی تا داده جدید بیاید
+    }
+  );
 
-  const { data: expiringContracts } = useQuery('contracts-expiring', async () => {
-    const response = await api.get('/contracts/expiring-soon?days=30');
-    return response.data || [];
-  });
+  const { data: expiringContracts } = useQuery(
+    'contracts-expiring', 
+    async () => {
+      const response = await api.get('/contracts/expiring-soon?days=30');
+      return response.data || [];
+    },
+    {
+      refetchInterval: 60 * 1000, // ✅ هر 60 ثانیه یکبار refresh
+      keepPreviousData: true, // ✅ نمایش داده قبلی
+    }
+  );
 
   const createMutation = useMutation(
     (data: any) => api.post('/contracts', data),
     {
-      onSuccess: () => {
+      onSuccess: (response: any) => {
+        // ✅ بررسی response - اگر error واقعی دارد، نشان بده
+        if (hasResponseError(response)) {
+          alert('خطا: ' + response.data.error);
+          return;
+        }
         queryClient.invalidateQueries('contracts');
+        queryClient.invalidateQueries('contracts-expiring');
         setShowModal(false);
         setEditingContract(null);
-        alert('قرارداد با موفقیت ایجاد شد');
+        alert(getSuccessMessage(response, 'قرارداد با موفقیت ایجاد شد'));
+      },
+      onError: (error: any) => {
+        const status = error.response?.status;
+        if (status && status >= 400) {
+          alert('خطا: ' + getErrorMessage(error));
+        }
       },
     }
   );
@@ -37,11 +64,23 @@ const Contracts = () => {
   const updateMutation = useMutation(
     ({ id, data }: { id: number; data: any }) => api.put(`/contracts/${id}`, data),
     {
-      onSuccess: () => {
+      onSuccess: (response: any) => {
+        // ✅ بررسی response - اگر error واقعی دارد، نشان بده
+        if (hasResponseError(response)) {
+          alert('خطا: ' + response.data.error);
+          return;
+        }
         queryClient.invalidateQueries('contracts');
+        queryClient.invalidateQueries('contracts-expiring');
         setShowModal(false);
         setEditingContract(null);
-        alert('قرارداد با موفقیت به‌روزرسانی شد');
+        alert(getSuccessMessage(response, 'قرارداد با موفقیت به‌روزرسانی شد'));
+      },
+      onError: (error: any) => {
+        const status = error.response?.status;
+        if (status && status >= 400) {
+          alert('خطا: ' + getErrorMessage(error));
+        }
       },
     }
   );
@@ -49,9 +88,21 @@ const Contracts = () => {
   const renewMutation = useMutation(
     ({ id, data }: { id: number; data: any }) => api.post(`/contracts/${id}/renew`, data),
     {
-      onSuccess: () => {
+      onSuccess: (response: any) => {
+        // ✅ بررسی response - اگر error واقعی دارد، نشان بده
+        if (hasResponseError(response)) {
+          alert('خطا: ' + response.data.error);
+          return;
+        }
         queryClient.invalidateQueries('contracts');
-        alert('قرارداد با موفقیت تمدید شد');
+        queryClient.invalidateQueries('contracts-expiring');
+        alert(getSuccessMessage(response, 'قرارداد با موفقیت تمدید شد'));
+      },
+      onError: (error: any) => {
+        const status = error.response?.status;
+        if (status && status >= 400) {
+          alert('خطا: ' + getErrorMessage(error));
+        }
       },
     }
   );
@@ -59,9 +110,21 @@ const Contracts = () => {
   const deleteMutation = useMutation(
     (id: number) => api.delete(`/contracts/${id}`),
     {
-      onSuccess: () => {
+      onSuccess: (response: any) => {
+        // ✅ بررسی response - اگر error واقعی دارد، نشان بده
+        if (hasResponseError(response)) {
+          alert('خطا: ' + response.data.error);
+          return;
+        }
         queryClient.invalidateQueries('contracts');
-        alert('قرارداد با موفقیت حذف شد');
+        queryClient.invalidateQueries('contracts-expiring');
+        alert(getSuccessMessage(response, 'قرارداد با موفقیت حذف شد'));
+      },
+      onError: (error: any) => {
+        const status = error.response?.status;
+        if (status && status >= 400) {
+          alert('خطا: ' + getErrorMessage(error));
+        }
       },
     }
   );
