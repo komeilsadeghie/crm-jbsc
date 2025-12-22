@@ -60,18 +60,10 @@ const KanbanBoard = ({ sessions, onEdit }: KanbanBoardProps) => {
         queryClient.invalidateQueries('coaching-sessions');
       },
       onError: (error: any) => {
-<<<<<<< HEAD
         // Silently handle error - the UI will update optimistically
         // Only log for debugging
         console.error('Error updating kanban position:', error);
         // Don't show alert - the drag operation should complete silently
-=======
-        const status = error.response?.status;
-        if (status && status >= 400) {
-          console.error('Error updating kanban position:', error);
-          alert('خطا: ' + getErrorMessage(error));
-        }
->>>>>>> 8bcdc6c6e58ee8d33d15feba114816aee275dd38
       },
     }
   );
