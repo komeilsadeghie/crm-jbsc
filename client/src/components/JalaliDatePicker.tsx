@@ -4,11 +4,12 @@ import { Calendar as CalendarIcon } from 'lucide-react';
 
 interface JalaliDatePickerProps {
   value: string; // می‌تواند میلادی یا شمسی باشد
-  onChange: (value: string) => void; // تاریخ شمسی را برمی‌گرداند (YYYY-MM-DD format)
+  onChange: (value: string) => void; // تاریخ شمسی را برمی‌گرداند (YYYY-MM-DD format یا YYYY-MM-DD HH:mm format)
   placeholder?: string;
   required?: boolean;
   className?: string;
   disabled?: boolean;
+  showTime?: boolean; // افزودن امکان انتخاب ساعت
 }
 
 const JalaliDatePicker = ({ 
@@ -17,10 +18,13 @@ const JalaliDatePicker = ({
   placeholder = 'تاریخ را انتخاب کنید',
   required = false,
   className = '',
-  disabled = false
+  disabled = false,
+  showTime = false
 }: JalaliDatePickerProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [displayValue, setDisplayValue] = useState('');
+  const [selectedHour, setSelectedHour] = useState<number>(0);
+  const [selectedMinute, setSelectedMinute] = useState<number>(0);
   const [currentYear, setCurrentYear] = useState(() => {
     const year = getJalaliDayjs().year();
     // Limit year between 1404 and 1430
@@ -106,16 +110,34 @@ const JalaliDatePicker = ({
   const handleDayClick = (day: number) => {
     try {
       setSelectedDay(day);
-      const jalaliDateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      console.log('Converting Jalali date to Gregorian:', jalaliDateStr);
-      const gregorianDate = jalaliToGregorian(jalaliDateStr);
-      const gregorianDateStr = gregorianDate.toISOString().split('T')[0];
-      console.log('Converted to Gregorian:', gregorianDateStr);
-      onChange(gregorianDateStr);
-      setIsOpen(false);
+      let jalaliDateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      
+      if (showTime) {
+        // اگر انتخاب ساعت فعال است، تاریخ را با ساعت برگردان
+        jalaliDateStr += ` ${String(selectedHour).padStart(2, '0')}:${String(selectedMinute).padStart(2, '0')}`;
+        onChange(jalaliDateStr);
+      } else {
+        // تبدیل به میلادی برای backward compatibility
+        console.log('Converting Jalali date to Gregorian:', jalaliDateStr);
+        const gregorianDate = jalaliToGregorian(jalaliDateStr);
+        const gregorianDateStr = gregorianDate.toISOString().split('T')[0];
+        console.log('Converted to Gregorian:', gregorianDateStr);
+        onChange(gregorianDateStr);
+      }
+      
+      if (!showTime) {
+        setIsOpen(false);
+      }
     } catch (error) {
       console.error('Error in handleDayClick:', error);
       alert('خطا در تبدیل تاریخ امروز. لطفاً دوباره تلاش کنید.');
+    }
+  };
+  
+  const handleTimeChange = () => {
+    if (selectedDay) {
+      const jalaliDateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')} ${String(selectedHour).padStart(2, '0')}:${String(selectedMinute).padStart(2, '0')}`;
+      onChange(jalaliDateStr);
     }
   };
 
@@ -165,10 +187,24 @@ const JalaliDatePicker = ({
       setCurrentMonth(today.month() + 1);
       setSelectedDay(today.date());
       // برگرداندن تاریخ شمسی امروز
-      const todayStr = `${limitedYear}-${String(today.month() + 1).padStart(2, '0')}-${String(today.date()).padStart(2, '0')}`;
-      console.log('Selected today Jalali date:', todayStr);
-      // برگرداندن تاریخ شمسی (نه میلادی)
-      onChange(todayStr);
+      let todayStr = `${limitedYear}-${String(today.month() + 1).padStart(2, '0')}-${String(today.date()).padStart(2, '0')}`;
+      
+      if (showTime) {
+        const now = new Date();
+        const hour = now.getHours();
+        const minute = now.getMinutes();
+        setSelectedHour(hour);
+        setSelectedMinute(minute);
+        todayStr += ` ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+        onChange(todayStr);
+      } else {
+        console.log('Selected today Jalali date:', todayStr);
+        // تبدیل به میلادی برای backward compatibility
+        const gregorianDate = jalaliToGregorian(todayStr);
+        const gregorianDateStr = gregorianDate.toISOString().split('T')[0];
+        onChange(gregorianDateStr);
+      }
+      
       setIsOpen(false);
     } catch (error) {
       console.error('Error in handleToday:', error);
@@ -332,6 +368,58 @@ const JalaliDatePicker = ({
               امروز
             </button>
           </div>
+          
+          {/* Time Picker (if showTime is true) */}
+          {showTime && selectedDay && (
+            <div className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-700">
+              <div className="flex items-center justify-center gap-4">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium">ساعت:</label>
+                  <select
+                    value={selectedHour}
+                    onChange={(e) => {
+                      setSelectedHour(parseInt(e.target.value));
+                      handleTimeChange();
+                    }}
+                    className="input text-center w-20"
+                  >
+                    {Array.from({ length: 24 }, (_, i) => (
+                      <option key={i} value={i}>{String(i).padStart(2, '0')}</option>
+                    ))}
+                  </select>
+                </div>
+                <span className="text-lg">:</span>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium">دقیقه:</label>
+                  <select
+                    value={selectedMinute}
+                    onChange={(e) => {
+                      setSelectedMinute(parseInt(e.target.value));
+                      handleTimeChange();
+                    }}
+                    className="input text-center w-20"
+                  >
+                    {Array.from({ length: 60 }, (_, i) => (
+                      <option key={i} value={i}>{String(i).padStart(2, '0')}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="mt-3 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const jalaliDateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')} ${String(selectedHour).padStart(2, '0')}:${String(selectedMinute).padStart(2, '0')}`;
+                    onChange(jalaliDateStr);
+                    setIsOpen(false);
+                  }}
+                  className="btn btn-primary text-sm px-4 py-2"
+                >
+                  تأیید
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

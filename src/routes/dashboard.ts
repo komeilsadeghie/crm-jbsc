@@ -134,7 +134,7 @@ router.get('/kpis', authenticate, (req: AuthRequest, res: Response) => {
 router.get('/coach-kpis', authenticate, (req: AuthRequest, res: Response) => {
   const coachId = req.user?.id;
 
-  if (req.user?.role !== 'coach' && req.user?.role !== 'admin') {
+  if (req.user?.role !== 'coach' && req.user?.role !== 'coach_manager' && req.user?.role !== 'admin') {
     return res.status(403).json({ error: 'دسترسی غیرمجاز' });
   }
 

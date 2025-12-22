@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 
-export type UserRole = 'admin' | 'sales' | 'sales_manager' | 'coach' | 'media' | 'media_manager' | 'designer' | 'finance' | 'user';
+export type UserRole = 'admin' | 'sales' | 'sales_manager' | 'coach' | 'coach_manager' | 'media' | 'media_manager' | 'designer' | 'finance' | 'user';
 
 export interface User {
   id: string;
@@ -26,7 +26,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const normaliseUser = (payload: any): User => {
   // تبدیل role به lowercase و اطمینان از اینکه یکی از نقش‌های مجاز است
   let role = (payload.role || 'user').toString().toLowerCase() as UserRole;
-  const validRoles: UserRole[] = ['admin', 'sales', 'sales_manager', 'coach', 'media', 'media_manager', 'designer', 'finance', 'user'];
+  const validRoles: UserRole[] = ['admin', 'sales', 'sales_manager', 'coach', 'coach_manager', 'media', 'media_manager', 'designer', 'finance', 'user'];
   if (!validRoles.includes(role)) {
     console.warn(`Invalid role "${payload.role}", defaulting to "user"`);
     role = 'user';
@@ -137,6 +137,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   sales: 'فروش',
   sales_manager: 'مدیر فروش',
   coach: 'کوچ',
+  coach_manager: 'مدیر کوچ',
   media: 'مدیا',
   media_manager: 'مدیر مدیا',
   designer: 'طراح سایت',

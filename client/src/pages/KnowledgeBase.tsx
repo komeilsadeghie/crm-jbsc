@@ -215,7 +215,30 @@ const KnowledgeBase = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Categories Sidebar */}
           <div className="glass-card">
-            <h2 className="font-bold mb-4">دسته‌بندی‌ها</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="font-bold">دسته‌بندی‌ها</h2>
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    const name = prompt('نام دسته‌بندی جدید:');
+                    if (name && name.trim()) {
+                      api.post('/knowledge-base/categories', { name: name.trim() })
+                        .then(() => {
+                          queryClient.invalidateQueries('kb-categories');
+                          alert('دسته‌بندی با موفقیت ایجاد شد');
+                        })
+                        .catch((err: any) => {
+                          alert('خطا: ' + (err.response?.data?.error || err.message));
+                        });
+                    }
+                  }}
+                  className="text-primary-600 hover:text-primary-700 text-sm"
+                  title="افزودن دسته‌بندی"
+                >
+                  <Plus size={16} />
+                </button>
+              )}
+            </div>
             <div className="space-y-2">
               <button
                 onClick={() => setSelectedCategory(null)}

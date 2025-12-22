@@ -506,7 +506,7 @@ const Coaching = () => {
                   ]},
                   user: users ? {
                     label: 'کوچ',
-                    options: users.filter((u: any) => u.role === 'coach' || u.role === 'admin').map((u: any) => ({
+                    options: users.filter((u: any) => u.role === 'coach' || u.role === 'coach_manager' || u.role === 'admin').map((u: any) => ({
                       value: u.id,
                       label: u.username || u.full_name || u.email,
                     })),
@@ -786,89 +786,96 @@ const GoalsList = ({ goals, customers, onEdit, onDelete }: any) => {
     });
 
   return (
-    <div className="space-y-4">
+    <div className="w-full h-full flex flex-col space-y-4">
       {chartData.length > 0 && (
-        <div className="card p-6 mb-6">
-          <h3 className="text-lg font-bold mb-4">نمودار پیشرفت اهداف</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-              <YAxis />
-              <ChartTooltip />
-              <Legend />
-              <Bar dataKey="پیشرفت (%)" fill="#6366F1" />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="card p-4 sm:p-6 mb-4 sm:mb-6 overflow-x-auto">
+          <h3 className="text-base sm:text-lg font-bold mb-4">نمودار پیشرفت اهداف</h3>
+          <div className="w-full" style={{ minWidth: '300px' }}>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                <YAxis />
+                <ChartTooltip />
+                <Legend />
+                <Bar dataKey="پیشرفت (%)" fill="#6366F1" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       )}
-      {goalsArray.map((goal: any) => {
-        const progress = getProgress(goal);
-        return (
-          <div key={goal.id} className="border rounded-lg p-4 hover:bg-gray-50">
-            <div className="flex justify-between items-start mb-3">
-              <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="font-bold text-lg">{goal.title}</span>
-                  <span className={`px-2 py-1 rounded text-sm ${
-                    goal.type === 'kpi' ? 'bg-purple-100 text-purple-700' : 
-                    goal.is_kr ? 'bg-blue-100 text-blue-700' : 
-                    'bg-indigo-100 text-indigo-700'
-                  }`}>
-                    {goal.type === 'okr' ? (goal.is_kr ? 'KR (Key Result)' : 'OKR (Objective)') : 'KPI'}
-                  </span>
-                  {goal.is_kr && goal.okr_id && (
-                    <span className="text-xs px-2 py-1 bg-gray-100 rounded text-gray-600">
-                      مرتبط با OKR
-                    </span>
-                  )}
-                  <span className="text-sm text-gray-600">
-                    {getCustomerName(goal.customer_id)}
-                  </span>
-                </div>
-                {goal.description && (
-                  <p className="text-gray-700 mb-2">{goal.description}</p>
-                )}
-                {goal.target_value && (
-                  <div className="mt-3">
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>
-                        {goal.current_value} / {goal.target_value} {goal.unit || ''}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden pr-2 -mr-2" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+        <div className="space-y-4 pb-4">
+          {goalsArray.map((goal: any) => {
+            const progress = getProgress(goal);
+            return (
+              <div key={goal.id} className="border rounded-lg p-3 sm:p-4 hover:bg-gray-50 transition-colors">
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4">
+                  <div className="flex-1 w-full min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                      <span className="font-bold text-base sm:text-lg break-words">{goal.title}</span>
+                      <span className={`px-2 py-1 rounded text-xs sm:text-sm whitespace-nowrap ${
+                        goal.type === 'kpi' ? 'bg-purple-100 text-purple-700' : 
+                        goal.is_kr ? 'bg-blue-100 text-blue-700' : 
+                        'bg-indigo-100 text-indigo-700'
+                      }`}>
+                        {goal.type === 'okr' ? (goal.is_kr ? 'KR (Key Result)' : 'OKR (Objective)') : 'KPI'}
                       </span>
-                      <span>{Math.round(progress)}%</span>
+                      {goal.is_kr && goal.okr_id && (
+                        <span className="text-xs px-2 py-1 bg-gray-100 rounded text-gray-600 whitespace-nowrap">
+                          مرتبط با OKR
+                        </span>
+                      )}
+                      <span className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">
+                        {getCustomerName(goal.customer_id)}
+                      </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-primary-600 h-2 rounded-full transition-all"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
+                    {goal.description && (
+                      <p className="text-sm sm:text-base text-gray-700 mb-2 break-words">{goal.description}</p>
+                    )}
+                    {goal.target_value && (
+                      <div className="mt-3">
+                        <div className="flex justify-between text-xs sm:text-sm mb-1">
+                          <span className="break-words">
+                            {goal.current_value} / {goal.target_value} {goal.unit || ''}
+                          </span>
+                          <span className="whitespace-nowrap">{Math.round(progress)}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-primary-600 h-2 rounded-full transition-all"
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
+                  <div className="flex gap-2 self-end sm:self-start flex-shrink-0">
+                    <button
+                      onClick={() => onEdit(goal)}
+                      className="p-2 text-primary-600 hover:bg-primary-50 rounded transition-colors text-xs sm:text-sm whitespace-nowrap"
+                      title="ویرایش"
+                    >
+                      <span className="hidden sm:inline">✏️ ویرایش</span>
+                      <span className="sm:hidden">✏️</span>
+                    </button>
+                    <button
+                      onClick={() => onDelete('goal', goal.id)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                      title="حذف"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => onEdit(goal)}
-                  className="p-2 text-primary-600 hover:bg-primary-50 rounded transition-colors"
-                  title="ویرایش"
-                >
-                  ✏️ ویرایش
-                </button>
-                <button
-                  onClick={() => onDelete('goal', goal.id)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
-                  title="حذف"
-                >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })}
-      {goalsArray.length === 0 && (
-        <div className="text-center py-12 text-gray-500">هدفی ثبت نشده است</div>
-      )}
+            );
+          })}
+          {goalsArray.length === 0 && (
+            <div className="text-center py-12 text-gray-500">هدفی ثبت نشده است</div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
@@ -990,72 +997,78 @@ const ReportsList = ({ reports, customers, onEdit, onDelete }: any) => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="w-full h-full flex flex-col space-y-4">
       <div className="flex justify-end mb-4">
         <button
           onClick={handleExportExcel}
-          className="btn btn-secondary flex items-center gap-2"
+          className="btn btn-secondary flex items-center gap-2 text-xs sm:text-sm"
         >
           <FileDown size={18} />
-          خروجی Excel
+          <span className="hidden sm:inline">خروجی Excel</span>
+          <span className="sm:hidden">Excel</span>
         </button>
       </div>
-      {reportsArray.map((report: any) => (
-        <div key={report.id} className="border rounded-lg p-4 hover:bg-gray-50">
-          <div className="flex justify-between items-start">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <span className="font-medium">{getCustomerName(report.customer_id)}</span>
-                <span className="text-sm text-gray-600">
-                  {toJalali(report.report_date)}
-                </span>
-                {report.overall_score && (
-                  <span className="px-2 py-1 bg-primary-100 text-primary-700 rounded">
-                    نمره کلی: {report.overall_score}
-                  </span>
-                )}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden pr-2 -mr-2" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+        <div className="space-y-4 pb-4">
+          {reportsArray.map((report: any) => (
+            <div key={report.id} className="border rounded-lg p-3 sm:p-4 hover:bg-gray-50 transition-colors">
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4">
+                <div className="flex-1 w-full min-w-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                    <span className="font-medium text-base sm:text-lg break-words">{getCustomerName(report.customer_id)}</span>
+                    <span className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">
+                      {toJalali(report.report_date)}
+                    </span>
+                    {report.overall_score && (
+                      <span className="px-2 py-1 bg-primary-100 text-primary-700 rounded text-xs sm:text-sm whitespace-nowrap">
+                        نمره کلی: {report.overall_score}
+                      </span>
+                    )}
+                  </div>
+                  {report.achievements && (
+                    <div className="mb-2">
+                      <p className="text-xs sm:text-sm font-medium text-green-700 mb-1">دستاوردها:</p>
+                      <p className="text-xs sm:text-sm text-gray-700 break-words">{report.achievements}</p>
+                    </div>
+                  )}
+                  {report.challenges && (
+                    <div className="mb-2">
+                      <p className="text-xs sm:text-sm font-medium text-yellow-700 mb-1">چالش‌ها:</p>
+                      <p className="text-xs sm:text-sm text-gray-700 break-words">{report.challenges}</p>
+                    </div>
+                  )}
+                  {report.next_steps && (
+                    <div>
+                      <p className="text-xs sm:text-sm font-medium text-blue-700 mb-1">مراحل بعدی:</p>
+                      <p className="text-xs sm:text-sm text-gray-700 break-words">{report.next_steps}</p>
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-2 self-end sm:self-start flex-shrink-0">
+                  <button
+                    onClick={() => onEdit(report)}
+                    className="p-2 text-primary-600 hover:bg-primary-50 rounded transition-colors text-xs sm:text-sm whitespace-nowrap"
+                    title="ویرایش"
+                  >
+                    <span className="hidden sm:inline">✏️ ویرایش</span>
+                    <span className="sm:hidden">✏️</span>
+                  </button>
+                  <button
+                    onClick={() => onDelete('report', report.id)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                    title="حذف"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
               </div>
-              {report.achievements && (
-                <div className="mb-2">
-                  <p className="text-sm font-medium text-green-700 mb-1">دستاوردها:</p>
-                  <p className="text-gray-700">{report.achievements}</p>
-                </div>
-              )}
-              {report.challenges && (
-                <div className="mb-2">
-                  <p className="text-sm font-medium text-yellow-700 mb-1">چالش‌ها:</p>
-                  <p className="text-gray-700">{report.challenges}</p>
-                </div>
-              )}
-              {report.next_steps && (
-                <div>
-                  <p className="text-sm font-medium text-blue-700 mb-1">مراحل بعدی:</p>
-                  <p className="text-gray-700">{report.next_steps}</p>
-                </div>
-              )}
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => onEdit(report)}
-                className="p-2 text-primary-600 hover:bg-primary-50 rounded transition-colors"
-                title="ویرایش"
-              >
-                ✏️ ویرایش
-              </button>
-              <button
-                onClick={() => onDelete('report', report.id)}
-                className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
-                title="حذف"
-              >
-                <Trash2 size={18} />
-              </button>
-            </div>
-          </div>
+          ))}
+          {reportsArray.length === 0 && (
+            <div className="text-center py-12 text-gray-500">گزارشی ثبت نشده است</div>
+          )}
         </div>
-      ))}
-      {reportsArray.length === 0 && (
-        <div className="text-center py-12 text-gray-500">گزارشی ثبت نشده است</div>
-      )}
+      </div>
     </div>
   );
 };
@@ -1329,12 +1342,13 @@ const CoachingModal = ({ type, item, customers, goals, sessions, clickedDate: pr
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="label label-required">تاریخ جلسه</label>
+                  <label className="label label-required">تاریخ و زمان جلسه</label>
                   <JalaliDatePicker
                     value={formData.session_date}
                     onChange={(value) => setFormData({ ...formData, session_date: value })}
-                    placeholder="تاریخ جلسه را انتخاب کنید"
+                    placeholder="تاریخ و زمان جلسه را انتخاب کنید"
                     required
+                    showTime={true}
                   />
                 </div>
                 <div>
@@ -1706,12 +1720,13 @@ const CoachingModal = ({ type, item, customers, goals, sessions, clickedDate: pr
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="label label-required">تاریخ گزارش</label>
+                  <label className="label label-required">تاریخ و زمان گزارش</label>
                   <JalaliDatePicker
                     value={formData.report_date}
                     onChange={(value) => setFormData({ ...formData, report_date: value })}
-                    placeholder="تاریخ گزارش را انتخاب کنید"
+                    placeholder="تاریخ و زمان گزارش را انتخاب کنید"
                     required
+                    showTime={true}
                   />
                 </div>
                 <div>

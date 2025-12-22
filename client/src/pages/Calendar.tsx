@@ -853,29 +853,22 @@ const EventModal = ({ event, customers, customersLoading, deals, selectedDate, c
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label label-required">تاریخ شروع</label>
+              <label className="label label-required">تاریخ و زمان شروع</label>
               <JalaliDatePicker
                 value={formData.start_at}
                 onChange={(value) => setFormData({ ...formData, start_at: value })}
-                placeholder="تاریخ شروع را انتخاب کنید"
+                placeholder="تاریخ و زمان شروع را انتخاب کنید"
                 required
+                showTime={true}
               />
             </div>
             <div>
-              <label className="label">زمان شروع</label>
-              <input
-                type="time"
-                value={formData.start_time}
-                onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
-                className="input"
-              />
-            </div>
-            <div>
-              <label className="label">تاریخ پایان</label>
+              <label className="label">تاریخ و زمان پایان</label>
               <JalaliDatePicker
                 value={formData.end_at}
                 onChange={(value) => setFormData({ ...formData, end_at: value })}
-                placeholder="تاریخ پایان را انتخاب کنید"
+                placeholder="تاریخ و زمان پایان را انتخاب کنید"
+                showTime={true}
               />
             </div>
             <div>

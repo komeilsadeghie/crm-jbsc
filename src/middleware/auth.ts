@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-export type UserRoleKey = 'admin' | 'sales' | 'sales_manager' | 'coach' | 'media' | 'media_manager' | 'finance' | 'user' | 'designer';
+export type UserRoleKey = 'admin' | 'sales' | 'sales_manager' | 'coach' | 'coach_manager' | 'media' | 'media_manager' | 'finance' | 'user' | 'designer';
 
 interface TokenPayload {
   id: string;

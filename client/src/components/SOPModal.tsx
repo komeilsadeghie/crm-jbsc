@@ -4,11 +4,12 @@ import { File, X, Upload } from 'lucide-react';
 interface SOPModalProps {
   sop: any;
   users: any[];
+  articles?: any[];
   onClose: () => void;
   onSave: (data: any) => void;
 }
 
-const SOPModal = ({ sop, users, onClose, onSave }: SOPModalProps) => {
+const SOPModal = ({ sop, users, articles = [], onClose, onSave }: SOPModalProps) => {
   const [formData, setFormData] = useState({
     title: sop?.title || '',
     description: sop?.description || '',
@@ -19,6 +20,7 @@ const SOPModal = ({ sop, users, onClose, onSave }: SOPModalProps) => {
     tags: sop?.tags || '',
     is_published: sop?.is_published || false,
     attachments: sop?.attachments || [],
+    article_id: sop?.article_id || null,
   });
 
   const [newAttachment, setNewAttachment] = useState({
@@ -105,6 +107,21 @@ const SOPModal = ({ sop, users, onClose, onSave }: SOPModalProps) => {
                 {users?.map((user: any) => (
                   <option key={user.id} value={user.id}>
                     {user.username || user.full_name || user.email}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">مقاله مرتبط (اختیاری)</label>
+              <select
+                value={formData.article_id || ''}
+                onChange={(e) => setFormData({ ...formData, article_id: e.target.value ? parseInt(e.target.value) : null })}
+                className="input"
+              >
+                <option value="">بدون مقاله مرتبط</option>
+                {articles?.map((article: any) => (
+                  <option key={article.id} value={article.id}>
+                    {article.title}
                   </option>
                 ))}
               </select>

@@ -512,7 +512,7 @@ const Customers = () => {
                 ]},
                 user: users ? {
                   label: 'کوچ',
-                  options: users.filter((u: any) => u.role === 'coach' || u.role === 'admin').map((u: any) => ({
+                  options: users.filter((u: any) => u.role === 'coach' || u.role === 'coach_manager' || u.role === 'admin').map((u: any) => ({
                     value: u.id,
                     label: u.username || u.full_name || u.email,
                   })),
@@ -1039,7 +1039,7 @@ const CustomerModal = ({ customer, onClose }: { customer: any; onClose: () => vo
                 className="input"
               >
                 <option value="">انتخاب کوچ</option>
-                {users?.filter((u: any) => u.role === 'coach' || u.role === 'admin').map((user: any) => (
+                {users?.filter((u: any) => u.role === 'coach' || u.role === 'coach_manager' || u.role === 'admin').map((user: any) => (
                   <option key={user.id} value={user.id}>
                     {user.username || user.full_name || user.email}
                   </option>
