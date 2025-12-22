@@ -332,68 +332,72 @@ const Coaching = () => {
   ];
 
   return (
-    <div className="space-y-6 pt-20 sm:pt-24 md:pt-6 pb-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-neutral-100">ماژول کوچینگ</h1>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
-          <select
-            value={selectedCustomer || ''}
-            onChange={(e) => setSelectedCustomer(e.target.value ? parseInt(e.target.value) : null)}
-            className="input w-full sm:w-64"
-          >
-            <option value="">همه مشتریان</option>
-            {Array.isArray(customers) && customers.map((customer: any) => (
-              <option key={customer.id} value={customer.id}>
-                {customer.name}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={() => {
-              setEditingItem(null);
-              setShowModal(true);
-            }}
-            className="btn btn-primary flex items-center justify-center gap-2 w-full sm:w-auto"
-          >
-            <Plus size={20} />
-            <span className="hidden sm:inline">افزودن {tabs.find(t => t.id === activeTab)?.label}</span>
-            <span className="sm:hidden">افزودن</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-2 border-b overflow-x-auto overflow-y-hidden scrollbar-hide -mx-3 sm:-mx-4 md:-mx-6 px-3 sm:px-4 md:px-6" style={{ WebkitOverflowScrolling: 'touch' }}>
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id as any);
-                if (tab.id === 'sessions') setModalType('session');
-                else if (tab.id === 'goals') setModalType('goal');
-                else if (tab.id === 'exercises') setModalType('exercise');
-                else if (tab.id === 'reports') setModalType('report');
-                else if (tab.id === 'programs') setModalType('program');
-                else if (tab.id === 'templates') setModalType('template');
-                else if (tab.id === 'feedback') setModalType('feedback');
-              }}
-              className={`flex items-center justify-start gap-2 px-3 sm:px-6 py-6 border-b-2 border-t-0 border-r-0 border-l-0 transition-colors whitespace-nowrap flex-shrink-0 rounded-[10px] ${
-                activeTab === tab.id
-                  ? 'border-primary-600 text-primary-600 bg-[#EDEDED]'
-                  : 'border-transparent text-gray-600 dark:text-neutral-400 hover:text-gray-800 dark:hover:text-neutral-200'
-              }`}
+    <div className="min-h-screen flex flex-col pt-20 sm:pt-24 md:pt-6 pb-6 px-3 sm:px-4 md:px-6">
+      <div className="flex-1 flex flex-col space-y-4 sm:space-y-6 max-w-7xl mx-auto w-full">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 dark:text-neutral-100">ماژول کوچینگ</h1>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
+            <select
+              value={selectedCustomer || ''}
+              onChange={(e) => setSelectedCustomer(e.target.value ? parseInt(e.target.value) : null)}
+              className="input w-full sm:w-64"
             >
-              <Icon size={18} className="sm:w-5 sm:h-5" />
-              <span className="text-sm sm:text-base">{tab.label}</span>
+              <option value="">همه مشتریان</option>
+              {Array.isArray(customers) && customers.map((customer: any) => (
+                <option key={customer.id} value={customer.id}>
+                  {customer.name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => {
+                setEditingItem(null);
+                setShowModal(true);
+              }}
+              className="btn btn-primary flex items-center justify-center gap-2 w-full sm:w-auto"
+            >
+              <Plus size={20} />
+              <span className="hidden sm:inline">افزودن {tabs.find(t => t.id === activeTab)?.label}</span>
+              <span className="sm:hidden">افزودن</span>
             </button>
-          );
-        })}
-      </div>
+          </div>
+        </div>
 
-      {/* Content */}
-      <div className="card min-h-0 flex flex-col">
+        {/* Tabs - Improved responsive with proper scrolling */}
+        <div className="w-full overflow-x-auto overflow-y-hidden" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'thin' }}>
+          <div className="flex gap-2 border-b border-gray-200 dark:border-neutral-700 min-w-max pb-0">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id as any);
+                    if (tab.id === 'sessions') setModalType('session');
+                    else if (tab.id === 'goals') setModalType('goal');
+                    else if (tab.id === 'exercises') setModalType('exercise');
+                    else if (tab.id === 'reports') setModalType('report');
+                    else if (tab.id === 'programs') setModalType('program');
+                    else if (tab.id === 'templates') setModalType('template');
+                    else if (tab.id === 'feedback') setModalType('feedback');
+                  }}
+                  className={`flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b-2 border-t-0 border-r-0 border-l-0 transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
+                    activeTab === tab.id
+                      ? 'border-primary-600 text-primary-600 bg-primary-50 dark:bg-primary-900/20 font-semibold'
+                      : 'border-transparent text-gray-600 dark:text-neutral-400 hover:text-gray-800 dark:hover:text-neutral-200 hover:bg-gray-50 dark:hover:bg-neutral-800/50'
+                  }`}
+                >
+                  <Icon size={16} className="sm:w-5 sm:h-5 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm md:text-base">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+      {/* Content - Scrollable */}
+      <div className="card min-h-0 flex-1 flex flex-col overflow-hidden p-4 sm:p-6">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {activeTab === 'dashboard' && (
           <DashboardView
             stats={dashboardStats}
@@ -607,6 +611,8 @@ const Coaching = () => {
             onDelete={handleDelete}
           />
         )}
+        </div>
+      </div>
       </div>
 
       {/* Modal */}
