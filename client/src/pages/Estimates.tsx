@@ -133,11 +133,11 @@ const Estimates = () => {
           warranty_months: '',
           items: [],
         });
-        alert('پیش‌فاکتور با موفقیت ایجاد شد');
+        toast.showSuccess('پیش‌فاکتور با موفقیت ایجاد شد');
       },
       onError: (error: any) => {
         console.error('Error creating estimate:', error);
-        alert('خطا در ایجاد پیش‌فاکتور: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا در ایجاد پیش‌فاکتور: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -149,11 +149,11 @@ const Estimates = () => {
         queryClient.invalidateQueries('estimates');
         setShowModal(false);
         setEditingEstimate(null);
-        alert('پیش‌فاکتور با موفقیت به‌روزرسانی شد');
+        toast.showSuccess('پیش‌فاکتور با موفقیت به‌روزرسانی شد');
       },
       onError: (error: any) => {
         console.error('Error updating estimate:', error);
-        alert('خطا در به‌روزرسانی پیش‌فاکتور: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا در به‌روزرسانی پیش‌فاکتور: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -633,111 +633,115 @@ const Estimates = () => {
                       <option value="other">سایر</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">نام دامنه</label>
-                    <input
-                      type="text"
-                      value={formData.domain_name}
-                      onChange={(e) => setFormData({ ...formData, domain_name: e.target.value })}
-                      className="input"
-                      placeholder="example.com"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">نوع هاستینگ</label>
-                    <input
-                      type="text"
-                      value={formData.hosting_type}
-                      onChange={(e) => setFormData({ ...formData, hosting_type: e.target.value })}
-                      className="input"
-                      placeholder="مثلاً: Linux, Windows"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">مدت هاستینگ (ماه)</label>
-                    <input
-                      type="number"
-                      value={formData.hosting_duration}
-                      onChange={(e) => setFormData({ ...formData, hosting_duration: e.target.value })}
-                      className="input"
-                    />
-                  </div>
-                  <div>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={formData.ssl_included}
-                        onChange={(e) => setFormData({ ...formData, ssl_included: e.target.checked })}
-                        className="w-4 h-4"
-                      />
-                      <span className="text-sm font-medium">گواهینامه SSL شامل</span>
-                    </label>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">مدت پشتیبانی (ماه)</label>
-                    <input
-                      type="number"
-                      value={formData.maintenance_months}
-                      onChange={(e) => setFormData({ ...formData, maintenance_months: e.target.value })}
-                      className="input"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">پکیج SEO</label>
-                    <input
-                      type="text"
-                      value={formData.seo_package}
-                      onChange={(e) => setFormData({ ...formData, seo_package: e.target.value })}
-                      className="input"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">تعداد صفحات سایت</label>
-                    <input
-                      type="number"
-                      value={formData.site_pages}
-                      onChange={(e) => setFormData({ ...formData, site_pages: e.target.value })}
-                      className="input"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">زبان‌های سایت</label>
-                    <input
-                      type="text"
-                      value={formData.site_languages}
-                      onChange={(e) => setFormData({ ...formData, site_languages: e.target.value })}
-                      className="input"
-                      placeholder="مثلاً: فارسی، انگلیسی"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">شرایط پرداخت</label>
-                    <input
-                      type="text"
-                      value={formData.payment_terms}
-                      onChange={(e) => setFormData({ ...formData, payment_terms: e.target.value })}
-                      className="input"
-                      placeholder="مثلاً: 50% پیش‌پرداخت"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">روزهای تحویل</label>
-                    <input
-                      type="number"
-                      value={formData.delivery_days}
-                      onChange={(e) => setFormData({ ...formData, delivery_days: e.target.value })}
-                      className="input"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">ضمانت (ماه)</label>
-                    <input
-                      type="number"
-                      value={formData.warranty_months}
-                      onChange={(e) => setFormData({ ...formData, warranty_months: e.target.value })}
-                      className="input"
-                    />
-                  </div>
+                  {formData.contract_type === 'website' && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">نام دامنه</label>
+                        <input
+                          type="text"
+                          value={formData.domain_name}
+                          onChange={(e) => setFormData({ ...formData, domain_name: e.target.value })}
+                          className="input"
+                          placeholder="example.com"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">نوع هاستینگ</label>
+                        <input
+                          type="text"
+                          value={formData.hosting_type}
+                          onChange={(e) => setFormData({ ...formData, hosting_type: e.target.value })}
+                          className="input"
+                          placeholder="مثلاً: Linux, Windows"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">مدت هاستینگ (ماه)</label>
+                        <input
+                          type="number"
+                          value={formData.hosting_duration}
+                          onChange={(e) => setFormData({ ...formData, hosting_duration: e.target.value })}
+                          className="input"
+                        />
+                      </div>
+                      <div>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={formData.ssl_included}
+                            onChange={(e) => setFormData({ ...formData, ssl_included: e.target.checked })}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-sm font-medium">گواهینامه SSL شامل</span>
+                        </label>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">مدت پشتیبانی (ماه)</label>
+                        <input
+                          type="number"
+                          value={formData.maintenance_months}
+                          onChange={(e) => setFormData({ ...formData, maintenance_months: e.target.value })}
+                          className="input"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">پکیج SEO</label>
+                        <input
+                          type="text"
+                          value={formData.seo_package}
+                          onChange={(e) => setFormData({ ...formData, seo_package: e.target.value })}
+                          className="input"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">تعداد صفحات سایت</label>
+                        <input
+                          type="number"
+                          value={formData.site_pages}
+                          onChange={(e) => setFormData({ ...formData, site_pages: e.target.value })}
+                          className="input"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">زبان‌های سایت</label>
+                        <input
+                          type="text"
+                          value={formData.site_languages}
+                          onChange={(e) => setFormData({ ...formData, site_languages: e.target.value })}
+                          className="input"
+                          placeholder="مثلاً: فارسی، انگلیسی"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">شرایط پرداخت</label>
+                        <input
+                          type="text"
+                          value={formData.payment_terms}
+                          onChange={(e) => setFormData({ ...formData, payment_terms: e.target.value })}
+                          className="input"
+                          placeholder="مثلاً: 50% پیش‌پرداخت"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">روزهای تحویل</label>
+                        <input
+                          type="number"
+                          value={formData.delivery_days}
+                          onChange={(e) => setFormData({ ...formData, delivery_days: e.target.value })}
+                          className="input"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">ضمانت (ماه)</label>
+                        <input
+                          type="number"
+                          value={formData.warranty_months}
+                          onChange={(e) => setFormData({ ...formData, warranty_months: e.target.value })}
+                          className="input"
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
               <div>

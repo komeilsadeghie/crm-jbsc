@@ -107,6 +107,29 @@ const Header = () => {
     };
   }, []);
 
+  // Scroll notification dropdown to center when it opens
+  useEffect(() => {
+    if (showNotifications && dropdownRef.current) {
+      const dropdown = dropdownRef.current.querySelector('.max-h-96');
+      if (dropdown) {
+        setTimeout(() => {
+          dropdown.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+      }
+    }
+  }, [showNotifications]);
+
+  useEffect(() => {
+    if (showTicketNotifications && ticketDropdownRef.current) {
+      const dropdown = ticketDropdownRef.current.querySelector('.max-h-96');
+      if (dropdown) {
+        setTimeout(() => {
+          dropdown.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+      }
+    }
+  }, [showTicketNotifications]);
+
   const handleTaskClick = (taskId: number) => {
     setShowNotifications(false);
     navigate(`/tasks`);

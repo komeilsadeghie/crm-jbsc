@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { useToast } from '../contexts/ToastContext';
 import { 
   ArrowRight, 
   Plus, 
@@ -39,6 +40,7 @@ const ProjectDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<'overview' | 'tasks' | 'timesheets' | 'milestones' | 'files' | 'discussions' | 'gantt' | 'tickets' | 'contracts' | 'sales' | 'notes' | 'activity'>('overview');
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [editingTask, setEditingTask] = useState<any>(null);
@@ -126,10 +128,10 @@ const ProjectDetail = () => {
         window.dispatchEvent(new Event('task-updated'));
         setShowTaskModal(false);
         setEditingTask(null);
-        alert('وظیفه با موفقیت ایجاد شد');
+        toast.showSuccess('وظیفه با موفقیت ایجاد شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -143,10 +145,10 @@ const ProjectDetail = () => {
         window.dispatchEvent(new Event('task-updated'));
         setShowTaskModal(false);
         setEditingTask(null);
-        alert('وظیفه با موفقیت به‌روزرسانی شد');
+        toast.showSuccess('وظیفه با موفقیت به‌روزرسانی شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -156,10 +158,10 @@ const ProjectDetail = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['project-detail', id]);
-        alert('وظیفه با موفقیت حذف شد');
+        toast.showSuccess('وظیفه با موفقیت حذف شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -170,10 +172,10 @@ const ProjectDetail = () => {
       onSuccess: () => {
         queryClient.invalidateQueries(['project-detail', id]);
         setShowDiscussionModal(false);
-        alert('مکالمه با موفقیت ثبت شد');
+        toast.showSuccess('مکالمه با موفقیت ثبت شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -185,7 +187,7 @@ const ProjectDetail = () => {
         queryClient.invalidateQueries(['project-detail', id]);
       },
       onError: (error: any) => {
-        alert('خطا در به‌روزرسانی: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا در به‌روزرسانی: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -514,7 +516,7 @@ const ProjectDetail = () => {
                     <div className="sm:col-span-2">
                       <dt className="text-sm font-medium text-neutral-600 dark:text-neutral-400 mb-2">تسویه‌ها</dt>
                       <dd className="mt-1">
-                        <SettlementsCheckboxes projectId={project.id} initialSettlements={project.settlements} />
+                        <SettlementsCheckboxes projectId={project.id} initialSettlements={project.settlements} toast={toast} />
                       </dd>
                     </div>
                   )}
@@ -1187,7 +1189,7 @@ const ProjectDetail = () => {
                               link.click();
                               link.remove();
                             } catch (error: any) {
-                              alert('خطا در دانلود PDF: ' + (error.response?.data?.error || error.message));
+                              toast.showError('خطا در دانلود PDF: ' + (error.response?.data?.error || error.message));
                             }
                           }}
                           className="text-primary-600 hover:text-primary-700 transition-colors p-1 rounded hover:bg-primary-50"
@@ -1210,7 +1212,7 @@ const ProjectDetail = () => {
                                 link.click();
                                 link.remove();
                               } catch (error: any) {
-                                alert('خطا در دانلود فاکتور: ' + (error.response?.data?.error || error.message));
+                                toast.showError('خطا در دانلود فاکتور: ' + (error.response?.data?.error || error.message));
                               }
                             }}
                             className="text-success-600 hover:text-success-700 transition-colors p-1 rounded hover:bg-success-50"
@@ -1355,6 +1357,7 @@ const ProjectDetail = () => {
             onSave={(data: any) => {
               createDiscussionMutation.mutate(data);
             }}
+            toast={toast}
           />
         )}
       </div>
@@ -1748,7 +1751,7 @@ const TaskTimer = ({ taskId }: { taskId: number }) => {
 };
 
 // Settlements Checkboxes Component
-const SettlementsCheckboxes = ({ projectId, initialSettlements }: { projectId: number; initialSettlements: string }) => {
+const SettlementsCheckboxes = ({ projectId, initialSettlements, toast }: { projectId: number; initialSettlements: string; toast: any }) => {
   const queryClient = useQueryClient();
   const [settlements, setSettlements] = useState(() => {
     try {
@@ -1764,10 +1767,10 @@ const SettlementsCheckboxes = ({ projectId, initialSettlements }: { projectId: n
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['project-detail', projectId]);
-        alert('تسویه‌ها به‌روزرسانی شد');
+        toast.showSuccess('تسویه‌ها به‌روزرسانی شد');
       },
       onError: (error: any) => {
-        alert('خطا در به‌روزرسانی تسویه‌ها: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا در به‌روزرسانی تسویه‌ها: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -1802,13 +1805,13 @@ const SettlementsCheckboxes = ({ projectId, initialSettlements }: { projectId: n
   );
 };
 
-const DiscussionModal = ({ onClose, onSave }: any) => {
+const DiscussionModal = ({ onClose, onSave, toast }: any) => {
   const [message, setMessage] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) {
-      alert('لطفاً پیام خود را وارد کنید');
+      toast.showError('لطفاً پیام خود را وارد کنید');
       return;
     }
     onSave({ message: message.trim() });
