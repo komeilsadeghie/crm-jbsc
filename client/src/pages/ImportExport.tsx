@@ -3,8 +3,10 @@ import { useMutation } from 'react-query';
 import api from '../services/api';
 import { Download, Upload, FileSpreadsheet, AlertCircle } from 'lucide-react';
 import { formatDateForInput } from '../utils/dateHelper';
+import { useToast } from '../contexts/ToastContext';
 
 const ImportExport = () => {
+  const toast = useToast();
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importType, setImportType] = useState<'customers' | 'deals' | 'coachingPrograms' | 'contentItems'>('customers');
   const [exportType, setExportType] = useState<'customers' | 'deals' | 'coachingPrograms' | 'contentItems'>('customers');
@@ -35,11 +37,11 @@ const ImportExport = () => {
     },
     {
       onSuccess: (data) => {
-        alert(`واردات با موفقیت انجام شد. ${data.successCount || 0} رکورد وارد شد.`);
+        toast.showSuccess(`واردات با موفقیت انجام شد. ${data.successCount || 0} رکورد وارد شد.`);
         setImportFile(null);
       },
       onError: (error: any) => {
-        alert(error.response?.data?.error || 'خطا در واردات فایل');
+        toast.showError(error.response?.data?.error || 'خطا در واردات فایل');
       },
     }
   );
@@ -69,7 +71,7 @@ const ImportExport = () => {
         document.body.removeChild(a);
       },
       onError: (error: any) => {
-        alert(error.response?.data?.error || 'خطا در خروجی فایل');
+        toast.showError(error.response?.data?.error || 'خطا در خروجی فایل');
       },
     }
   );
@@ -77,7 +79,7 @@ const ImportExport = () => {
   const handleImport = (e: React.FormEvent) => {
     e.preventDefault();
     if (!importFile) {
-      alert('لطفاً یک فایل انتخاب کنید');
+      toast.showError('لطفاً یک فایل انتخاب کنید');
       return;
     }
 

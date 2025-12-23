@@ -19,9 +19,11 @@ import {
   jalaliToGregorian
 } from '../utils/dateHelper';
 import JalaliDatePicker from '../components/JalaliDatePicker';
+import { useToast } from '../contexts/ToastContext';
 
 const Calendar = () => {
   const queryClient = useQueryClient();
+  const toast = useToast();
   // استفاده از تاریخ شمسی فعلی
   const currentJalali = getJalaliDayjs();
   const [currentJalaliYear, setCurrentJalaliYear] = useState(currentJalali.year());
@@ -579,6 +581,7 @@ const Calendar = () => {
 
 const EventModal = ({ event, customers, customersLoading, deals, selectedDate, clickedDate, startOfMonth, endOfMonth, refetch, onClose }: any) => {
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const deleteMutation = useMutation(
     (id: string) => api.delete(`/calendar/events/${id}`),
@@ -592,12 +595,12 @@ const EventModal = ({ event, customers, customersLoading, deals, selectedDate, c
           });
         }, 300);
         setTimeout(() => {
-          alert('رویداد با موفقیت حذف شد');
+          toast.showSuccess('رویداد با موفقیت حذف شد');
         }, 100);
       },
       onError: (error: any) => {
         console.error('Error deleting calendar event:', error);
-        alert('خطا در حذف رویداد: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا در حذف رویداد: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -757,13 +760,13 @@ const EventModal = ({ event, customers, customersLoading, deals, selectedDate, c
         
         // Show success message
         setTimeout(() => {
-        alert('رویداد با موفقیت ذخیره شد');
+        toast.showSuccess('رویداد با موفقیت ذخیره شد');
         }, 100);
       },
       onError: (error: any) => {
         console.error('Error saving calendar event:', error);
         const errorMessage = error.message || error.response?.data?.error || error.response?.data?.message || 'خطا در ذخیره رویداد';
-        alert(errorMessage);
+        toast.showError(errorMessage);
       },
     }
   );
@@ -773,30 +776,30 @@ const EventModal = ({ event, customers, customersLoading, deals, selectedDate, c
     
     // Validation
     if (!formData.title || !formData.title.trim()) {
-      alert('لطفاً عنوان رویداد را وارد کنید');
+      toast.showError('لطفاً عنوان رویداد را وارد کنید');
       return;
     }
     
     if (!formData.start_at) {
-      alert('لطفاً تاریخ شروع را انتخاب کنید');
+      toast.showError('لطفاً تاریخ شروع را انتخاب کنید');
       return;
     }
     
     // بررسی معتبر بودن تاریخ
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(formData.start_at)) {
-      alert('تاریخ شروع نامعتبر است. لطفاً تاریخ را دوباره انتخاب کنید.');
+      toast.showError('تاریخ شروع نامعتبر است. لطفاً تاریخ را دوباره انتخاب کنید.');
       return;
     }
     
     if (formData.end_at && !dateRegex.test(formData.end_at)) {
-      alert('تاریخ پایان نامعتبر است. لطفاً تاریخ را دوباره انتخاب کنید.');
+      toast.showError('تاریخ پایان نامعتبر است. لطفاً تاریخ را دوباره انتخاب کنید.');
       return;
     }
     
     // بررسی اینکه تاریخ شروع قبل از تاریخ پایان باشد
     if (formData.end_at && formData.start_at > formData.end_at) {
-      alert('تاریخ شروع باید قبل از تاریخ پایان باشد.');
+      toast.showError('تاریخ شروع باید قبل از تاریخ پایان باشد.');
       return;
     }
     
@@ -805,14 +808,14 @@ const EventModal = ({ event, customers, customersLoading, deals, selectedDate, c
     // تاریخ میلادی: سال بین 1900-2100
     const startYear = parseInt(formData.start_at.split('-')[0]);
     if (startYear < 1300 || (startYear > 1500 && startYear < 1900) || startYear > 2100) {
-      alert('تاریخ شروع نامعتبر است. لطفاً تاریخ را دوباره انتخاب کنید.');
+      toast.showError('تاریخ شروع نامعتبر است. لطفاً تاریخ را دوباره انتخاب کنید.');
       return;
     }
     
     if (formData.end_at) {
       const endYear = parseInt(formData.end_at.split('-')[0]);
       if (endYear < 1300 || (endYear > 1500 && endYear < 1900) || endYear > 2100) {
-        alert('تاریخ پایان نامعتبر است. لطفاً تاریخ را دوباره انتخاب کنید.');
+        toast.showError('تاریخ پایان نامعتبر است. لطفاً تاریخ را دوباره انتخاب کنید.');
         return;
       }
     }

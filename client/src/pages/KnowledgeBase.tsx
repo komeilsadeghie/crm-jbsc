@@ -5,10 +5,12 @@ import { Plus, Search, Edit, Trash2, BookOpen, FileText, FileVideo, FileAudio, F
 import { toJalali } from '../utils/dateHelper';
 import { useAuth } from '../contexts/AuthContext';
 import SOPModal from '../components/SOPModal';
+import { useToast } from '../contexts/ToastContext';
 
 const KnowledgeBase = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const toast = useToast();
   const isAdmin = user?.role === 'admin';
   const [showModal, setShowModal] = useState(false);
   const [editingArticle, setEditingArticle] = useState<any>(null);
@@ -81,10 +83,10 @@ const KnowledgeBase = () => {
         queryClient.invalidateQueries('kb-articles');
         setShowModal(false);
         setEditingArticle(null);
-        alert('مقاله با موفقیت ایجاد شد');
+        toast.showSuccess('مقاله با موفقیت ایجاد شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -96,10 +98,10 @@ const KnowledgeBase = () => {
         queryClient.invalidateQueries('kb-articles');
         setShowModal(false);
         setEditingArticle(null);
-        alert('مقاله با موفقیت به‌روزرسانی شد');
+        toast.showSuccess('مقاله با موفقیت به‌روزرسانی شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -109,10 +111,10 @@ const KnowledgeBase = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('kb-articles');
-        alert('مقاله با موفقیت حذف شد');
+        toast.showSuccess('مقاله با موفقیت حذف شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -125,10 +127,10 @@ const KnowledgeBase = () => {
         queryClient.invalidateQueries('kb-sops');
         setShowSOPModal(false);
         setEditingSOP(null);
-        alert('SOP با موفقیت ایجاد شد');
+        toast.showSuccess('SOP با موفقیت ایجاد شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -140,10 +142,10 @@ const KnowledgeBase = () => {
         queryClient.invalidateQueries('kb-sops');
         setShowSOPModal(false);
         setEditingSOP(null);
-        alert('SOP با موفقیت به‌روزرسانی شد');
+        toast.showSuccess('SOP با موفقیت به‌روزرسانی شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -153,10 +155,10 @@ const KnowledgeBase = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('kb-sops');
-        alert('SOP با موفقیت حذف شد');
+        toast.showSuccess('SOP با موفقیت حذف شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -170,10 +172,10 @@ const KnowledgeBase = () => {
         setShowCategoryModal(false);
         setEditingCategory(null);
         setCategoryForm({ name: '', description: '', icon: '', color: '#3B82F6', position: 0 });
-        alert('دسته‌بندی با موفقیت ایجاد شد');
+        toast.showSuccess('دسته‌بندی با موفقیت ایجاد شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -186,10 +188,10 @@ const KnowledgeBase = () => {
         setShowCategoryModal(false);
         setEditingCategory(null);
         setCategoryForm({ name: '', description: '', icon: '', color: '#3B82F6', position: 0 });
-        alert('دسته‌بندی با موفقیت به‌روزرسانی شد');
+        toast.showSuccess('دسته‌بندی با موفقیت به‌روزرسانی شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -199,10 +201,10 @@ const KnowledgeBase = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('kb-categories');
-        alert('دسته‌بندی با موفقیت حذف شد');
+        toast.showSuccess('دسته‌بندی با موفقیت حذف شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -568,7 +570,7 @@ const KnowledgeBase = () => {
                   onSubmit={(e) => {
                     e.preventDefault();
                     if (!categoryForm.name.trim()) {
-                      alert('نام دسته‌بندی الزامی است');
+                      toast.showError('نام دسته‌بندی الزامی است');
                       return;
                     }
                     if (editingCategory) {

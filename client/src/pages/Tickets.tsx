@@ -153,6 +153,7 @@ const Tickets = () => {
 };
 
 const TicketModal = ({ departments, departmentsLoading, onClose, onSave }: any) => {
+  const toast = useToast();
   const { data: accounts, isLoading: accountsLoading } = useQuery('accounts', async () => {
     try {
       const response = await api.get('/accounts');
@@ -265,6 +266,7 @@ const TicketModal = ({ departments, departmentsLoading, onClose, onSave }: any) 
 
 const TicketDetailModal = ({ ticket, onClose }: any) => {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [replyText, setReplyText] = useState('');
   const [isInternal, setIsInternal] = useState(false);
 

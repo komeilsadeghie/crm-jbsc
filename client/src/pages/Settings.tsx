@@ -3,10 +3,12 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import api from '../services/api';
 import { Plus, Edit, Trash2, User, Shield, Save, Users, Settings as SettingsIcon, Upload, X, Building2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 
 const Settings = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'general' | 'users' | 'roles' | 'departments'>('general');
@@ -25,11 +27,11 @@ const Settings = () => {
         await queryClient.refetchQueries('users-list');
         setShowUserModal(false);
         setEditingUser(null);
-        alert('کاربر با موفقیت ایجاد شد');
+        toast.showSuccess('کاربر با موفقیت ایجاد شد');
       },
       onError: (error: any) => {
         console.error('Error creating user:', error);
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -43,10 +45,10 @@ const Settings = () => {
         queryClient.invalidateQueries('user-departments');
         setShowUserModal(false);
         setEditingUser(null);
-        alert('کاربر با موفقیت به‌روزرسانی شد');
+        toast.showSuccess('کاربر با موفقیت به‌روزرسانی شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -56,7 +58,7 @@ const Settings = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('users-list');
-        alert('کاربر با موفقیت حذف شد');
+        toast.showSuccess('کاربر با موفقیت حذف شد');
       },
     }
   );
@@ -262,6 +264,7 @@ const Settings = () => {
 };
 
 const UserModal = ({ user, roleLabels, onClose, onSave }: any) => {
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<'profile' | 'permissions'>('profile');
   const [formData, setFormData] = useState({
     username: '',
@@ -398,19 +401,19 @@ const UserModal = ({ user, roleLabels, onClose, onSave }: any) => {
     // Validate required fields for new users
     if (!user) {
       if (!formData.username || formData.username.trim() === '') {
-        alert('لطفا نام کاربری را وارد کنید');
+        toast.showError('لطفا نام کاربری را وارد کنید');
         return;
       }
       if (!formData.email || formData.email.trim() === '') {
-        alert('لطفا ایمیل را وارد کنید');
+        toast.showError('لطفا ایمیل را وارد کنید');
         return;
       }
       if (!formData.password || formData.password.trim() === '') {
-        alert('لطفا رمز عبور را وارد کنید');
+        toast.showError('لطفا رمز عبور را وارد کنید');
         return;
       }
       if (!formData.role || formData.role.trim() === '') {
-        alert('لطفا نقش را انتخاب کنید');
+        toast.showError('لطفا نقش را انتخاب کنید');
         return;
       }
     }
@@ -456,9 +459,9 @@ const UserModal = ({ user, roleLabels, onClose, onSave }: any) => {
             department_ids: selectedDepartments 
           });
           
-          alert('دسترسی‌ها و دپارتمان‌ها با موفقیت ذخیره شدند');
+          toast.showSuccess('دسترسی‌ها و دپارتمان‌ها با موفقیت ذخیره شدند');
         } catch (error: any) {
-          alert('خطا در ذخیره دسترسی‌ها: ' + (error.response?.data?.error || error.message));
+          toast.showError('خطا در ذخیره دسترسی‌ها: ' + (error.response?.data?.error || error.message));
         }
       }
     } catch (error: any) {
@@ -783,6 +786,7 @@ const UserModal = ({ user, roleLabels, onClose, onSave }: any) => {
 
 const GeneralSettings = () => {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [uploadingLogo, setUploadingLogo] = useState<string | null>(null);
 
   const { data: settings, isLoading } = useQuery('settings', async () => {
@@ -829,10 +833,10 @@ const GeneralSettings = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('settings');
-        alert('تنظیمات با موفقیت ذخیره شد');
+        toast.showSuccess('تنظیمات با موفقیت ذخیره شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -851,10 +855,10 @@ const GeneralSettings = () => {
       onSuccess: () => {
         queryClient.invalidateQueries('settings');
         setUploadingLogo(null);
-        alert('لوگو با موفقیت آپلود شد');
+        toast.showSuccess('لوگو با موفقیت آپلود شد');
       },
       onError: (error: any) => {
-        alert('خطا در آپلود لوگو: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا در آپلود لوگو: ' + (error.response?.data?.error || error.message));
         setUploadingLogo(null);
       },
     }
@@ -865,10 +869,10 @@ const GeneralSettings = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('settings');
-        alert('لوگو با موفقیت حذف شد');
+        toast.showSuccess('لوگو با موفقیت حذف شد');
       },
       onError: (error: any) => {
-        alert('خطا در حذف لوگو: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا در حذف لوگو: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -1213,6 +1217,7 @@ const GeneralSettings = () => {
 
 const DepartmentsManagement = () => {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [showModal, setShowModal] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState<any>(null);
 
@@ -1261,11 +1266,11 @@ const DepartmentsManagement = () => {
           queryClient.invalidateQueries('departments');
           queryClient.invalidateQueries('ticket-departments');
         }, 300);
-        alert('دپارتمان با موفقیت ایجاد شد');
+        toast.showSuccess('دپارتمان با موفقیت ایجاد شد');
       },
       onError: (error: any) => {
         console.error('Error creating department:', error);
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -1288,10 +1293,10 @@ const DepartmentsManagement = () => {
           queryClient.invalidateQueries('departments');
           queryClient.invalidateQueries('ticket-departments');
         }, 300);
-        alert('دپارتمان با موفقیت به‌روزرسانی شد');
+        toast.showSuccess('دپارتمان با موفقیت به‌روزرسانی شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -1311,10 +1316,10 @@ const DepartmentsManagement = () => {
           queryClient.invalidateQueries('departments');
           queryClient.invalidateQueries('ticket-departments');
         }, 300);
-        alert('دپارتمان با موفقیت حذف شد');
+        toast.showSuccess('دپارتمان با موفقیت حذف شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -1329,12 +1334,12 @@ const DepartmentsManagement = () => {
       const response = await api.get('/tickets/departments');
       console.log('API Test Response:', response);
       console.log('API Test Data:', response.data);
-      alert(`API Test: ${response.data?.length || 0} departments found`);
+      toast.showSuccess(`API Test: ${response.data?.length || 0} departments found`);
       // Force refetch
       await refetch();
     } catch (error: any) {
       console.error('API Test Error:', error);
-      alert('API Test Error: ' + (error.response?.data?.error || error.message));
+      toast.showError('API Test Error: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -1461,6 +1466,7 @@ const DepartmentsManagement = () => {
 };
 
 const DepartmentModal = ({ department, onClose, onSave }: any) => {
+  const toast = useToast();
   const [formData, setFormData] = useState({
     name: department?.name || '',
     email: department?.email || '',
@@ -1472,7 +1478,7 @@ const DepartmentModal = ({ department, onClose, onSave }: any) => {
     e.preventDefault();
     
     if (!formData.name || formData.name.trim() === '') {
-      alert('لطفاً نام دپارتمان را وارد کنید');
+      toast.showError('لطفاً نام دپارتمان را وارد کنید');
       return;
     }
     

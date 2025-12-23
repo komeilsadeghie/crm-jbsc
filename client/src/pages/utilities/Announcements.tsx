@@ -282,6 +282,7 @@ const Announcements = () => {
 };
 
 const AnnouncementModal = ({ announcement, onClose, onSave }: any) => {
+  const toast = useToast();
   const [formData, setFormData] = useState({
     title: announcement?.title || '',
     message: announcement?.message || '',
@@ -293,7 +294,7 @@ const AnnouncementModal = ({ announcement, onClose, onSave }: any) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.message) {
-      alert('عنوان و متن اعلان الزامی است');
+      toast.showError('عنوان و متن اعلان الزامی است');
       return;
     }
     onSave(formData);

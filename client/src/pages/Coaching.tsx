@@ -1084,6 +1084,7 @@ const ReportsList = ({ reports, customers, onEdit, onDelete }: any) => {
 const CoachingModal = ({ type, item, customers, goals, sessions, clickedDate: propClickedDate, onClose }: any) => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const toast = useToast();
   const clickedDate = propClickedDate || null;
 
   // 7 رنگ برای انتخاب

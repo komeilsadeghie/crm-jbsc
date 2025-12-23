@@ -322,6 +322,7 @@ const Contracts = () => {
 };
 
 const ContractModal = ({ contract, onClose, onSave }: any) => {
+  const toast = useToast();
   const { data: accounts, isLoading: accountsLoading, error: accountsError } = useQuery('accounts', async () => {
     try {
       const response = await api.get('/accounts');

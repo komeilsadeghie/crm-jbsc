@@ -3,9 +3,11 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import api from '../services/api';
 import { Plus, Edit, Trash2, CreditCard, Lock, Unlock, Eye, EyeOff } from 'lucide-react';
 import { toJalali } from '../utils/dateHelper';
+import { useToast } from '../contexts/ToastContext';
 
 const PaymentGateways = () => {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [showModal, setShowModal] = useState(false);
   const [editingGateway, setEditingGateway] = useState<any>(null);
   const [showSecrets, setShowSecrets] = useState<Record<number, boolean>>({});
@@ -38,10 +40,10 @@ const PaymentGateways = () => {
         queryClient.invalidateQueries('payment-gateways');
         setShowModal(false);
         resetForm();
-        alert('درگاه پرداخت با موفقیت ایجاد شد');
+        toast.showSuccess('درگاه پرداخت با موفقیت ایجاد شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -54,10 +56,10 @@ const PaymentGateways = () => {
         setShowModal(false);
         setEditingGateway(null);
         resetForm();
-        alert('درگاه پرداخت با موفقیت به‌روزرسانی شد');
+        toast.showSuccess('درگاه پرداخت با موفقیت به‌روزرسانی شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -67,10 +69,10 @@ const PaymentGateways = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('payment-gateways');
-        alert('درگاه پرداخت با موفقیت حذف شد');
+        toast.showSuccess('درگاه پرداخت با موفقیت حذف شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -107,14 +109,14 @@ const PaymentGateways = () => {
       });
       setShowModal(true);
     } catch (error: any) {
-      alert('خطا در دریافت اطلاعات درگاه: ' + (error.response?.data?.error || error.message));
+      toast.showError('خطا در دریافت اطلاعات درگاه: ' + (error.response?.data?.error || error.message));
     }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.type) {
-      alert('لطفاً نام و نوع درگاه را وارد کنید');
+      toast.showError('لطفاً نام و نوع درگاه را وارد کنید');
       return;
     }
 

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { User, Mail, Phone, Save } from 'lucide-react';
+import { useToast } from '../contexts/ToastContext';
 
 const Profile = () => {
   const { user } = useAuth();
@@ -62,6 +63,7 @@ const Profile = () => {
 
 const ProfileForm = ({ profile }: { profile: any }) => {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [formData, setFormData] = useState({
     full_name: profile?.full_name || profile?.fullName || '',
     email: profile?.email || '',
@@ -73,11 +75,11 @@ const ProfileForm = ({ profile }: { profile: any }) => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('profile');
-        alert('پروفایل با موفقیت به‌روزرسانی شد');
+        toast.showSuccess('پروفایل با موفقیت به‌روزرسانی شد');
       },
       onError: (error: any) => {
         console.error('Error updating profile:', error);
-        alert(error.response?.data?.error || 'خطا در به‌روزرسانی پروفایل');
+        toast.showError(error.response?.data?.error || 'خطا در به‌روزرسانی پروفایل');
       },
     }
   );
@@ -138,6 +140,7 @@ const ProfileForm = ({ profile }: { profile: any }) => {
 };
 
 const PasswordModal = ({ onClose }: { onClose: () => void }) => {
+  const toast = useToast();
   const [formData, setFormData] = useState({
     current_password: '',
     new_password: '',
@@ -148,11 +151,11 @@ const PasswordModal = ({ onClose }: { onClose: () => void }) => {
     (data: any) => api.put('/profile/me/password', data),
     {
       onSuccess: () => {
-        alert('رمز عبور با موفقیت تغییر یافت');
+        toast.showSuccess('رمز عبور با موفقیت تغییر یافت');
         onClose();
       },
       onError: (error: any) => {
-        alert(error.response?.data?.error || 'خطا در تغییر رمز عبور');
+        toast.showError(error.response?.data?.error || 'خطا در تغییر رمز عبور');
       },
     }
   );
@@ -160,7 +163,7 @@ const PasswordModal = ({ onClose }: { onClose: () => void }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.new_password !== formData.confirm_password) {
-      alert('رمز عبور جدید و تأیید آن مطابقت ندارند');
+      toast.showError('رمز عبور جدید و تأیید آن مطابقت ندارند');
       return;
     }
     mutation.mutate({

@@ -4,9 +4,11 @@ import api from '../services/api';
 import { Plus, Edit, Trash2, ClipboardList, Eye, BarChart3, Users } from 'lucide-react';
 import { toJalali } from '../utils/dateHelper';
 import JalaliDatePicker from '../components/JalaliDatePicker';
+import { useToast } from '../contexts/ToastContext';
 
 const Surveys = () => {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [showModal, setShowModal] = useState(false);
   const [editingSurvey, setEditingSurvey] = useState<any>(null);
   const [selectedSurvey, setSelectedSurvey] = useState<any>(null);
@@ -35,10 +37,10 @@ const Surveys = () => {
         setShowModal(false);
         setEditingSurvey(null);
         resetForm();
-        alert('نظرسنجی با موفقیت ایجاد شد');
+        toast.showSuccess('نظرسنجی با موفقیت ایجاد شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -51,10 +53,10 @@ const Surveys = () => {
         setShowModal(false);
         setEditingSurvey(null);
         resetForm();
-        alert('نظرسنجی با موفقیت به‌روزرسانی شد');
+        toast.showSuccess('نظرسنجی با موفقیت به‌روزرسانی شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -64,10 +66,10 @@ const Surveys = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('surveys');
-        alert('نظرسنجی با موفقیت حذف شد');
+        toast.showSuccess('نظرسنجی با موفقیت حذف شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -105,7 +107,7 @@ const Surveys = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.survey_type) {
-      alert('لطفاً عنوان و نوع نظرسنجی را وارد کنید');
+      toast.showError('لطفاً عنوان و نوع نظرسنجی را وارد کنید');
       return;
     }
 

@@ -7,8 +7,10 @@ import { toJalali, formatDateForInput, getJalaliDayjs } from '../utils/dateHelpe
 import JalaliDatePicker from '../components/JalaliDatePicker';
 import AdvancedFilter from '../components/AdvancedFilter';
 import { toPersianNumber } from '../utils/numberHelper';
+import { useToast } from '../contexts/ToastContext';
 
 const Reports = () => {
+  const toast = useToast();
   const [reportType, setReportType] = useState<'sales' | 'payments' | 'expenses' | 'time' | 'customers' | 'coaching' | 'leads' | 'deals' | 'tasks' | 'tickets'>('sales');
   const currentJalali = getJalaliDayjs();
   const oneMonthAgo = currentJalali.subtract(1, 'month');
@@ -120,7 +122,7 @@ const Reports = () => {
   // Export functionality
   const handleExport = () => {
     if (!reportData || reportData.length === 0) {
-      alert('داده‌ای برای خروجی گیری وجود ندارد');
+      toast.showError('داده‌ای برای خروجی گیری وجود ندارد');
       return;
     }
 

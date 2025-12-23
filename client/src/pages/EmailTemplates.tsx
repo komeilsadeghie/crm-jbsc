@@ -3,9 +3,11 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import api from '../services/api';
 import { Plus, Edit, Trash2, Mail, Send } from 'lucide-react';
 import { toJalali } from '../utils/dateHelper';
+import { useToast } from '../contexts/ToastContext';
 
 const EmailTemplates = () => {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [showModal, setShowModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<any>(null);
   const [showSendModal, setShowSendModal] = useState<any>(null);
@@ -22,7 +24,7 @@ const EmailTemplates = () => {
         queryClient.invalidateQueries('email-templates');
         setShowModal(false);
         setEditingTemplate(null);
-        alert('قالب با موفقیت ایجاد شد');
+        toast.showSuccess('قالب با موفقیت ایجاد شد');
       },
     }
   );
@@ -34,7 +36,7 @@ const EmailTemplates = () => {
         queryClient.invalidateQueries('email-templates');
         setShowModal(false);
         setEditingTemplate(null);
-        alert('قالب با موفقیت به‌روزرسانی شد');
+        toast.showSuccess('قالب با موفقیت به‌روزرسانی شد');
       },
     }
   );
@@ -44,7 +46,7 @@ const EmailTemplates = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('email-templates');
-        alert('قالب با موفقیت حذف شد');
+        toast.showSuccess('قالب با موفقیت حذف شد');
       },
     }
   );
@@ -239,6 +241,7 @@ const TemplateModal = ({ template, onClose, onSave }: any) => {
 };
 
 const SendEmailModal = ({ template, onClose }: any) => {
+  const toast = useToast();
   const [recipient, setRecipient] = useState('');
   const [mergeData, setMergeData] = useState('{}');
 
@@ -246,7 +249,7 @@ const SendEmailModal = ({ template, onClose }: any) => {
     (data: any) => api.post(`/email-templates/${template.id}/send`, data),
     {
       onSuccess: () => {
-        alert('ایمیل آماده ارسال است');
+        toast.showSuccess('ایمیل آماده ارسال است');
         onClose();
       },
     }
@@ -258,7 +261,7 @@ const SendEmailModal = ({ template, onClose }: any) => {
       const merge = JSON.parse(mergeData);
       sendMutation.mutate({ recipient, merge_data: merge });
     } catch (error) {
-      alert('فرمت JSON نامعتبر است');
+      toast.showError('فرمت JSON نامعتبر است');
     }
   };
 
