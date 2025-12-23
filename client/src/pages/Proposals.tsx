@@ -5,9 +5,11 @@ import { Plus, Search, Edit, Trash2, FileText, Send, CheckCircle, XCircle, Eye, 
 import { toJalali } from '../utils/dateHelper';
 import { toPersianNumber } from '../utils/numberHelper';
 import JalaliDatePicker from '../components/JalaliDatePicker';
+import { useToast } from '../contexts/ToastContext';
 
 const Proposals = () => {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -58,10 +60,10 @@ const Proposals = () => {
         setShowModal(false);
         setEditingProposal(null);
         resetForm();
-        alert('پروپوزال با موفقیت ایجاد شد');
+        toast.showSuccess('پروپوزال با موفقیت ایجاد شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -74,10 +76,10 @@ const Proposals = () => {
         setShowModal(false);
         setEditingProposal(null);
         resetForm();
-        alert('پروپوزال با موفقیت به‌روزرسانی شد');
+        toast.showSuccess('پروپوزال با موفقیت به‌روزرسانی شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -87,10 +89,10 @@ const Proposals = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('proposals');
-        alert('پروپوزال با موفقیت حذف شد');
+        toast.showSuccess('پروپوزال با موفقیت حذف شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -100,10 +102,10 @@ const Proposals = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('proposals');
-        alert('پروپوزال با موفقیت ارسال شد');
+        toast.showSuccess('پروپوزال با موفقیت ارسال شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -141,7 +143,7 @@ const Proposals = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.account_id || !formData.title || !formData.content) {
-      alert('لطفاً فیلدهای الزامی را پر کنید');
+      toast.showError('لطفاً فیلدهای الزامی را پر کنید');
       return;
     }
 

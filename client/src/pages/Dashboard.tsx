@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from 'react-query';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -19,7 +19,9 @@ import {
   Users,
   Ticket,
   FileCheck,
-  Briefcase
+  Briefcase,
+  Clock,
+  Smile
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, Legend } from 'recharts';
 import { Link } from 'react-router-dom';
@@ -92,6 +94,57 @@ const Dashboard = () => {
   const latestActivity = data.latestActivity || [];
   const goals = data.goals || [];
 
+  // Fetch my tasks for Mizito-style cards
+  const { data: allMyTasks } = useQuery(
+    'my-tasks-for-dashboard',
+    async () => {
+      try {
+        const response = await api.get('/tasks');
+        const allTasks = response.data || [];
+        // Filter tasks assigned to current user
+        return allTasks.filter((task: any) => 
+          task.assigned_to === user?.id || task.assigned_to_name === user?.fullName
+        );
+      } catch (error) {
+        console.error('Error fetching my tasks:', error);
+        return [];
+      }
+    },
+    {
+      retry: 1,
+      refetchInterval: 60000,
+    }
+  );
+
+  // Calculate Mizito-style task statistics
+  const taskStats = useMemo(() => {
+    const tasks = allMyTasks || [];
+    const todayStr = new Date().toISOString().split('T')[0];
+    
+    const tasksToday = tasks.filter((task: any) => {
+      if (!task.due_date) return false;
+      const taskDate = new Date(task.due_date).toISOString().split('T')[0];
+      return taskDate === todayStr;
+    });
+    
+    const overdueTasks = tasks.filter((task: any) => {
+      if (!task.due_date || task.status === 'done') return false;
+      const taskDate = new Date(task.due_date);
+      return taskDate < new Date() && task.status !== 'done';
+    });
+    
+    const trackableTasks = tasks.filter((task: any) => 
+      task.status === 'in_progress' || task.status === 'todo'
+    );
+
+    return {
+      today: tasksToday.length,
+      overdue: overdueTasks.length,
+      trackable: trackableTasks.length,
+      all: tasks.length
+    };
+  }, [allMyTasks]);
+
   // Calculate percentages for overviews
   const getPercentage = (count: number, total: number) => {
     if (!total) return 0;
@@ -128,6 +181,57 @@ const Dashboard = () => {
           <h1 className="heading-2 text-neutral-800 dark:text-neutral-200">داشبورد</h1>
         <div className="body-small text-neutral-600 dark:text-neutral-400">
           خوش آمدید، {user?.fullName || user?.username}
+        </div>
+      </div>
+
+        {/* Mizito-style Task Cards - First Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+          {/* کارهای امروز من */}
+          <div className="group glass-card p-4 hover:shadow-glass-lg transition-all duration-300 hover:scale-[1.02] relative overflow-hidden animate-slide-up bg-gradient-to-br from-success-50/50 to-success-100/30 dark:from-success-900/20 dark:to-success-800/10 border-2 border-success-200/50 dark:border-success-800/30">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckSquare className="text-success-600 dark:text-success-400" size={20} />
+                  <span className="body-small text-neutral-700 dark:text-neutral-300 font-medium">کارهای امروز من</span>
+                </div>
+                <div className="heading-2 text-success-700 dark:text-success-300">{taskStats.today}</div>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-success-100 dark:bg-success-900/30 flex items-center justify-center">
+                <CheckSquare className="text-success-600 dark:text-success-400" size={24} />
+              </div>
+            </div>
+          </div>
+
+          {/* کارهای دارای تاخیر */}
+          <div className="group glass-card p-4 hover:shadow-glass-lg transition-all duration-300 hover:scale-[1.02] relative overflow-hidden animate-slide-up bg-gradient-to-br from-warning-50/50 to-warning-100/30 dark:from-warning-900/20 dark:to-warning-800/10 border-2 border-warning-200/50 dark:border-warning-800/30">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <Smile className="text-warning-600 dark:text-warning-400" size={20} />
+                  <span className="body-small text-neutral-700 dark:text-neutral-300 font-medium">کارهای دارای تاخیر</span>
+                </div>
+                <div className="heading-2 text-warning-700 dark:text-warning-300">{taskStats.overdue}</div>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-warning-100 dark:bg-warning-900/30 flex items-center justify-center">
+                <Smile className="text-warning-600 dark:text-warning-400" size={24} />
+              </div>
+            </div>
+          </div>
+
+          {/* کارهای قابل پیگیری */}
+          <div className="group glass-card p-4 hover:shadow-glass-lg transition-all duration-300 hover:scale-[1.02] relative overflow-hidden animate-slide-up bg-gradient-to-br from-primary-50/50 to-primary-100/30 dark:from-primary-900/20 dark:to-primary-800/10 border-2 border-primary-200/50 dark:border-primary-800/30">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="text-primary-600 dark:text-primary-400" size={20} />
+                  <span className="body-small text-neutral-700 dark:text-neutral-300 font-medium">کارهای قابل پیگیری</span>
+                </div>
+                <div className="heading-2 text-primary-700 dark:text-primary-300">{taskStats.trackable}</div>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                <Clock className="text-primary-600 dark:text-primary-400" size={24} />
+              </div>
+            </div>
         </div>
       </div>
 
@@ -244,11 +348,11 @@ const Dashboard = () => {
           <div className="group glass-card p-3 sm:p-4 hover:shadow-glass-lg transition-all duration-300 hover:scale-[1.02] relative overflow-hidden animate-slide-up" style={{ animationDelay: '0.5s' }}>
             <div className="absolute inset-0 bg-gradient-to-br from-danger-50/0 to-danger-50/0 dark:from-danger-900/0 dark:to-danger-900/0 group-hover:from-danger-50/30 group-hover:to-danger-50/0 dark:group-hover:from-danger-900/20 dark:group-hover:to-danger-900/0 transition-all duration-300 rounded-lg" />
             <div className="relative">
-              <div className="flex justify-between items-center mb-3 sm:mb-4">
+            <div className="flex justify-between items-center mb-3 sm:mb-4">
                 <h3 className="heading-4 text-neutral-800 dark:text-neutral-200">خلاصه فاکتورها</h3>
                 <Link to="/invoices" className="body-small text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors">مشاهده همه</Link>
-              </div>
-              <div className="space-y-2 body-small">
+            </div>
+            <div className="space-y-2 body-small">
               <div className="flex justify-between">
                 <span className="text-neutral-600 dark:text-neutral-400">پیش‌نویس:</span>
                 <span className="font-medium text-neutral-800 dark:text-neutral-200">{invoiceOverview.draft || 0} ({getPercentage(invoiceOverview.draft || 0, invoiceOverview.total || 1)}%)</span>
@@ -269,9 +373,9 @@ const Dashboard = () => {
                 <span className="text-neutral-600 dark:text-neutral-400">پرداخت شده:</span>
                 <span className="font-medium text-success-600 dark:text-success-400">{invoiceOverview.paid || 0} ({getPercentage(invoiceOverview.paid || 0, invoiceOverview.total || 1)}%)</span>
               </div>
+              </div>
             </div>
-            </div>
-          </div>
+      </div>
 
           {/* Estimate Overview */}
           <div className="group glass-card p-3 sm:p-4 hover:shadow-glass-lg transition-all duration-300 hover:scale-[1.02] relative overflow-hidden animate-slide-up" style={{ animationDelay: '0.6s' }}>
@@ -280,7 +384,7 @@ const Dashboard = () => {
               <div className="flex justify-between items-center mb-3 sm:mb-4">
                 <h3 className="heading-4 text-neutral-800 dark:text-neutral-200">خلاصه پیش‌فاکتورها</h3>
                 <Link to="/estimates" className="body-small text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors">مشاهده همه</Link>
-              </div>
+            </div>
               <div className="space-y-2 body-small">
               <div className="flex justify-between">
                 <span className="text-neutral-600 dark:text-neutral-400">پیش‌نویس:</span>
@@ -302,7 +406,7 @@ const Dashboard = () => {
                 <span className="text-neutral-600 dark:text-neutral-400">پذیرفته شده:</span>
                 <span className="font-medium text-success-600 dark:text-success-400">{estimateOverview.accepted || 0} ({getPercentage(estimateOverview.accepted || 0, estimateOverview.total || 1)}%)</span>
               </div>
-            </div>
+              </div>
             </div>
           </div>
 
@@ -313,7 +417,7 @@ const Dashboard = () => {
               <div className="flex justify-between items-center mb-3 sm:mb-4">
                 <h3 className="heading-4 text-neutral-800 dark:text-neutral-200">خلاصه پروپوزال‌ها</h3>
                 <Link to="/proposals" className="body-small text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors">مشاهده همه</Link>
-              </div>
+            </div>
               <div className="space-y-2 body-small">
               <div className="flex justify-between">
                 <span className="text-neutral-600 dark:text-neutral-400">باز:</span>
@@ -331,7 +435,7 @@ const Dashboard = () => {
                 <span className="text-neutral-600 dark:text-neutral-400">پذیرفته شده:</span>
                 <span className="font-medium text-success-600 dark:text-success-400">{proposalOverview.accepted || 0} ({getPercentage(proposalOverview.accepted || 0, proposalOverview.total || 1)}%)</span>
               </div>
-            </div>
+              </div>
             </div>
           </div>
         </div>
@@ -345,24 +449,86 @@ const Dashboard = () => {
               <div className="text-center p-3 sm:p-4 glass-card bg-danger-50/30 dark:bg-danger-900/20 rounded-lg border border-danger-100/50 dark:border-danger-800/30">
                 <div className="body-small text-neutral-600 dark:text-neutral-400 mb-1">فاکتورهای معوق</div>
                 <div className="heading-2 text-danger-600 dark:text-danger-400">
-                  {new Intl.NumberFormat('fa-IR').format(financialSummary.outstanding || 0)} تومان
-                </div>
+                {new Intl.NumberFormat('fa-IR').format(financialSummary.outstanding || 0)} تومان
               </div>
+            </div>
               <div className="text-center p-3 sm:p-4 glass-card bg-warning-50/30 dark:bg-warning-900/20 rounded-lg border border-warning-100/50 dark:border-warning-800/30">
                 <div className="body-small text-neutral-600 dark:text-neutral-400 mb-1">فاکتورهای سررسید گذشته</div>
                 <div className="heading-2 text-warning-600 dark:text-warning-400">
-                  {new Intl.NumberFormat('fa-IR').format(financialSummary.past_due || 0)} تومان
-                </div>
+                {new Intl.NumberFormat('fa-IR').format(financialSummary.past_due || 0)} تومان
               </div>
+            </div>
               <div className="text-center p-3 sm:p-4 glass-card bg-success-50/30 dark:bg-success-900/20 rounded-lg border border-success-100/50 dark:border-success-800/30">
                 <div className="body-small text-neutral-600 dark:text-neutral-400 mb-1">فاکتورهای پرداخت شده</div>
                 <div className="heading-2 text-success-600 dark:text-success-400">
-                  {new Intl.NumberFormat('fa-IR').format(financialSummary.paid || 0)} تومان
+                {new Intl.NumberFormat('fa-IR').format(financialSummary.paid || 0)} تومان
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* My Tasks and Tracking Sections - Mizito Style */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+          {/* کارهای من */}
+          <div className="glass-card border-2 border-success-500/30 dark:border-success-600/30 animate-slide-up" style={{ animationDelay: '0.9s' }}>
+            <div className="p-4 border-b border-success-200/50 dark:border-success-800/30 bg-success-50/30 dark:bg-success-900/20">
+              <h3 className="font-bold text-neutral-800 dark:text-neutral-200">
+                کارهای من ({taskStats.all} مورد)
+              </h3>
+            </div>
+            <div className="p-4 space-y-3 max-h-96 overflow-y-auto">
+              {allMyTasks && allMyTasks.length > 0 ? (
+                <>
+                  {allMyTasks.slice(0, 5).map((task: any) => (
+                    <div key={task.id} className="flex items-start gap-3 p-3 hover:bg-neutral-50 dark:hover:bg-neutral-800 rounded-lg transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={task.status === 'done'}
+                        readOnly
+                        className="mt-1 w-5 h-5 text-success-600 border-gray-300 rounded focus:ring-success-500"
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium text-neutral-800 dark:text-neutral-200">{task.title}</div>
+                        {task.due_date && (
+                          <div className="text-sm text-primary-600 dark:text-primary-400 mt-1">
+                            مهلت: {toJalali(task.due_date)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {allMyTasks.length > 5 && (
+                    <div className="pt-2">
+                      <Link
+                        to="/tasks"
+                        className="block w-full text-center py-2 bg-success-600 text-white rounded-lg hover:bg-success-700 transition-colors font-medium"
+                      >
+                        مشاهده همه
+                      </Link>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-8 text-neutral-500 dark:text-neutral-400">
+                  کاری برای نمایش ندارید
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* پیگیری از دیگران */}
+          <div className="glass-card border-2 border-danger-500/30 dark:border-danger-600/30 animate-slide-up" style={{ animationDelay: '1s' }}>
+            <div className="p-4 border-b border-danger-200/50 dark:border-danger-800/30 bg-danger-50/30 dark:bg-danger-900/20">
+              <h3 className="font-bold text-neutral-800 dark:text-neutral-200">پیگیری از دیگران</h3>
+            </div>
+            <div className="p-4">
+              <div className="text-center py-8 text-neutral-500 dark:text-neutral-400">
+                کاری برای پیگیری ندارید
+              </div>
+            </div>
+          </div>
+                </div>
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

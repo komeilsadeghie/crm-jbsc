@@ -9,9 +9,11 @@ import { translateTaskStatus, translatePriority } from '../utils/translations';
 import JalaliDatePicker from '../components/JalaliDatePicker';
 import Pagination from '../components/Pagination';
 import { isSuccessfulResponse, hasResponseError, getErrorMessage, getSuccessMessage } from '../utils/mutationHelper';
+import { useToast } from '../contexts/ToastContext';
 
 const Tasks = () => {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban');
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState<any>(null);
@@ -109,7 +111,7 @@ const Tasks = () => {
       onSuccess: (response: any) => {
         // ✅ بررسی response - اگر error واقعی دارد، نشان بده
         if (hasResponseError(response)) {
-          alert('خطا: ' + response.data.error);
+          toast.showError('خطا: ' + response.data.error);
           return;
         }
         queryClient.invalidateQueries('tasks-kanban');
@@ -118,12 +120,12 @@ const Tasks = () => {
         window.dispatchEvent(new Event('task-updated'));
         setShowModal(false);
         setEditingTask(null);
-        alert(getSuccessMessage(response, 'تسک با موفقیت ایجاد شد'));
+        toast.showSuccess(getSuccessMessage(response, 'تسک با موفقیت ایجاد شد'));
       },
       onError: (error: any) => {
         const status = error.response?.status;
         if (status && status >= 400) {
-          alert('خطا: ' + getErrorMessage(error));
+          toast.showError('خطا: ' + getErrorMessage(error));
         }
       },
     }
@@ -135,7 +137,7 @@ const Tasks = () => {
       onSuccess: (response: any) => {
         // ✅ بررسی response - اگر error واقعی دارد، نشان بده
         if (hasResponseError(response)) {
-          alert('خطا: ' + response.data.error);
+          toast.showError('خطا: ' + response.data.error);
           return;
         }
         queryClient.invalidateQueries('tasks-kanban');
@@ -145,12 +147,12 @@ const Tasks = () => {
         window.dispatchEvent(new Event('task-updated'));
         setShowModal(false);
         setEditingTask(null);
-        alert(getSuccessMessage(response, 'تسک با موفقیت به‌روزرسانی شد'));
+        toast.showSuccess(getSuccessMessage(response, 'تسک با موفقیت به‌روزرسانی شد'));
       },
       onError: (error: any) => {
         const status = error.response?.status;
         if (status && status >= 400) {
-          alert('خطا: ' + getErrorMessage(error));
+          toast.showError('خطا: ' + getErrorMessage(error));
         }
       },
     }
@@ -179,7 +181,7 @@ const Tasks = () => {
         const status = error.response?.status;
         if (status && status >= 400) {
           console.error('Error updating task position:', error);
-          alert('خطا: ' + getErrorMessage(error));
+          toast.showError('خطا: ' + getErrorMessage(error));
         }
       },
     }
@@ -194,10 +196,10 @@ const Tasks = () => {
         queryClient.invalidateQueries('pending-tasks');
         window.dispatchEvent(new Event('task-updated'));
         setSelectedTask(null);
-        alert('تسک با موفقیت حذف شد');
+        toast.showSuccess('تسک با موفقیت حذف شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -306,10 +308,10 @@ const Tasks = () => {
         queryClient.invalidateQueries('tasks-kanban');
         setShowAddColumn(false);
         setNewColumnTitle('');
-        alert('ستون با موفقیت اضافه شد');
+        toast.showSuccess('ستون با موفقیت اضافه شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -320,10 +322,10 @@ const Tasks = () => {
       onSuccess: () => {
         queryClient.invalidateQueries('tasks-kanban');
         setEditingColumn(null);
-        alert('ستون با موفقیت به‌روزرسانی شد');
+        toast.showSuccess('ستون با موفقیت به‌روزرسانی شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -333,10 +335,10 @@ const Tasks = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('tasks-kanban');
-        alert('ستون با موفقیت حذف شد');
+        toast.showSuccess('ستون با موفقیت حذف شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -882,10 +884,10 @@ const TaskDetailModal = ({ task, onClose }: any) => {
         queryClient.invalidateQueries('pending-tasks');
         window.dispatchEvent(new Event('task-updated'));
         onClose();
-        alert('تسک با موفقیت حذف شد');
+        toast.showSuccess('تسک با موفقیت حذف شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );

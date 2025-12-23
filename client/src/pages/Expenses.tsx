@@ -47,7 +47,7 @@ const Expenses = () => {
         queryClient.invalidateQueries('expenses');
         setShowModal(false);
         setEditingExpense(null);
-        alert('هزینه با موفقیت ثبت شد');
+        toast.showSuccess('هزینه با موفقیت ثبت شد');
       },
     }
   );
@@ -59,7 +59,7 @@ const Expenses = () => {
         queryClient.invalidateQueries('expenses');
         setShowModal(false);
         setEditingExpense(null);
-        alert('هزینه با موفقیت به‌روزرسانی شد');
+        toast.showSuccess('هزینه با موفقیت به‌روزرسانی شد');
       },
     }
   );
@@ -69,7 +69,7 @@ const Expenses = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('expenses');
-        alert('هزینه با موفقیت حذف شد');
+        toast.showSuccess('هزینه با موفقیت حذف شد');
       },
     }
   );
@@ -81,10 +81,10 @@ const Expenses = () => {
         queryClient.invalidateQueries('expense-categories');
         setShowCategoryModal(false);
         setEditingCategory(null);
-        alert('دسته‌بندی با موفقیت ایجاد شد');
+        toast.showSuccess('دسته‌بندی با موفقیت ایجاد شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -96,7 +96,7 @@ const Expenses = () => {
         queryClient.invalidateQueries('expense-categories');
         setShowCategoryModal(false);
         setEditingCategory(null);
-        alert('دسته‌بندی با موفقیت به‌روزرسانی شد');
+        toast.showSuccess('دسته‌بندی با موفقیت به‌روزرسانی شد');
       },
     }
   );
@@ -106,10 +106,10 @@ const Expenses = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('expense-categories');
-        alert('دسته‌بندی با موفقیت حذف شد');
+        toast.showSuccess('دسته‌بندی با موفقیت حذف شد');
       },
       onError: (error: any) => {
-        alert('خطا: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا: ' + (error.response?.data?.error || error.message));
       },
     }
   );

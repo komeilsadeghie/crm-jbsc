@@ -216,7 +216,7 @@ const Estimates = () => {
     
     // Validation
     if (!formData.amount || parseFloat(formData.amount) <= 0) {
-      alert('لطفاً مبلغ را وارد کنید');
+      toast.showError('لطفاً مبلغ را وارد کنید');
       return;
     }
 
@@ -252,7 +252,7 @@ const Estimates = () => {
       link.click();
       link.remove();
     } catch (error: any) {
-      alert('خطا در دانلود PDF: ' + (error.response?.data?.error || error.message));
+      toast.showError('خطا در دانلود PDF: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -269,7 +269,7 @@ const Estimates = () => {
       link.click();
       link.remove();
     } catch (error: any) {
-      alert('خطا در دانلود Word: ' + (error.response?.data?.error || error.message));
+      toast.showError('خطا در دانلود Word: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -286,7 +286,7 @@ const Estimates = () => {
         };
       }
     } catch (error: any) {
-      alert('خطا در پرینت: ' + (error.response?.data?.error || error.message));
+      toast.showError('خطا در پرینت: ' + (error.response?.data?.error || error.message));
     }
   };
 

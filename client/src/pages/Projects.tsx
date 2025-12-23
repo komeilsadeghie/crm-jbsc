@@ -8,10 +8,12 @@ import { toPersianNumber } from '../utils/numberHelper';
 import JalaliDatePicker from '../components/JalaliDatePicker';
 import Pagination from '../components/Pagination';
 import { hasResponseError, getErrorMessage, getSuccessMessage } from '../utils/mutationHelper';
+import { useToast } from '../contexts/ToastContext';
 
 const Projects = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [showModal, setShowModal] = useState(false);
   const [editingProject, setEditingProject] = useState<any>(null);
   const [filterStatus, setFilterStatus] = useState('');
@@ -54,19 +56,19 @@ const Projects = () => {
       onSuccess: (response: any) => {
         // ✅ بررسی response - اگر error واقعی دارد، نشان بده
         if (hasResponseError(response)) {
-          alert('خطا: ' + response.data.error);
+          toast.showError('خطا: ' + response.data.error);
           return;
         }
         queryClient.invalidateQueries('projects');
         setShowModal(false);
         setEditingProject(null);
-        alert(getSuccessMessage(response, 'پروژه با موفقیت ایجاد شد'));
+        toast.showSuccess(getSuccessMessage(response, 'پروژه با موفقیت ایجاد شد'));
       },
       onError: (error: any) => {
         const status = error.response?.status;
         if (status && status >= 400) {
           console.error('Error creating project:', error);
-          alert('خطا در ایجاد پروژه: ' + getErrorMessage(error));
+          toast.showError('خطا در ایجاد پروژه: ' + getErrorMessage(error));
         }
       },
     }
@@ -78,18 +80,18 @@ const Projects = () => {
       onSuccess: (response: any) => {
         // ✅ بررسی response - اگر error واقعی دارد، نشان بده
         if (hasResponseError(response)) {
-          alert('خطا: ' + response.data.error);
+          toast.showError('خطا: ' + response.data.error);
           return;
         }
         queryClient.invalidateQueries('projects');
         setShowModal(false);
         setEditingProject(null);
-        alert(getSuccessMessage(response, 'پروژه با موفقیت به‌روزرسانی شد'));
+        toast.showSuccess(getSuccessMessage(response, 'پروژه با موفقیت به‌روزرسانی شد'));
       },
       onError: (error: any) => {
         const status = error.response?.status;
         if (status && status >= 400) {
-          alert('خطا: ' + getErrorMessage(error));
+          toast.showError('خطا: ' + getErrorMessage(error));
         }
       },
     }
@@ -101,16 +103,16 @@ const Projects = () => {
       onSuccess: (response: any) => {
         // ✅ بررسی response - اگر error واقعی دارد، نشان بده
         if (hasResponseError(response)) {
-          alert('خطا: ' + response.data.error);
+          toast.showError('خطا: ' + response.data.error);
           return;
         }
         queryClient.invalidateQueries('projects');
-        alert(getSuccessMessage(response, 'پروژه با موفقیت حذف شد'));
+        toast.showSuccess(getSuccessMessage(response, 'پروژه با موفقیت حذف شد'));
       },
       onError: (error: any) => {
         const status = error.response?.status;
         if (status && status >= 400) {
-          alert('خطا: ' + getErrorMessage(error));
+          toast.showError('خطا: ' + getErrorMessage(error));
         }
       },
     }
@@ -435,7 +437,7 @@ const ProjectModal = ({ project, onClose, onSave }: any) => {
     
     // Validation
     if (!formData.name || formData.name.trim() === '') {
-      alert('لطفاً نام پروژه را وارد کنید');
+      toast.showError('لطفاً نام پروژه را وارد کنید');
       return;
     }
 

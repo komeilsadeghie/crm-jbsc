@@ -5,6 +5,7 @@ import { ArrowRight, Plus, Edit, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toJalali } from '../utils/dateHelper';
 import JalaliDatePicker from '../components/JalaliDatePicker';
+import { useToast } from '../contexts/ToastContext';
 
 const CustomerDetail = () => {
   const { id } = useParams();
@@ -277,12 +278,12 @@ const InteractionModal = ({ customerId, interaction, onClose }: { customerId: nu
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['interactions', customerId]);
-        alert('تعامل با موفقیت ذخیره شد');
+        toast.showSuccess('تعامل با موفقیت ذخیره شد');
         onClose();
       },
       onError: (error: any) => {
         console.error('Error saving interaction:', error);
-        alert(error.response?.data?.error || 'خطا در ذخیره تعامل');
+        toast.showError(error.response?.data?.error || 'خطا در ذخیره تعامل');
       },
     }
   );

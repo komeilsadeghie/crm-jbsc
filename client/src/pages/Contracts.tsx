@@ -7,9 +7,11 @@ import { toPersianNumber } from '../utils/numberHelper';
 import { translateContractStatus, translateCurrency } from '../utils/translations';
 import JalaliDatePicker from '../components/JalaliDatePicker';
 import { isSuccessfulResponse, hasResponseError, getErrorMessage, getSuccessMessage } from '../utils/mutationHelper';
+import { useToast } from '../contexts/ToastContext';
 
 const Contracts = () => {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [showModal, setShowModal] = useState(false);
   const [editingContract, setEditingContract] = useState<any>(null);
 
@@ -43,19 +45,19 @@ const Contracts = () => {
       onSuccess: (response: any) => {
         // ✅ بررسی response - اگر error واقعی دارد، نشان بده
         if (hasResponseError(response)) {
-          alert('خطا: ' + response.data.error);
+          toast.showError('خطا: ' + response.data.error);
           return;
         }
         queryClient.invalidateQueries('contracts');
         queryClient.invalidateQueries('contracts-expiring');
         setShowModal(false);
         setEditingContract(null);
-        alert(getSuccessMessage(response, 'قرارداد با موفقیت ایجاد شد'));
+        toast.showSuccess(getSuccessMessage(response, 'قرارداد با موفقیت ایجاد شد'));
       },
       onError: (error: any) => {
         const status = error.response?.status;
         if (status && status >= 400) {
-          alert('خطا: ' + getErrorMessage(error));
+          toast.showError('خطا: ' + getErrorMessage(error));
         }
       },
     }
@@ -67,19 +69,19 @@ const Contracts = () => {
       onSuccess: (response: any) => {
         // ✅ بررسی response - اگر error واقعی دارد، نشان بده
         if (hasResponseError(response)) {
-          alert('خطا: ' + response.data.error);
+          toast.showError('خطا: ' + response.data.error);
           return;
         }
         queryClient.invalidateQueries('contracts');
         queryClient.invalidateQueries('contracts-expiring');
         setShowModal(false);
         setEditingContract(null);
-        alert(getSuccessMessage(response, 'قرارداد با موفقیت به‌روزرسانی شد'));
+        toast.showSuccess(getSuccessMessage(response, 'قرارداد با موفقیت به‌روزرسانی شد'));
       },
       onError: (error: any) => {
         const status = error.response?.status;
         if (status && status >= 400) {
-          alert('خطا: ' + getErrorMessage(error));
+          toast.showError('خطا: ' + getErrorMessage(error));
         }
       },
     }
@@ -91,17 +93,17 @@ const Contracts = () => {
       onSuccess: (response: any) => {
         // ✅ بررسی response - اگر error واقعی دارد، نشان بده
         if (hasResponseError(response)) {
-          alert('خطا: ' + response.data.error);
+          toast.showError('خطا: ' + response.data.error);
           return;
         }
         queryClient.invalidateQueries('contracts');
         queryClient.invalidateQueries('contracts-expiring');
-        alert(getSuccessMessage(response, 'قرارداد با موفقیت تمدید شد'));
+        toast.showSuccess(getSuccessMessage(response, 'قرارداد با موفقیت تمدید شد'));
       },
       onError: (error: any) => {
         const status = error.response?.status;
         if (status && status >= 400) {
-          alert('خطا: ' + getErrorMessage(error));
+          toast.showError('خطا: ' + getErrorMessage(error));
         }
       },
     }
@@ -113,17 +115,17 @@ const Contracts = () => {
       onSuccess: (response: any) => {
         // ✅ بررسی response - اگر error واقعی دارد، نشان بده
         if (hasResponseError(response)) {
-          alert('خطا: ' + response.data.error);
+          toast.showError('خطا: ' + response.data.error);
           return;
         }
         queryClient.invalidateQueries('contracts');
         queryClient.invalidateQueries('contracts-expiring');
-        alert(getSuccessMessage(response, 'قرارداد با موفقیت حذف شد'));
+        toast.showSuccess(getSuccessMessage(response, 'قرارداد با موفقیت حذف شد'));
       },
       onError: (error: any) => {
         const status = error.response?.status;
         if (status && status >= 400) {
-          alert('خطا: ' + getErrorMessage(error));
+          toast.showError('خطا: ' + getErrorMessage(error));
         }
       },
     }
@@ -222,7 +224,7 @@ const Contracts = () => {
                             link.click();
                             link.remove();
                           } catch (error: any) {
-                            alert('خطا در دانلود PDF: ' + (error.response?.data?.error || error.message));
+                            toast.showError('خطا در دانلود PDF: ' + (error.response?.data?.error || error.message));
                           }
                         }}
                         className="text-success-600 hover:text-success-700 transition-colors p-1 rounded hover:bg-success-50"
@@ -244,7 +246,7 @@ const Contracts = () => {
                             link.click();
                             link.remove();
                           } catch (error: any) {
-                            alert('خطا در دانلود Word: ' + (error.response?.data?.error || error.message));
+                            toast.showError('خطا در دانلود Word: ' + (error.response?.data?.error || error.message));
                           }
                         }}
                         className="text-info-600 hover:text-info-700 transition-colors p-1 rounded hover:bg-info-50"
@@ -368,12 +370,12 @@ const ContractModal = ({ contract, onClose, onSave }: any) => {
     
     // Validation
     if (!formData.account_id || formData.account_id === '') {
-      alert('لطفاً مشتری را انتخاب کنید');
+      toast.showError('لطفاً مشتری را انتخاب کنید');
       return;
     }
     
     if (!formData.title || formData.title.trim() === '') {
-      alert('لطفاً عنوان قرارداد را وارد کنید');
+      toast.showError('لطفاً عنوان قرارداد را وارد کنید');
       return;
     }
     

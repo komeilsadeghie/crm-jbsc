@@ -24,9 +24,11 @@ import {
 } from '../utils/dateHelper';
 import JalaliDatePicker from '../components/JalaliDatePicker';
 import { hasResponseError, getErrorMessage, getSuccessMessage } from '../utils/mutationHelper';
+import { useToast } from '../contexts/ToastContext';
 
 const Coaching = () => {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'kanban' | 'sessions' | 'goals' | 'exercises' | 'reports' | 'calendar' | 'programs' | 'templates' | 'feedback'>('dashboard');
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState<'session' | 'goal' | 'exercise' | 'report' | 'program' | 'template' | 'feedback'>('session');
@@ -208,10 +210,10 @@ const Coaching = () => {
         queryClient.invalidateQueries('coaching-sessions');
         queryClient.invalidateQueries('coaching-dashboard-stats');
         queryClient.invalidateQueries('coaching-upcoming-sessions');
-        alert('جلسه با موفقیت حذف شد');
+        toast.showSuccess('جلسه با موفقیت حذف شد');
       },
       onError: (error: any) => {
-        alert('خطا در حذف جلسه: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا در حذف جلسه: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -223,10 +225,10 @@ const Coaching = () => {
         queryClient.invalidateQueries('coaching-goals');
         queryClient.invalidateQueries('coaching-goals-progress');
         queryClient.invalidateQueries('coaching-dashboard-stats');
-        alert('هدف با موفقیت حذف شد');
+        toast.showSuccess('هدف با موفقیت حذف شد');
       },
       onError: (error: any) => {
-        alert('خطا در حذف هدف: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا در حذف هدف: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -238,10 +240,10 @@ const Coaching = () => {
         queryClient.invalidateQueries('coaching-exercises');
         queryClient.invalidateQueries('coaching-overdue-exercises');
         queryClient.invalidateQueries('coaching-dashboard-stats');
-        alert('تمرین با موفقیت حذف شد');
+        toast.showSuccess('تمرین با موفقیت حذف شد');
       },
       onError: (error: any) => {
-        alert('خطا در حذف تمرین: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا در حذف تمرین: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -251,10 +253,10 @@ const Coaching = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('coaching-reports');
-        alert('گزارش با موفقیت حذف شد');
+        toast.showSuccess('گزارش با موفقیت حذف شد');
       },
       onError: (error: any) => {
-        alert('خطا در حذف گزارش: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا در حذف گزارش: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -264,10 +266,10 @@ const Coaching = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('coaching-programs');
-        alert('برنامه با موفقیت حذف شد');
+        toast.showSuccess('برنامه با موفقیت حذف شد');
       },
       onError: (error: any) => {
-        alert('خطا در حذف برنامه: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا در حذف برنامه: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -277,10 +279,10 @@ const Coaching = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('coaching-templates');
-        alert('قالب با موفقیت حذف شد');
+        toast.showSuccess('قالب با موفقیت حذف شد');
       },
       onError: (error: any) => {
-        alert('خطا در حذف قالب: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا در حذف قالب: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -290,10 +292,10 @@ const Coaching = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('coaching-feedback');
-        alert('بازخورد با موفقیت حذف شد');
+        toast.showSuccess('بازخورد با موفقیت حذف شد');
       },
       onError: (error: any) => {
-        alert('خطا در حذف بازخورد: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا در حذف بازخورد: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -1272,7 +1274,7 @@ const CoachingModal = ({ type, item, customers, goals, sessions, clickedDate: pr
         // ✅ بررسی response - اگر error واقعی دارد، نشان بده
         if (hasResponseError(response)) {
           console.error('Server returned error in response:', response.data.error);
-          alert('خطا: ' + response.data.error);
+          toast.showError('خطا: ' + response.data.error);
           return;
         }
         
@@ -1289,14 +1291,14 @@ const CoachingModal = ({ type, item, customers, goals, sessions, clickedDate: pr
         queryClient.invalidateQueries('coaching-goals-progress');
         queryClient.invalidateQueries('coaching-overdue-exercises');
         queryClient.invalidateQueries('coaching-kanban'); // ✅ اضافه شد: برای بورد کوچینگ
-        alert(getSuccessMessage(response, 'اطلاعات با موفقیت ذخیره شد'));
+        toast.showSuccess(getSuccessMessage(response, 'اطلاعات با موفقیت ذخیره شد'));
         onClose();
       },
       onError: (error: any) => {
         const status = error.response?.status;
         if (status && status >= 400) {
           console.error('Error saving coaching data:', error);
-          alert('خطا: ' + getErrorMessage(error));
+          toast.showError('خطا: ' + getErrorMessage(error));
         }
       },
     }

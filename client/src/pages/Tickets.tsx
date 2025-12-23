@@ -5,9 +5,11 @@ import { Plus, MessageSquare, AlertCircle, CheckCircle, Clock, XCircle } from 'l
 import { toJalali } from '../utils/dateHelper';
 import { toPersianNumber } from '../utils/numberHelper';
 import { translateTicketStatus, translatePriority } from '../utils/translations';
+import { useToast } from '../contexts/ToastContext';
 
 const Tickets = () => {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [showModal, setShowModal] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [filterStatus, setFilterStatus] = useState('');
@@ -42,7 +44,7 @@ const Tickets = () => {
       onSuccess: () => {
         queryClient.invalidateQueries('tickets');
         setShowModal(false);
-        alert('تیکت با موفقیت ایجاد شد');
+        toast.showSuccess('تیکت با موفقیت ایجاد شد');
       },
     }
   );
@@ -291,7 +293,7 @@ const TicketDetailModal = ({ ticket, onClose }: any) => {
       onSuccess: () => {
         queryClient.invalidateQueries(['ticket-detail', ticket.id]);
         setReplyText('');
-        alert('پاسخ با موفقیت ارسال شد');
+        toast.showSuccess('پاسخ با موفقیت ارسال شد');
       },
     }
   );

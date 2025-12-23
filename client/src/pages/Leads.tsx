@@ -8,10 +8,12 @@ import { toPersianNumber } from '../utils/numberHelper';
 import { BulkDeleteActions, SelectAllCheckbox, RowCheckbox } from '../components/BulkDeleteActions';
 import Pagination from '../components/Pagination';
 import { hasResponseError, getErrorMessage, getSuccessMessage } from '../utils/mutationHelper';
+import { useToast } from '../contexts/ToastContext';
 
 const Leads = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterSource, setFilterSource] = useState('');
@@ -50,7 +52,7 @@ const Leads = () => {
       onSuccess: (response: any) => {
         // ✅ بررسی response - اگر error واقعی دارد، نشان بده
         if (hasResponseError(response)) {
-          alert('خطا: ' + response.data.error);
+          toast.showError('خطا: ' + response.data.error);
           return;
         }
         queryClient.invalidateQueries('leads');
@@ -60,7 +62,7 @@ const Leads = () => {
       onError: (error: any) => {
         const status = error.response?.status;
         if (status && status >= 400) {
-          alert('خطا: ' + getErrorMessage(error));
+          toast.showError('خطا: ' + getErrorMessage(error));
         }
       },
     }
@@ -73,10 +75,10 @@ const Leads = () => {
         queryClient.invalidateQueries('leads');
         setSelectedIds([]);
         const deletedCount = data.data?.deletedCount || data.data?.ids?.length || 0;
-        alert(`${toPersianNumber(deletedCount)} سرنخ با موفقیت حذف شد`);
+        toast.showSuccess(`${toPersianNumber(deletedCount)} سرنخ با موفقیت حذف شد`);
       },
       onError: (error: any) => {
-        alert('خطا در حذف گروهی: ' + (error.response?.data?.error || error.message));
+        toast.showError('خطا در حذف گروهی: ' + (error.response?.data?.error || error.message));
       },
     }
   );
@@ -101,18 +103,18 @@ const Leads = () => {
       onSuccess: (response: any) => {
         // ✅ بررسی response - اگر error واقعی دارد، نشان بده
         if (hasResponseError(response)) {
-          alert('خطا: ' + response.data.error);
+          toast.showError('خطا: ' + response.data.error);
           return;
         }
         queryClient.invalidateQueries('leads');
         queryClient.invalidateQueries('leads-kanban');
         queryClient.invalidateQueries('accounts');
-        alert(getSuccessMessage(response, 'سرنخ با موفقیت تبدیل شد'));
+        toast.showSuccess(getSuccessMessage(response, 'سرنخ با موفقیت تبدیل شد'));
       },
       onError: (error: any) => {
         const status = error.response?.status;
         if (status && status >= 400) {
-          alert('خطا: ' + getErrorMessage(error));
+          toast.showError('خطا: ' + getErrorMessage(error));
         }
       },
     }
@@ -135,7 +137,7 @@ const Leads = () => {
         const status = error.response?.status;
         if (status && status >= 400) {
           console.error('Error updating lead position:', error);
-          alert('خطا: ' + getErrorMessage(error));
+          toast.showError('خطا: ' + getErrorMessage(error));
         }
       },
     }
@@ -209,7 +211,7 @@ const Leads = () => {
 
   const handleBulkDelete = () => {
     if (selectedIds.length === 0) {
-      alert('لطفاً حداقل یک مورد را انتخاب کنید');
+      toast.showError('لطفاً حداقل یک مورد را انتخاب کنید');
       return;
     }
     if (confirm(`آیا از حذف ${toPersianNumber(selectedIds.length)} سرنخ انتخاب شده اطمینان دارید؟`)) {
@@ -555,12 +557,12 @@ const LeadModal = ({ lead, onClose }: { lead: any; onClose: () => void }) => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('leads');
-        alert('سرنخ با موفقیت ذخیره شد');
+        toast.showSuccess('سرنخ با موفقیت ذخیره شد');
         onClose();
       },
       onError: (error: any) => {
         console.error('Error saving lead:', error);
-        alert(error.response?.data?.error || 'خطا در ذخیره سرنخ');
+        toast.showError(error.response?.data?.error || 'خطا در ذخیره سرنخ');
       },
     }
   );

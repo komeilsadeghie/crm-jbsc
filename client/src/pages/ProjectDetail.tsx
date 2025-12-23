@@ -1541,7 +1541,7 @@ const TaskModal = ({ task, projectId, projectStatus, users, onClose, onSave }: a
                 <option value="">انتخاب کاربر</option>
                 {users.map((user: any) => (
                   <option key={user.id} value={user.id}>
-                    {user.full_name || user.username}
+                    {user.fullName || user.full_name || user.username}
                   </option>
                 ))}
               </select>

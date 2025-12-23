@@ -10,10 +10,12 @@ import { formatDateForInput } from '../utils/dateHelper';
 import JalaliDatePicker from '../components/JalaliDatePicker';
 import Pagination from '../components/Pagination';
 import { hasResponseError, getErrorMessage, getSuccessMessage } from '../utils/mutationHelper';
+import { useToast } from '../contexts/ToastContext';
 
 const Deals = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStage, setFilterStage] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'funnel'>('list');
@@ -67,17 +69,17 @@ const Deals = () => {
       onSuccess: (response: any) => {
         // ✅ بررسی response - اگر error واقعی دارد، نشان بده
         if (hasResponseError(response)) {
-          alert('خطا: ' + response.data.error);
+          toast.showError('خطا: ' + response.data.error);
           return;
         }
         queryClient.invalidateQueries('deals');
         queryClient.invalidateQueries('deals-pipeline');
-        alert(getSuccessMessage(response, 'معامله با موفقیت حذف شد'));
+        toast.showSuccess(getSuccessMessage(response, 'معامله با موفقیت حذف شد'));
       },
       onError: (error: any) => {
         const status = error.response?.status;
         if (status && status >= 400) {
-          alert('خطا: ' + getErrorMessage(error));
+          toast.showError('خطا: ' + getErrorMessage(error));
         }
       },
     }
@@ -139,41 +141,41 @@ const Deals = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-primary-50/30 to-info-50/30 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex justify-between items-center card">
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary-600 to-info-600 bg-clip-text text-transparent">مدیریت پروژه‌ها (Deals)</h1>
-          <div className="flex items-center gap-6 mt-2 text-sm text-neutral-600">
-            <span>ارزش کل: <strong>{toPersianNumber(new Intl.NumberFormat('fa-IR').format(totalValue))}</strong> تومان</span>
-            <span>ارزش پیش‌بینی شده: <strong>{toPersianNumber(new Intl.NumberFormat('fa-IR').format(weightedValue))}</strong> تومان</span>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 card">
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary-600 to-info-600 bg-clip-text text-transparent">مدیریت پروژه‌ها (Deals)</h1>
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-2 text-sm text-neutral-600">
+              <span>ارزش کل: <strong>{toPersianNumber(new Intl.NumberFormat('fa-IR').format(totalValue))}</strong> تومان</span>
+              <span>ارزش پیش‌بینی شده: <strong>{toPersianNumber(new Intl.NumberFormat('fa-IR').format(weightedValue))}</strong> تومان</span>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
+            <div className="flex bg-neutral-100 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-3 sm:px-4 py-2 rounded transition-colors text-sm sm:text-base ${viewMode === 'list' ? 'bg-white shadow-sm text-primary-600 font-medium' : 'text-neutral-600 hover:text-neutral-800'}`}
+              >
+                لیست
+              </button>
+              <button
+                onClick={() => setViewMode('funnel')}
+                className={`px-3 sm:px-4 py-2 rounded transition-colors text-sm sm:text-base ${viewMode === 'funnel' ? 'bg-white shadow-sm text-primary-600 font-medium' : 'text-neutral-600 hover:text-neutral-800'}`}
+              >
+                قیف فروش
+              </button>
+            </div>
+            <button
+              onClick={() => {
+                setEditingDeal(null);
+                setShowModal(true);
+              }}
+              className="btn btn-primary flex items-center justify-center gap-2 w-full sm:w-auto"
+            >
+              <Plus size={18} className="sm:w-5 sm:h-5" />
+              <span className="text-sm sm:text-base">افزودن پروژه</span>
+            </button>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex bg-neutral-100 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode('list')}
-              className={`px-4 py-2 rounded transition-colors ${viewMode === 'list' ? 'bg-white shadow-sm text-primary-600 font-medium' : 'text-neutral-600 hover:text-neutral-800'}`}
-            >
-              لیست
-            </button>
-            <button
-              onClick={() => setViewMode('funnel')}
-              className={`px-4 py-2 rounded transition-colors ${viewMode === 'funnel' ? 'bg-white shadow-sm text-primary-600 font-medium' : 'text-neutral-600 hover:text-neutral-800'}`}
-            >
-              قیف فروش
-            </button>
-          </div>
-          <button
-            onClick={() => {
-              setEditingDeal(null);
-              setShowModal(true);
-            }}
-            className="btn btn-primary flex items-center gap-2"
-          >
-            <Plus size={20} />
-            افزودن پروژه
-          </button>
-        </div>
-      </div>
 
       {/* Filters */}
       <div className="card">
@@ -415,12 +417,12 @@ const DealModal = ({ deal, onClose }: { deal: any; onClose: () => void }) => {
       onSuccess: () => {
         queryClient.invalidateQueries('deals');
         queryClient.invalidateQueries('deals-pipeline');
-        alert('پروژه با موفقیت ذخیره شد');
+        toast.showSuccess('پروژه با موفقیت ذخیره شد');
         onClose();
       },
       onError: (error: any) => {
         console.error('Error saving deal:', error);
-        alert(error.response?.data?.error || 'خطا در ذخیره پروژه');
+        toast.showError(error.response?.data?.error || 'خطا در ذخیره پروژه');
       },
     }
   );
