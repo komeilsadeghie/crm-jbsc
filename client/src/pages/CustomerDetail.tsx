@@ -11,6 +11,7 @@ const CustomerDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [showInteractionModal, setShowInteractionModal] = useState(false);
   const [editingInteraction, setEditingInteraction] = useState<any>(null);
 
@@ -255,6 +256,7 @@ const CustomerDetail = () => {
 
 const InteractionModal = ({ customerId, interaction, onClose }: { customerId: number; interaction: any; onClose: () => void }) => {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [formData, setFormData] = useState({
     type: interaction?.type || 'call',
     subject: interaction?.subject || '',

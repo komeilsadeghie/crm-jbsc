@@ -531,6 +531,7 @@ const Leads = () => {
 
 const LeadModal = ({ lead, onClose }: { lead: any; onClose: () => void }) => {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [formData, setFormData] = useState({
     first_name: lead?.first_name || '',
     last_name: lead?.last_name || '',

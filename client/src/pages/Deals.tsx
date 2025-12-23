@@ -371,6 +371,7 @@ const Deals = () => {
 
 const DealModal = ({ deal, onClose }: { deal: any; onClose: () => void }) => {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [formData, setFormData] = useState({
     account_id: deal?.account_id || '',
     contact_id: deal?.contact_id || '',

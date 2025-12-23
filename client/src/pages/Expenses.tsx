@@ -7,10 +7,12 @@ import { toPersianNumber } from '../utils/numberHelper';
 import JalaliDatePicker from '../components/JalaliDatePicker';
 import { useAuth } from '../contexts/AuthContext';
 import AdvancedFilter from '../components/AdvancedFilter';
+import { useToast } from '../contexts/ToastContext';
 
 const Expenses = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const toast = useToast();
   const isAdmin = user?.role === 'admin';
   const [showModal, setShowModal] = useState(false);
   const [editingExpense, setEditingExpense] = useState<any>(null);

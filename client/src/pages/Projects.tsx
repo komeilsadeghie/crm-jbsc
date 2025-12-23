@@ -346,6 +346,7 @@ const Projects = () => {
 
 const ProjectModal = ({ project, onClose, onSave }: any) => {
   const queryClient = useQueryClient();
+  const toast = useToast();
   
   const { data: accounts, isLoading: accountsLoading } = useQuery('accounts', async () => {
     try {

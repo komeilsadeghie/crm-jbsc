@@ -727,6 +727,7 @@ const Tasks = () => {
 };
 
 const TaskModal = ({ task, onClose, onSave }: any) => {
+  const toast = useToast();
   const { data: projects } = useQuery('projects', async () => {
     const response = await api.get('/projects');
     return response.data || [];
@@ -866,6 +867,7 @@ const TaskModal = ({ task, onClose, onSave }: any) => {
 
 const TaskDetailModal = ({ task, onClose }: any) => {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const { data: taskDetail } = useQuery(
     ['task-detail', task.id],
     async () => {
