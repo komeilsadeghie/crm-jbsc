@@ -1,6 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertCircle, RefreshCw, Home } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 interface Props {
   children: ReactNode;
@@ -43,7 +42,10 @@ class ErrorBoundary extends Component<Props, State> {
 }
 
 const ErrorFallback = ({ error }: { error: Error | null }) => {
-  const navigate = useNavigate();
+  const handleGoToDashboard = () => {
+    // Use window.location instead of navigate to avoid router context issues
+    window.location.href = '/dashboard';
+  };
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 flex items-center justify-center p-4">
@@ -63,7 +65,12 @@ const ErrorFallback = ({ error }: { error: Error | null }) => {
               جزئیات خطا
             </summary>
             <div className="mt-2 p-3 bg-neutral-100 dark:bg-neutral-700 rounded text-xs font-mono text-neutral-700 dark:text-neutral-300 text-left overflow-auto">
-              {error.message}
+              {error.message || 'Unknown error'}
+              {error.stack && (
+                <div className="mt-2 text-xs opacity-75 whitespace-pre-wrap">
+                  {error.stack}
+                </div>
+              )}
             </div>
           </details>
         )}
@@ -76,7 +83,7 @@ const ErrorFallback = ({ error }: { error: Error | null }) => {
             بارگذاری مجدد
           </button>
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={handleGoToDashboard}
             className="btn btn-secondary flex items-center gap-2"
           >
             <Home size={18} />
