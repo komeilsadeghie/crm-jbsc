@@ -411,7 +411,7 @@ const ProjectDetail = () => {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto p-6">
-        {activeTab === 'overview' && (
+        <div style={{ display: activeTab === 'overview' ? 'block' : 'none' }}>
           <div className="glass-card relative">
             {/* Vertical Divider */}
             <div className="hidden lg:block absolute top-0 bottom-0 left-1/2 w-px bg-neutral-300 dark:bg-neutral-700 transform -translate-x-1/2 z-10" />
@@ -664,19 +664,23 @@ const ProjectDetail = () => {
                   </div>
                   <div className="card p-3">
                     <ResponsiveContainer width="100%" height={200}>
-                      <BarChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                        <XAxis dataKey="name" stroke="#6b7280" />
-                        <YAxis stroke="#6b7280" />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'rgba(255, 255, 255, 0.9)', 
-                            border: '1px solid rgba(255, 255, 255, 0.3)',
-                            borderRadius: '8px'
-                          }} 
-                        />
-                        <Bar dataKey="hours" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-                      </BarChart>
+                      {chartData && chartData.length > 0 ? (
+                        <BarChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                          <XAxis dataKey="name" stroke="#6b7280" />
+                          <YAxis stroke="#6b7280" />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'rgba(255, 255, 255, 0.9)', 
+                              border: '1px solid rgba(255, 255, 255, 0.3)',
+                              borderRadius: '8px'
+                            }} 
+                          />
+                          <Bar dataKey="hours" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-neutral-500">داده‌ای وجود ندارد</div>
+                      )}
                     </ResponsiveContainer>
                   </div>
                 </div>

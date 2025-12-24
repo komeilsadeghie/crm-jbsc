@@ -223,7 +223,7 @@ const Deals = () => {
           <h2 className="text-xl font-bold mb-4 bg-gradient-to-r from-primary-600 to-info-600 bg-clip-text text-transparent">قیف فروش</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <ResponsiveContainer width="100%" height={400}>
-              {pipelineArray.length > 0 ? (
+              {pipelineArray && pipelineArray.length > 0 ? (
                 <BarChart data={pipelineArray}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
                   <XAxis dataKey="stage" />
