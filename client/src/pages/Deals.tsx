@@ -218,22 +218,26 @@ const Deals = () => {
       </div>
 
       {/* Funnel View */}
-      {viewMode === 'funnel' && pipelineArray.length > 0 && (
+      {viewMode === 'funnel' && (
         <div className="card">
           <h2 className="text-xl font-bold mb-4 bg-gradient-to-r from-primary-600 to-info-600 bg-clip-text text-transparent">قیف فروش</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={pipelineArray}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
-                <XAxis dataKey="stage" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" fill="#6366f1">
-                  {pipelineArray.map((entry: any, index: number) => (
-                    <Cell key={`cell-${index}`} fill={getStageColor(entry.stage).split(' ')[0].replace('bg-', '')} />
-                  ))}
-                </Bar>
-              </BarChart>
+              {pipelineArray.length > 0 ? (
+                <BarChart data={pipelineArray}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
+                  <XAxis dataKey="stage" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#6366f1">
+                    {pipelineArray.map((entry: any, index: number) => (
+                      <Cell key={`cell-${index}`} fill={getStageColor(entry.stage).split(' ')[0].replace('bg-', '')} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              ) : (
+                <div className="flex items-center justify-center h-full text-neutral-500">داده‌ای وجود ندارد</div>
+              )}
             </ResponsiveContainer>
             <div className="space-y-4">
               {pipelineArray.map((stage: any) => (
