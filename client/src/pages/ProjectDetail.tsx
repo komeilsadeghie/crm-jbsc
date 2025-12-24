@@ -1334,25 +1334,25 @@ const ProjectDetail = () => {
         )}
 
         {/* Task Modal */}
-            {showTaskModal && (
-              <TaskModal
-                task={editingTask}
-                projectId={id}
-                projectStatus={project?.status}
-                users={users || []}
-                onClose={() => {
-                  setShowTaskModal(false);
-                  setEditingTask(null);
-                }}
-                onSave={(data: any) => {
-                  if (editingTask) {
-                    updateTaskMutation.mutate({ id: editingTask.id, data });
-                  } else {
-                    createTaskMutation.mutate(data);
-                  }
-                }}
-              />
-            )}
+        {showTaskModal && (
+          <TaskModal
+            task={editingTask}
+            projectId={id}
+            projectStatus={project?.status}
+            users={users || []}
+            onClose={() => {
+              setShowTaskModal(false);
+              setEditingTask(null);
+            }}
+            onSave={(data: any) => {
+              if (editingTask) {
+                updateTaskMutation.mutate({ id: editingTask.id, data });
+              } else {
+                createTaskMutation.mutate(data);
+              }
+            }}
+          />
+        )}
 
         {/* Discussion Modal */}
         {showDiscussionModal && (
