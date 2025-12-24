@@ -117,15 +117,15 @@ const Dashboard = () => {
       </div>
 
       {/* Sales Pipeline */}
-      {pipeline && pipeline.length > 0 && (
-        <div className="card">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">قیف فروش</h2>
-            <Link to="/deals" className="text-primary-600 hover:underline text-sm">
-              مشاهده همه →
-            </Link>
-          </div>
-          <ResponsiveContainer width="100%" height={300}>
+      <div className="card">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">قیف فروش</h2>
+          <Link to="/deals" className="text-primary-600 hover:underline text-sm">
+            مشاهده همه →
+          </Link>
+        </div>
+        <ResponsiveContainer width="100%" height={300}>
+          {pipeline && pipeline.length > 0 ? (
             <BarChart data={pipeline}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="stage" />
@@ -133,9 +133,11 @@ const Dashboard = () => {
               <Tooltip />
               <Bar dataKey="count" fill="#0ea5e9" />
             </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
+          ) : (
+            <div className="flex items-center justify-center h-full text-neutral-500">داده‌ای وجود ندارد</div>
+          )}
+        </ResponsiveContainer>
+      </div>
 
       {/* Role-specific KPIs */}
       {roleKpis && (

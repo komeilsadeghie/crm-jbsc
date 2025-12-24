@@ -795,11 +795,11 @@ const GoalsList = ({ goals, customers, onEdit, onDelete }: any) => {
 
   return (
     <div className="w-full h-full flex flex-col space-y-4">
-      {chartData.length > 0 && (
-        <div className="card p-4 sm:p-6 mb-4 sm:mb-6 overflow-x-auto">
-          <h3 className="text-base sm:text-lg font-bold mb-4">نمودار پیشرفت اهداف</h3>
-          <div className="w-full" style={{ minWidth: '300px' }}>
-            <ResponsiveContainer width="100%" height={250}>
+      <div className="card p-4 sm:p-6 mb-4 sm:mb-6 overflow-x-auto">
+        <h3 className="text-base sm:text-lg font-bold mb-4">نمودار پیشرفت اهداف</h3>
+        <div className="w-full" style={{ minWidth: '300px' }}>
+          <ResponsiveContainer width="100%" height={250}>
+            {chartData.length > 0 ? (
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
@@ -808,10 +808,12 @@ const GoalsList = ({ goals, customers, onEdit, onDelete }: any) => {
                 <Legend />
                 <Bar dataKey="پیشرفت (%)" fill="#6366F1" />
               </BarChart>
-            </ResponsiveContainer>
-          </div>
+            ) : (
+              <div className="flex items-center justify-center h-full text-neutral-500">داده‌ای برای نمایش وجود ندارد</div>
+            )}
+          </ResponsiveContainer>
         </div>
-      )}
+      </div>
       <div className="flex-1 overflow-y-auto overflow-x-hidden pr-2 -mr-2" style={{ maxHeight: 'calc(100vh - 300px)' }}>
         <div className="space-y-4 pb-4">
           {goalsArray.map((goal: any) => {

@@ -411,7 +411,8 @@ const ProjectDetail = () => {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto p-6">
-        {activeTab === 'overview' && (
+        {/* Overview Tab - Always render ResponsiveContainer to avoid hook order issues */}
+        <div style={{ display: activeTab === 'overview' ? 'block' : 'none' }}>
           <div className="glass-card relative">
             {/* Vertical Divider */}
             <div className="hidden lg:block absolute top-0 bottom-0 left-1/2 w-px bg-neutral-300 dark:bg-neutral-700 transform -translate-x-1/2 z-10" />
@@ -664,26 +665,30 @@ const ProjectDetail = () => {
                   </div>
                   <div className="card p-3">
                     <ResponsiveContainer width="100%" height={200}>
-                      <BarChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                        <XAxis dataKey="name" stroke="#6b7280" />
-                        <YAxis stroke="#6b7280" />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'rgba(255, 255, 255, 0.9)', 
-                            border: '1px solid rgba(255, 255, 255, 0.3)',
-                            borderRadius: '8px'
-                          }} 
-                        />
-                        <Bar dataKey="hours" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-                      </BarChart>
+                      {chartData && chartData.length > 0 ? (
+                        <BarChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                          <XAxis dataKey="name" stroke="#6b7280" />
+                          <YAxis stroke="#6b7280" />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'rgba(255, 255, 255, 0.9)', 
+                              border: '1px solid rgba(255, 255, 255, 0.3)',
+                              borderRadius: '8px'
+                            }} 
+                          />
+                          <Bar dataKey="hours" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-neutral-500">داده‌ای وجود ندارد</div>
+                      )}
                     </ResponsiveContainer>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        )}
+        </div>
 
         {activeTab === 'tasks' && (
           <div className="space-y-4">
@@ -1330,25 +1335,25 @@ const ProjectDetail = () => {
         )}
 
         {/* Task Modal */}
-            {showTaskModal && (
-              <TaskModal
-                task={editingTask}
-                projectId={id}
-                projectStatus={project?.status}
-                users={users || []}
-                onClose={() => {
-                  setShowTaskModal(false);
-                  setEditingTask(null);
-                }}
-                onSave={(data: any) => {
-                  if (editingTask) {
-                    updateTaskMutation.mutate({ id: editingTask.id, data });
-                  } else {
-                    createTaskMutation.mutate(data);
-                  }
-                }}
-              />
-            )}
+        {showTaskModal && (
+          <TaskModal
+            task={editingTask}
+            projectId={id}
+            projectStatus={project?.status}
+            users={users || []}
+            onClose={() => {
+              setShowTaskModal(false);
+              setEditingTask(null);
+            }}
+            onSave={(data: any) => {
+              if (editingTask) {
+                updateTaskMutation.mutate({ id: editingTask.id, data });
+              } else {
+                createTaskMutation.mutate(data);
+              }
+            }}
+          />
+        )}
 
         {/* Discussion Modal */}
         {showDiscussionModal && (

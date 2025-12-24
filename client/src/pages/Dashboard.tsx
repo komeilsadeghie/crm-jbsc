@@ -820,8 +820,8 @@ const Dashboard = () => {
                 <h3 className="heading-4 text-neutral-800 dark:text-neutral-200">خلاصه سرنخ‌ها</h3>
                 <Link to="/leads" className="body-small text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors">مشاهده همه</Link>
               </div>
-              {leadsOverview.length > 0 ? (
-                <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={200}>
+                {leadsOverview.length > 0 ? (
                   <RechartsPieChart>
                     <Pie
                       data={leadsOverview}
@@ -839,10 +839,10 @@ const Dashboard = () => {
                     </Pie>
                     <Tooltip />
                   </RechartsPieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="text-center py-8 text-neutral-500 dark:text-neutral-400">داده‌ای وجود ندارد</div>
-              )}
+                ) : (
+                  <div className="text-center py-8 text-neutral-500 dark:text-neutral-400" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>داده‌ای وجود ندارد</div>
+                )}
+              </ResponsiveContainer>
             </div>
 
             {/* Project Status Chart */}
@@ -851,8 +851,8 @@ const Dashboard = () => {
                 <h3 className="heading-4 text-neutral-800 dark:text-neutral-200">آمار بر اساس وضعیت پروژه</h3>
                 <Link to="/projects" className="body-small text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors">مشاهده همه</Link>
               </div>
-              {projectStatus.length > 0 ? (
-                <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={200}>
+                {projectStatus.length > 0 ? (
                   <RechartsPieChart>
                     <Pie
                       data={projectStatus}
@@ -870,10 +870,10 @@ const Dashboard = () => {
                     </Pie>
                     <Tooltip />
                   </RechartsPieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="text-center py-8 text-neutral-500 dark:text-neutral-400">داده‌ای وجود ندارد</div>
-              )}
+                ) : (
+                  <div className="text-center py-8 text-neutral-500 dark:text-neutral-400" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>داده‌ای وجود ندارد</div>
+                )}
+              </ResponsiveContainer>
             </div>
 
             {/* Tickets by Status */}
@@ -882,8 +882,8 @@ const Dashboard = () => {
                 <h3 className="heading-4 text-neutral-800 dark:text-neutral-200">تیکت‌های در انتظار پاسخ بر اساس وضعیت</h3>
                 <Link to="/tickets" className="body-small text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors">مشاهده همه</Link>
               </div>
-              {ticketStatus.length > 0 ? (
-                <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={200}>
+                {ticketStatus.length > 0 ? (
                   <RechartsPieChart>
                     <Pie
                       data={ticketStatus}
@@ -901,10 +901,10 @@ const Dashboard = () => {
                     </Pie>
                     <Tooltip />
                   </RechartsPieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="text-center py-8 text-neutral-500 dark:text-neutral-400">داده‌ای وجود ندارد</div>
-              )}
+                ) : (
+                  <div className="text-center py-8 text-neutral-500 dark:text-neutral-400" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>داده‌ای وجود ندارد</div>
+                )}
+              </ResponsiveContainer>
             </div>
 
             {/* Tickets by Department */}
@@ -913,8 +913,8 @@ const Dashboard = () => {
                 <h3 className="heading-4 text-neutral-800 dark:text-neutral-200">تیکت‌های در انتظار پاسخ بر اساس دپارتمان</h3>
                 <Link to="/tickets" className="body-small text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors">مشاهده همه</Link>
               </div>
-              {ticketDepartments.length > 0 ? (
-                <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={200}>
+                {ticketDepartments.length > 0 ? (
                   <RechartsPieChart>
                     <Pie
                       data={ticketDepartments}
@@ -932,10 +932,10 @@ const Dashboard = () => {
                     </Pie>
                     <Tooltip />
                   </RechartsPieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="text-center py-8 text-neutral-500 dark:text-neutral-400">داده‌ای وجود ندارد</div>
-              )}
+                ) : (
+                  <div className="text-center py-8 text-neutral-500 dark:text-neutral-400" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>داده‌ای وجود ندارد</div>
+                )}
+              </ResponsiveContainer>
             </div>
 
             {/* Goals */}

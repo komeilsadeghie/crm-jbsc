@@ -263,19 +263,23 @@ const Reports = () => {
         {/* Charts */}
         {isLoading ? (
           <div className="text-center py-12 text-gray-500">در حال بارگذاری...</div>
-        ) : chartData.length > 0 ? (
+        ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Bar Chart */}
             <div className="glass-card">
               <h3 className="text-lg font-bold mb-4">نمودار میله‌ای</h3>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#6366F1" />
-                </BarChart>
+                {chartData.length > 0 ? (
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="#6366F1" />
+                  </BarChart>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-500">داده‌ای برای نمایش وجود ندارد</div>
+                )}
               </ResponsiveContainer>
             </div>
 
@@ -283,13 +287,17 @@ const Reports = () => {
             <div className="glass-card">
               <h3 className="text-lg font-bold mb-4">نمودار خطی</h3>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="value" stroke="#10B981" strokeWidth={2} />
-                </LineChart>
+                {chartData.length > 0 ? (
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="value" stroke="#10B981" strokeWidth={2} />
+                  </LineChart>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-500">داده‌ای برای نمایش وجود ندارد</div>
+                )}
               </ResponsiveContainer>
             </div>
 
@@ -297,30 +305,30 @@ const Reports = () => {
             <div className="glass-card lg:col-span-2">
               <h3 className="text-lg font-bold mb-4">توزیع</h3>
               <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={chartData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
+                {chartData.length > 0 ? (
+                  <PieChart>
+                    <Pie
+                      data={chartData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {chartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-500">داده‌ای برای نمایش وجود ندارد</div>
+                )}
               </ResponsiveContainer>
             </div>
-          </div>
-        ) : (
-          <div className="glass-card text-center py-12 text-gray-500">
-            داده‌ای برای نمایش وجود ندارد
           </div>
         )}
 
