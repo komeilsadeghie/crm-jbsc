@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -65,10 +65,21 @@ const ProfileForm = ({ profile }: { profile: any }) => {
   const queryClient = useQueryClient();
   const toast = useToast();
   const [formData, setFormData] = useState({
-    full_name: profile?.full_name || profile?.fullName || '',
-    email: profile?.email || '',
-    phone: profile?.phone || '',
+    full_name: '',
+    email: '',
+    phone: '',
   });
+
+  // Update form data when profile changes
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        full_name: profile?.full_name || profile?.fullName || '',
+        email: profile?.email || '',
+        phone: profile?.phone || '',
+      });
+    }
+  }, [profile]);
 
   const mutation = useMutation(
     (data: any) => api.put('/profile/me', data),
