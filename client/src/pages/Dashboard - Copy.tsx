@@ -117,7 +117,7 @@ const Dashboard = () => {
       </div>
 
       {/* Sales Pipeline */}
-      {pipeline && pipeline.length > 0 && (
+      {pipeline && (
         <div className="card">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">قیف فروش</h2>
@@ -126,13 +126,17 @@ const Dashboard = () => {
             </Link>
           </div>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={pipeline}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="stage" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="count" fill="#0ea5e9" />
-            </BarChart>
+            {pipeline.length > 0 ? (
+              <BarChart data={pipeline}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="stage" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="count" fill="#0ea5e9" />
+              </BarChart>
+            ) : (
+              <div className="flex items-center justify-center h-full text-neutral-500">داده‌ای وجود ندارد</div>
+            )}
           </ResponsiveContainer>
         </div>
       )}
