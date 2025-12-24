@@ -411,6 +411,7 @@ const ProjectDetail = () => {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto p-6">
+        {/* Overview Tab - Always render ResponsiveContainer to avoid hook order issues */}
         <div style={{ display: activeTab === 'overview' ? 'block' : 'none' }}>
           <div className="glass-card relative">
             {/* Vertical Divider */}
