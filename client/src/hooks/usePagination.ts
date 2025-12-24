@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 
 interface UsePaginationProps {
   totalItems: number;
@@ -17,7 +17,7 @@ export const usePagination = ({
   const endIndex = startIndex + itemsPerPage;
 
   // Reset to page 1 if current page is out of bounds
-  useMemo(() => {
+  useEffect(() => {
     if (currentPage > totalPages && totalPages > 0) {
       setCurrentPage(1);
     }
