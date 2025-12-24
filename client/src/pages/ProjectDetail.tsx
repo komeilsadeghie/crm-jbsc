@@ -687,7 +687,7 @@ const ProjectDetail = () => {
               </div>
             </div>
           </div>
-        )}
+        </div>
 
         {activeTab === 'tasks' && (
           <div className="space-y-4">
